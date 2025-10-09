@@ -11,7 +11,7 @@ export default function UserManagementPage() {
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const response = await apiClient.get('/users');
+        const response = await apiClient.get('/api/users');
         setUsers(response.data.data); // Simpan data user ke state
       } catch (err) {
         setError('Gagal memuat data pengguna.');

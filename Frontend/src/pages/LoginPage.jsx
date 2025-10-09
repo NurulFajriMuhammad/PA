@@ -1,29 +1,44 @@
-// src/pages/LoginPage.jsx
 import React, { useState } from 'react';
-// import apiClient from '../api/axios'; // Akan kita gunakan nanti
+import { useNavigate } from 'react-router-dom';
+// import apiClient from '../api/axios';
+import apiClient, { getCsrfCookie } from '../api/axios';
+
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
-    console.log('Mencoba login dengan:', { email, password });
-    
-    // Nanti di sini kita akan panggil API backend
-    // try {
-    //   // const response = await apiClient.post('/login', { email, password });
-    //   // console.log(response.data); // Di sini akan ada token
-    // } catch (err) {
-    //   setError('Email atau password salah.');
-    // } finally {
-    //   setLoading(false);
-    // }
-  };
+const handleLogin = async (e) => {
+  e.preventDefault();
+  setError('');
+  setLoading(true);
+
+  try {
+    await getCsrfCookie();
+
+    const res = await apiClient.post('/api/login', {
+      email,
+      password,
+    });
+
+    console.log('Login sukses:', res.data);
+
+    navigate('/admin/users'); 
+  } catch (err) {
+    console.error('Error saat login:', err);
+    if (err.response && err.response.status === 422) {
+      setError('Email atau password salah.');
+    } else {
+      setError('Terjadi kesalahan koneksi ke server.');
+    }
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100">
