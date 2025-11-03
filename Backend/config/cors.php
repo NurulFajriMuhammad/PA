@@ -28,10 +28,11 @@ return [
 
     'allowed_methods' => ['*'],
     
-    'allowed_origins' => [
-        env('FRONTEND_URL', 'http://localhost:5174'),
-        'http://192.168.0.27:5174' // Tambahkan IP lokal Anda
-    ],
+    // 'allowed_origins' => [
+    //     env('FRONTEND_URL', 'http://localhost:5174'),
+    //     'http://192.168.0.27:5174', 'http://192.168.0.31:5173'
+    // ],
+    'allowed_origins' => ['http://192.168.0.33:5176', 'http://192.168.1.9:5173',],
     // 'allowed_origins' => ['http://192.168.0.27:5174'],
     // 'allowed_origins' => ['http://localhost:5173', 'http://192.168.1.5:5173', 'http://192.168.0.27:5174',],
     // 'allowed_origins' => [

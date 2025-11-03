@@ -18,6 +18,7 @@ const handleLogin = async (e) => {
 
   try {
     await getCsrfCookie();
+    console.log('CSRF cookie didapatkan');
 
     const res = await apiClient.post('/api/login', {
       email,
