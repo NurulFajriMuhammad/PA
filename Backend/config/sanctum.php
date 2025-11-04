@@ -26,7 +26,7 @@ return [
 
     'stateful' => explode(',', env(
         'SANCTUM_STATEFUL_DOMAINS',
-        'localhost,localhost:3000,127.0.0.1,127.0.0.1:3000,192.168.0.31:5173,192.168.0.31,::1'
+        'localhost,localhost:3000,127.0.0.1,127.0.0.1:3000,192.168.0.31:5173,::1,192.168.0.24:5175,192.168.0.24:8000,192.168.0.24'
     )),
 
 
@@ -86,7 +86,7 @@ return [
     'middleware' => [
         'authenticate_session' => Laravel\Sanctum\Http\Middleware\AuthenticateSession::class,
         'encrypt_cookies' => Illuminate\Cookie\Middleware\EncryptCookies::class,
-        'validate_csrf_token' => Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class,
+        'validate_csrf_token' => App\Http\Middleware\ValidateCsrfToken::class,
     ],
 
 ];

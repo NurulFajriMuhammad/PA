@@ -13,35 +13,86 @@ export default function LoginPage() {
   const navigate = useNavigate();
   const { setUser } = useAuth();
 
+  //  const handleLogin = async (e) => {
+  //   e.preventDefault();
+  //   setError('');
+  //   setLoading(true);
+
+  //   try {
+  //     await getCsrfCookie();
+  //     console.log('CSRF cookie didapatkan');
+
+  //     await apiClient.post('/api/login', {
+  //       email,
+  //       password,
+  //     });
+
+  //     const response = await apiClient.get('/api/user');
+  //     setUser(response.data);
+  //     navigate('/');
+
+  //   } catch (err) {
+  //     console.error('Error saat login:', err);
+  //     if (err.response && (err.response.status === 422 || err.response.status === 401)) {
+  //       setError('Email atau password salah. Silakan coba lagi.');
+  //     } else {
+  //       setError('Terjadi kesalahan koneksi ke server. Periksa koneksi Anda.');
+  //     }
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
+
   const handleLogin = async (e) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
+  e.preventDefault();
+  setError('');
+  setLoading(true);
 
-    try {
-      await getCsrfCookie();
-      console.log('CSRF cookie didapatkan');
+  try {
+    // 1️⃣ Ambil cookie CSRF dulu
+    await getCsrfCookie();
+    console.log('CSRF cookie didapatkan');
 
-      await apiClient.post('/api/login', {
-        email,
-        password,
-      });
+    // 2️⃣ Ambil token XSRF dari cookie (opsional, tapi aman)
+    const token = document.cookie
+      .split('; ')
+      .find(row => row.startsWith('XSRF-TOKEN='))
+      ?.split('=')[1];
 
-      const response = await apiClient.get('/api/user');
-      setUser(response.data);
-      navigate('/');
-
-    } catch (err) {
-      console.error('Error saat login:', err);
-      if (err.response && (err.response.status === 422 || err.response.status === 401)) {
-        setError('Email atau password salah. Silakan coba lagi.');
-      } else {
-        setError('Terjadi kesalahan koneksi ke server. Periksa koneksi Anda.');
+    // 3️⃣ Kirim login dengan credentials dan token
+    const loginResponse = await apiClient.post(
+      '/api/login',
+      { email, password },
+      {
+        withCredentials: true,
+        headers: {
+          'X-XSRF-TOKEN': decodeURIComponent(token || ''),
+        },
       }
-    } finally {
-      setLoading(false);
+    );
+
+    console.log('Login sukses:', loginResponse.data);
+
+    // 4️⃣ Ambil data user
+    const userResponse = await apiClient.get('/api/user');
+    setUser(userResponse.data);
+
+    navigate('/');
+  } catch (err) {
+    console.error('Error saat login:', err);
+    if (err.response && (err.response.status === 422 || err.response.status === 401)) {
+      setError('Email atau password salah. Silakan coba lagi.');
+    } else if (err.response && err.response.status === 419) {
+      setError('Session expired atau CSRF token tidak valid. Refresh halaman lalu coba lagi.');
+    } else {
+      setError('Terjadi kesalahan koneksi ke server. Periksa koneksi Anda.');
     }
-  };
+  } finally {
+    setLoading(false);
+  }
+};
+
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-slate-100 flex items-center justify-center p-4">
@@ -164,7 +215,7 @@ export default function LoginPage() {
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
-                    disabled={loading}
+
                   >
                     {showPassword ? (
                       <EyeOff className="w-5 h-5" />
@@ -185,9 +236,6 @@ export default function LoginPage() {
                   />
                   <span className="text-slate-600">Ingat saya</span>
                 </label>
-                <a href="#" className="text-blue-600 hover:text-blue-700 font-medium transition-colors">
-                  Lupa password?
-                </a>
               </div>
 
               {/* Submit Button */}
@@ -210,25 +258,11 @@ export default function LoginPage() {
               </button>
             </form>
 
-            {/* Divider & Sign Up Link */}
-            <div className="mt-6 pt-6 border-t border-slate-200">
-              <p className="text-center text-sm text-slate-600">
-                Belum punya akun?{' '}
-                <a href="#" className="text-blue-600 hover:text-blue-700 font-medium transition-colors">
-                  Hubungi Administrator
-                </a>
-              </p>
-            </div>
           </div>
 
           {/* Footer */}
           <div className="mt-6 text-center text-sm text-slate-600">
             <p>© 2025 Audit Management System. All rights reserved.</p>
-            <div className="mt-2 space-x-4">
-              <a href="#" className="hover:text-slate-800 transition-colors">Kebijakan Privasi</a>
-              <span>•</span>
-              <a href="#" className="hover:text-slate-800 transition-colors">Syarat & Ketentuan</a>
-            </div>
           </div>
         </div>
       </div>
