@@ -1,50 +1,63 @@
-import React, { useState } from 'react'; // <-- 1. Import useState
-import { Outlet } from 'react-router-dom';
+import React, { useState } from 'react';
+import { Outlet, Navigate } from 'react-router-dom'; // <-- 1. IMPORT NAVIGATE
 import Sidebar from './Sidebar';
+import TopHeader from './TopHeader';
+import { useAuth } from '../hooks/useAuth';
+
 
 export default function MainLayout() {
-  // 2. Buat state untuk melacak status sidebar
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const { user } = useAuth(); // <-- 3. AMBIL USER DARI CONTEXT
 
-  // 3. Buat fungsi untuk mengubah state
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
   };
 
+  // 4. JIKA TIDAK ADA USER (BELUM LOGIN), ARAHKAN KE /LOGIN
+  if (!user) {
+    // replace: mengganti histori agar tidak bisa "back" ke dashboard
+    return <Navigate to="/login" replace />; 
+  }
+
+  // 5. Jika ada user, tampilkan layout
   return (
     <>
       <style>
         {`
           .layout-container {
             display: flex;
+            background-color: #f4f7f6;
           }
-
-          .main-content {
-            /* 4. Hapus margin-left dari sini */
-            padding: 20px;
+          .content-wrapper {
+            display: flex;
+            flex-direction: column;
             width: 100%;
             min-height: 100vh;
-            background-color: #f4f7f6;
-            /* 5. Tambahkan transisi yang mulus */
+            margin-left: ${isSidebarOpen ? '250px' : '80px'};
             transition: margin-left 0.3s ease-out;
+          }
+          .main-content {
+            padding: 20px;
+            width: 100%;
+            flex-grow: 1;
           }
         `}
       </style>
 
       <div className="layout-container">
-        {/* 6. Kirim state dan fungsi sebagai props ke Sidebar */}
         <Sidebar 
           isSidebarOpen={isSidebarOpen} 
           toggleSidebar={toggleSidebar} 
         />
         
-        <main 
-          className="main-content"
-          // 7. Atur margin-left secara dinamis di sini
-          style={{ marginLeft: isSidebarOpen ? '250px' : '80px' }}
-        >
-          <Outlet /> 
-        </main>
+        <div className="content-wrapper">
+          {/* 6. TopHeader akan mengambil data user sendiri */}
+          <TopHeader /> 
+          
+          <main className="main-content">
+            <Outlet /> 
+          </main>
+        </div>
       </div>
     </>
   );
