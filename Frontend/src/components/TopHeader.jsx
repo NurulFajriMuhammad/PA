@@ -1,148 +1,266 @@
-import React from 'react';
-import { useAuth } from '../hooks/useAuth';
+import React, { useState, useEffect, useRef } from "react";
+import { Link } from "react-router-dom";
+import { useAuth } from "../hooks/useAuth";
+import { 
+  BsGridFill, 
+  BsBellFill, 
+  BsQuestionCircleFill,
+  BsPersonFill,
+  BsBoxArrowRight 
+} from 'react-icons/bs';
 
 export default function TopHeader() {
-  const { user, logout } = useAuth(); // <-- 2. AMBIL USER & FUNGSI LOGOUT
+  const { user, logout } = useAuth();
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef(null);
 
   if (!user) {
     return null;
   }
-  
-  // 3. Ambil role name (dari kode UserManagement Anda, rolenya ada di array)
-  const userRole = user.roles && user.roles.length > 0 
-    ? user.roles[0].name 
-    : 'User'; // Fallback jika tidak punya role
+
+  const userRole =
+    user.roles && user.roles.length > 0 ? user.roles[0].name : "User";
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsDropdownOpen(false);
+      }
+    }
+    if (isDropdownOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isDropdownOpen]);
 
   return (
     <>
       <style>
         {`
-          /* ... (Semua CSS Anda sebelumnya tetap di sini) ... */
+          /* ... (CSS lama Anda, .top-header-container, .header-icons, .user-profile, dll. tetap sama) ... */
           .top-header-container {
             background-color: #ffffff;
             border-bottom: 1px solid #e0e0e0;
-            padding: 16px 24px;
+            padding: 16px 32px;
             display: flex;
             align-items: center;
-            justify-content: space-between; /* Mendorong user info ke kanan */
-            height: 70px; /* Memberi tinggi yang tetap */
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            justify-content: space-between;
+            height: 70px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            position: sticky;
+            top: 0;
+            z-index: 900;
           }
 
           .header-title {
-            font-size: 1.5em; /* 24px */
-            font-weight: 600;
+            font-size: 1.5em;
+            font-weight: 700;
             color: #333;
-            /* Judul "Aplikasi Consulting" dari contoh Anda */
-            /* Jika Anda ingin judul halaman (spt Dashboard) di sini, 
-               kita perlu ubah logic-nya nanti */
+            letter-spacing: 0.3px;
           }
 
           .header-actions {
             display: flex;
             align-items: center;
-            gap: 20px; /* Jarak antar icon dan user */
+            gap: 24px;
           }
           
           .header-icons {
             display: flex;
             align-items: center;
             gap: 16px;
-            font-size: 1.4em; /* Ukuran icon */
+            font-size: 1.3em;
             color: #555;
           }
 
           .header-icons span {
             cursor: pointer;
-            transition: color 0.2s;
+            transition: all 0.3s ease;
+            padding: 8px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
           }
+          
           .header-icons span:hover {
+            background-color: #f5f5f5;
             color: #007bff;
+            transform: translateY(-2px);
           }
 
           .user-profile {
             display: flex;
             align-items: center;
             gap: 12px;
+            padding: 6px 8px 6px 16px;
+            border-radius: 50px;
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            transition: all 0.3s ease;
+            cursor: pointer;
+          }
+
+          .user-profile:hover {
+            background-color: #e9ecef;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
           }
 
           .user-info {
             text-align: right;
+            pointer-events: none;
           }
 
           .user-info .user-name {
             font-weight: 600;
             color: #333;
+            font-size: 0.95em;
+            margin-bottom: 2px;
           }
 
           .user-info .user-role {
-            font-size: 0.85em;
+            font-size: 0.8em;
             color: #777;
+            text-transform: capitalize;
           }
           
           .user-avatar {
             width: 40px;
             height: 40px;
             border-radius: 50%;
-            background-color: #ddd;
+            background-color: #007bff;
+            border: 2px solid #ffffff;
+            color: white;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.2em;
-            font-weight: bold;
+            font-size: 1.1em;
+            font-weight: 700;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 6px rgba(0, 123, 255, 0.3);
+            pointer-events: none;
+          }
+
+          /* --- PENYESUAIAN UKURAN DROPDOWN DI SINI --- */
+
+          .user-menu-container {
+            position: relative;
+          }
+
+          .user-dropdown {
+            position: absolute;
+            top: calc(100% + 8px); 
+            right: 0;
+            
+            width: 140px; /* <-- DIKECILKAN dari 220px */
+            
+            background-color: #ffffff;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+            z-index: 1100;
+            padding: 6px 0; /* <-- DIKECILKAN dari 8px 0 */
+            overflow: hidden;
+            animation: fadeIn 0.2s ease-out;
+          }
+
+          @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+          }
+
+          .dropdown-item {
+            display: flex;
+            align-items: center;
+            gap: 10px; /* <-- DIKECILKAN dari 12px */
+            padding: 4px 8px; /* <-- DIKECILKAN dari 10px 16px */
+            font-size: 0.9em; /* <-- DIKECILKAN dari 0.95em */
+            color: #333;
+            text-decoration: none; 
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+          }
+          
+          .dropdown-item:hover {
+            background-color: #f5f5f5;
+          }
+          
+          .dropdown-item .item-icon {
+            font-size: 1em; /* <-- DIKECILKAN dari 1.1em */
             color: #555;
-            /* Placeholder untuk icon user */
+            width: 10px; /* <-- DIKECILKAN dari 20px */
+            text-align: center;
           }
-          .top-header-container {
-            background-color: #ffffff; border-bottom: 1px solid #e0e0e0;
-            padding: 16px 24px; display: flex; align-items: center;
-            justify-content: space-between; height: 70px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+
+          .dropdown-divider {
+            height: 1px;
+            background-color: #f0f0f0;
+            margin: 4px 0; /* <-- DIKECILKAN dari 8px 0 */
           }
-          .header-title { font-size: 1.5em; font-weight: 600; color: #333; }
-          .header-actions { display: flex; align-items: center; gap: 20px; }
-          .header-icons { display: flex; align-items: center; gap: 16px; font-size: 1.4em; color: #555; }
-          .header-icons span { cursor: pointer; transition: color 0.2s; }
-          .header-icons span:hover { color: #007bff; }
-          .user-profile { display: flex; align-items: center; gap: 12px; }
-          .user-info { text-align: right; }
-          .user-info .user-name { font-weight: 600; color: #333; }
-          .user-info .user-role { font-size: 0.85em; color: #777; }
-          .user-avatar {
-            width: 40px; height: 40px; border-radius: 50%;
-            background-color: #007bff; /* Ganti warna avatar */
-            color: white; /* Ganti warna teks inisial */
-            display: flex; align-items: center; justify-content: center;
-            font-size: 1.2em; font-weight: bold;
-            cursor: pointer; /* Tambah cursor untuk logout */
+
+          .dropdown-item.logout-item:hover {
+             background-color: #FFF0F0;
+             color: #D93025;
+          }
+
+          .dropdown-item.logout-item:hover .item-icon {
+            color: #D93025;
+          }
+
+          /* ... (Sisa CSS responsive Anda) ... */
+          @media (max-width: 768px) {
+            /* ... (CSS responsive tetap sama) ... */
           }
         `}
       </style>
 
       <header className="top-header-container">
-        <div className="header-title">
-          AuditApp
-        </div>
-        
+        <div className="header-title">AuditApp</div>
+
         <div className="header-actions">
           <div className="header-icons">
-            <span>Grid</span>
-            <span>🔔</span>
-            <span>❓</span>
-          </div>
-          
-          <div className="user-profile">
-            <div className="user-info">
-              {/* 4. TAMPILKAN DATA DINAMIS */}
-              <div className="user-name">{user.name}</div>
-              <div className="user-role">{userRole}</div>
-            </div>
-            {/* 5. Avatar (klik untuk logout) */}
-            <div className="user-avatar" onClick={logout} title="Logout">
-              {user.name.substring(0, 1).toUpperCase()}
-            </div>
+            <span title="Grid"><BsGridFill /></span>
+            <span title="Notifications"><BsBellFill /></span>
+            <span title="Help"><BsQuestionCircleFill /></span>
           </div>
 
+          <div className="user-menu-container" ref={dropdownRef}>
+            <div 
+              className="user-profile" 
+              onClick={() => setIsDropdownOpen(prev => !prev)}
+            >
+              <div className="user-info">
+                <div className="user-name">{user?.name || "User"}</div>
+                <div className="user-role">{userRole}</div>
+              </div>
+              <div className="user-avatar" title="Buka menu user">
+                {user?.name ? user.name.substring(0, 1).toUpperCase() : "U"}
+              </div>
+            </div>
+
+            {isDropdownOpen && (
+              <div className="user-dropdown">
+                <Link 
+                  to="/profile" 
+                  className="dropdown-item" 
+                  onClick={() => setIsDropdownOpen(false)}
+                >
+                  <span className="item-icon"><BsPersonFill /></span>
+                  <span className="item-text">Profile</span>
+                </Link>
+                <div className="dropdown-divider"></div>
+                <div 
+                  className="dropdown-item logout-item" 
+                  onClick={logout}
+                >
+                  <span className="item-icon"><BsBoxArrowRight /></span>
+                  <span className="item-text">Logout</span>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </header>
     </>

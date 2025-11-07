@@ -1,318 +1,360 @@
-import React, { useState, useEffect } from 'react'; // <-- Import hook
-import apiClient from '../api/axios'; // <-- Import apiClient Anda
+import React, { useState, useEffect } from 'react';
+// import apiClient from '../api/axios'; 
+
+// 1. IMPORT CHART.JS
+import { Line } from 'react-chartjs-2';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler 
+} from 'chart.js';
+
+// 2. IMPORT SEMUA IKON YANG DIPERLUKAN
+import { 
+  BsBarChartFill, 
+  BsClockHistory, 
+  BsSearch, 
+  BsCheckCircleFill,
+  BsPlusLg,
+  BsExclamationTriangleFill, // <-- Ikon baru
+  BsInfoCircleFill           // <-- Ikon baru
+} from 'react-icons/bs';
+
+// 3. DAFTARKAN KOMPONEN CHART.JS
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler
+);
+
+// Data dummy untuk 4 GARIS TREN (12 Bulan)
+const dummyTrendData = {
+  labels: ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des'],
+  auditsCreated: [10, 12, 15, 14, 18, 20, 22, 25, 23, 28, 30, 32],
+  auditsOngoing: [2, 3, 2, 4, 3, 5, 4, 3, 5, 6, 4, 5],
+  findingsFound: [15, 20, 18, 22, 25, 30, 28, 35, 40, 45, 50, 48],
+  auditsDone: [8, 10, 13, 12, 15, 18, 20, 22, 20, 25, 28, 30],
+};
+
+// Data dummy untuk 4 KOTAK (dihitung dari data tren)
+const calculatedStats = {
+  total_audit: dummyTrendData.auditsCreated.reduce((a, b) => a + b, 0),
+  audit_berlangsung: dummyTrendData.auditsOngoing[dummyTrendData.auditsOngoing.length - 1],
+  total_temuan: dummyTrendData.findingsFound.reduce((a, b) => a + b, 0),
+  audit_selesai: dummyTrendData.auditsDone.reduce((a, b) => a + b, 0),
+};
+
 
 export default function Dashboard() {
-  // 1. Buat state untuk menampung data statistik, loading, dan error
-  const [stats, setStats] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState(calculatedStats);
+  const [trend, setTrend] = useState(dummyTrendData);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Data placeholder untuk aktivitas terbaru (ini masih statis)
   const recentActivities = [
-    { id: 1, text: 'Audit A-123 telah disetujui.', time: '2 jam lalu' },
-    { id: 2, text: 'Temuan baru ditambahkan pada Audit B-456.', time: '5 jam lalu' },
-    { id: 3, text: 'Auditee (User X) mengirim pesan baru.', time: '1 hari lalu' },
+    { id: 1, text: 'Audit A-123 telah disetujui', time: '2 jam lalu', type: 'success' },
+    { id: 2, text: 'Temuan baru ditambahkan pada Audit B-456', time: '5 jam lalu', type: 'warning' },
+    { id: 3, text: 'Auditee (User X) mengirim pesan baru', time: '1 hari lalu', type: 'info' },
   ];
+  
+  // Data & Options untuk 4 GARIS LINE CHART
+  const lineChartData = {
+    labels: trend.labels,
+    datasets: [
+      {
+        label: 'Audit Dibuat',
+        data: trend.auditsCreated,
+        borderColor: '#3b82f6',
+        backgroundColor: 'rgba(59, 130, 246, 0.3)',
+        fill: true, // <-- Hanya 1 area
+        tension: 0.4,
+        pointRadius: 0,
+      },
+      {
+        label: 'Audit Berlangsung', 
+        data: trend.auditsOngoing,
+        borderColor: '#f59e0b',
+        fill: false, // <-- Garis
+        tension: 0.4,
+        pointRadius: 0,
+      },
+      {
+        label: 'Temuan Ditemukan', 
+        data: trend.findingsFound,
+        borderColor: '#ef4444',
+        fill: false, // <-- Garis
+        tension: 0.4,
+        pointRadius: 0,
+      },
+      {
+        label: 'Audit Selesai', 
+        data: trend.auditsDone,
+        borderColor: '#10b981',
+        fill: false, // <-- Garis
+        tension: 0.4,
+        pointRadius: 0,
+      },
+    ],
+  };
 
-  // 2. Gunakan useEffect untuk mengambil data saat komponen dimuat
-  useEffect(() => {
-    const fetchDashboardStats = async () => {
-      try {
-        setError(null); // Reset error
-        setLoading(true); // Mulai loading
-        
-        // Panggil endpoint API yang baru kita buat
-        const response = await apiClient.get('/api/dashboard-stats');
-        
-        if (response.data && response.data.success) {
-          setStats(response.data.data); // Simpan data ke state
-        } else {
-          setError('Gagal mengambil data statistik.');
-        }
-      } catch (err) {
-        console.error(err);
-        setError('Terjadi kesalahan koneksi ke server.');
-      } finally {
-        setLoading(false); // Selesai loading
-      }
-    };
+  const lineChartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { 
+        display: true, 
+        position: 'bottom', 
+        labels: { color: '#ecf0f1', padding: 25, font: { size: 14 } }
+      },
+      tooltip: { mode: 'index', intersect: false },
+    },
+    scales: {
+      x: {
+        grid: { display: false },
+        ticks: { color: '#9ca3af' }, 
+      },
+      y: {
+        beginAtZero: true,
+        grid: { color: 'rgba(255, 255, 255, 0.1)', borderColor: 'transparent' },
+        ticks: { color: '#9ca3af' }, 
+      },
+    },
+  };
 
-    fetchDashboardStats();
-  }, []); // [] berarti hanya dijalankan sekali saat komponen dimuat
-
-  // 3. Fungsi untuk render kartu statistik (agar lebih rapi)
-  const renderStatCards = () => {
-    if (loading) {
-      return (
-        // Tampilkan placeholder saat loading
-        <>
-          <div className="stat-card loading">Memuat...</div>
-          <div className="stat-card loading">Memuat...</div>
-          <div className="stat-card loading">Memuat...</div>
-          <div className="stat-card loading">Memuat...</div>
-        </>
-      );
+  // 4. FUNGSI UNTUK MEMILIH IKON AKTIVITAS
+  const getActivityIcon = (type) => {
+    switch (type) {
+      case 'success':
+        return <BsCheckCircleFill className="icon-success" />;
+      case 'warning':
+        return <BsExclamationTriangleFill className="icon-warning" />;
+      case 'info':
+        return <BsInfoCircleFill className="icon-info" />;
+      default:
+        return <BsInfoCircleFill className="icon-info" />;
     }
-    
-    if (error || !stats) {
-      return <p className="error-message">{error || 'Data statistik tidak tersedia.'}</p>;
-    }
-
-    // Tampilkan data dari state jika sukses
-    return (
-      <>
-        <div className="stat-card">
-          <h3>Total Audit</h3>
-          <p>{stats.total_audit}</p>
-        </div>
-        <div className="stat-card">
-          <h3>Audit Berlangsung</h3>
-          <p>{stats.audit_berlangsung}</p>
-        </div>
-        <div className="stat-card">
-          <h3>Temuan</h3>
-          <p>{stats.total_temuan}</p>
-        </div>
-        <div className="stat-card">
-          <h3>Selesai</h3>
-          <p>{stats.audit_selesai}</p>
-        </div>
-      </>
-    );
   };
 
   return (
     <>
       <style>
         {`
+          * { box-sizing: border-box; }
           .dashboard-container {
-            font-family: Arial, sans-serif;
-            padding: 24px;
-            max-width: 1200px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            padding: 32px;
+            max-width: 1400px;
             margin: 0 auto;
-            background-color: #f4f7f6;
+            background-color: #f8f9fa;
+            min-height: 100vh;
           }
+          .dashboard-header { margin-bottom: 32px; padding: 0; border: none; }
+          .dashboard-header h1 { margin: 0 0 8px 0; color: #1a1a1a; font-size: 2em; font-weight: 700; }
+          .dashboard-header p { margin: 0; font-size: 1em; color: #6b7280; font-weight: 400; }
 
-          .dashboard-header {
-            border-bottom: 2px solid #eee;
-            padding-bottom: 16px;
-            margin-bottom: 24px;
+          /* --- CSS KARTU GRAFIK UTAMA (TIDAK BERUBAH) --- */
+          .main-graphic-card {
+            background-color: #2c3e50; 
+            color: #ecf0f1; 
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+            margin-bottom: 32px;
           }
-
-          .dashboard-header h1 {
-            margin: 0;
-            color: #333;
-          }
-
-          .dashboard-header p {
-            margin: 4px 0 0;
-            font-size: 1.1em;
-            color: #555;
-          }
-
-          .stats-grid {
+          .snapshot-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
             gap: 20px;
             margin-bottom: 24px;
+            padding-bottom: 24px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
           }
-
-          .stat-card {
-            background-color: #ffffff;
-            border: 1px solid #ddd;
+          .snapshot-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
             border-radius: 8px;
-            padding: 20px;
-            text-align: center;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-            transition: transform 0.2s;
-          }
-
-          .stat-card:hover {
-            transform: translateY(-5px);
-          }
-
-          .stat-card h3 {
-            margin: 0 0 10px;
-            font-size: 1.1em;
-            color: #444;
-          }
-
-          .stat-card p {
-            margin: 0;
-            font-size: 2em;
-            font-weight: bold;
-            color: #007bff;
-          }
-
-          .recent-activity,
-          .quick-actions {
-            background-color: #fff;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 24px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-          }
-
-          .recent-activity h2,
-          .quick-actions h2 {
-            margin-top: 0;
-            border-bottom: 1px solid #eee;
-            padding-bottom: 10px;
-          }
-
-          .recent-activity ul {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-          }
-
-          .recent-activity li {
-            padding: 12px 0;
-            border-bottom: 1px solid #f0f0f0;
-          }
-
-          .recent-activity li:last-child {
-            border-bottom: none;
-          }
-
-          .recent-activity p {
-            margin: 0;
-            font-size: 1em;
-          }
-
-          .recent-activity span {
-            font-size: 0.9em;
-            color: #888;
-          }
-
-          .quick-actions button {
-            background-color: #007bff;
-            color: white;
-            border: none;
-            padding: 10px 15px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 1em;
-            margin-right: 10px;
+            background-color: rgba(255, 255, 255, 0.05);
             transition: background-color 0.2s;
           }
-
-          .quick-actions button:hover {
-            background-color: #0056b3;
-          }
-
-          .dashboard-container {
-            font-family: Arial, sans-serif;
-            padding: 24px;
-            max-width: 1200px;
-            margin: 0 auto;
-            background-color: #f4f7f6;
-          }
-          .dashboard-header {
-            border-bottom: 2px solid #eee;
-            padding-bottom: 16px;
-            margin-bottom: 24px;
-          }
-          .dashboard-header h1 { margin: 0; color: #333; }
-          .dashboard-header p { margin: 4px 0 0; font-size: 1.1em; color: #555; }
-          .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-            margin-bottom: 24px;
-          }
-          .stat-card {
-            background-color: #ffffff;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            padding: 20px;
-            text-align: center;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-            transition: transform 0.2s;
-          }
-          .stat-card:hover { transform: translateY(-5px); }
-          .stat-card h3 { margin: 0 0 10px; font-size: 1.1em; color: #444; }
-          .stat-card p { margin: 0; font-size: 2em; font-weight: bold; color: #007bff; }
-          .recent-activity,
-          .quick-actions {
-            background-color: #fff;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 24px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-          }
-          .recent-activity h2,
-          .quick-actions h2 { margin-top: 0; border-bottom: 1px solid #eee; padding-bottom: 10px; }
-          .recent-activity ul { list-style: none; padding: 0; margin: 0; }
-          .recent-activity li { padding: 12px 0; border-bottom: 1px solid #f0f0f0; }
-          .recent-activity li:last-child { border-bottom: none; }
-          .recent-activity p { margin: 0; font-size: 1em; }
-          .recent-activity span { font-size: 0.9em; color: #888; }
-          .quick-actions button {
-            background-color: #007bff;
-            color: white;
-            border: none;
-            padding: 10px 15px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 1em;
-            margin-right: 10px;
-            transition: background-color 0.2s;
-          }
-          .quick-actions button:hover { background-color: #0056b3; }
-
-          /* 4. Style tambahan untuk loading dan error */
-          .stat-card.loading {
-            background-color: #f9f9f9;
-            color: #aaa;
+          .snapshot-item:hover { background-color: rgba(255, 255, 255, 0.1); }
+          .snapshot-icon {
+            font-size: 1.5em;
+            padding: 10px;
+            border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.1em;
           }
-          .error-message {
-            grid-column: 1 / -1; /* Lebarkan pesan error di semua kolom grid */
-            text-align: center;
-            padding: 20px;
-            background-color: #ffebee;
-            color: #c62828;
-            border-radius: 8px;
+          .snapshot-info h3 { margin: 0 0 4px 0; font-size: 0.8em; color: #bdc3c7; text-transform: uppercase; font-weight: 500; }
+          .snapshot-info p { margin: 0; font-size: 1.8em; color: #ffffff; font-weight: 600; line-height: 1; }
+          .snapshot-icon.total { background-color: rgba(59, 130, 246, 0.2); color: #3b82f6; }
+          .snapshot-icon.berlangsung { background-color: rgba(245, 158, 11, 0.2); color: #f59e0b; }
+          .snapshot-icon.temuan { background-color: rgba(239, 68, 68, 0.2); color: #ef4444; }
+          .snapshot-icon.selesai { background-color: rgba(16, 185, 129, 0.2); color: #10b981; }
+          .trend-chart-container { height: 350px; }
+
+          /* --- 5. PERBAIKAN CSS BAGIAN BAWAH --- */
+          .content-grid { 
+            display: grid; 
+            grid-template-columns: 1fr 1fr; /* <-- DIUBAH JADI 50/50 */
+            gap: 24px; 
+            margin-bottom: 24px; 
+            
+            @media (max-width: 1024px) { 
+              grid-template-columns: 1fr; /* Tumpuk di layar kecil */
+            }
           }
+          
+          .recent-activity, .quick-actions { 
+            background-color: #ffffff; 
+            border: 1px solid transparent; /* <-- HAPUS BORDER */
+            border-radius: 12px; 
+            padding: 24px; 
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); /* <-- GANTI SHADOW */
+            height: 100%; /* <-- BUAT TINGGI SAMA */
+          }
+          
+          .recent-activity h2, .quick-actions h2 { margin: 0 0 20px; font-size: 1.3em; color: #1a1a1a; font-weight: 600; padding-bottom: 12px; border-bottom: 2px solid #f3f4f6; }
+          
+          .recent-activity ul { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 12px; }
+          
+          .recent-activity li { 
+            padding: 16px; 
+            border-radius: 8px; 
+            background-color: #f9fafb; 
+            border-left: none; /* <-- Hapus border kiri lama */
+            transition: all 0.2s ease;
+            display: flex; /* <-- BUAT FLEX */
+            align-items: center;
+            gap: 12px; /* <-- Jarak ikon & teks */
+          }
+          
+          .activity-icon {
+            font-size: 1.3em;
+            flex-shrink: 0;
+          }
+          .icon-success { color: #10b981; }
+          .icon-warning { color: #f59e0b; }
+          .icon-info { color: #3b82f6; }
+
+          .activity-text p { margin: 0 0 6px; font-size: 0.95em; color: #374151; font-weight: 500; }
+          .activity-text span { font-size: 0.85em; color: #9ca3af; }
+
+          .quick-actions { 
+            display: flex; /* <-- BUAT FLEX */
+            flex-direction: column; 
+          }
+          
+          .action-buttons { 
+            display: flex; 
+            flex-direction: column; 
+            gap: 12px;
+            margin-top: auto; /* Mendorong ke tengah/bawah */
+            margin-bottom: auto; /* Mendorong ke tengah/atas */
+          }
+          
+          .quick-actions button { background-color: #3b82f6; color: white; border: none; padding: 14px 20px; border-radius: 8px; cursor: pointer; font-size: 0.95em; font-weight: 500; display: flex; align-items: center; justify-content: center; gap: 8px; }
+          .quick-actions button .btn-icon { font-size: 1.1em; }
+          .quick-actions button.secondary { background-color: #ffffff; color: #3b82f6; border: 2px solid #3b82f6; }
+          
+          /* ... (Media query sisa) ... */
         `}
       </style>
 
-      {/* Konten JSX/HTML */}
       <div className="dashboard-container">
         <header className="dashboard-header">
           <h1>Dashboard Audit Management</h1>
-          <p>Selamat datang, [Nama User]!</p>
+          <p>Selamat datang! Berikut ringkasan aktivitas hari ini.</p>
         </header>
 
-        {/* 5. Panggil fungsi render kartu statistik */}
-        <div className="stats-grid">
-          {renderStatCards()}
+        {/* --- KARTU GRAFIK UTAMA (TIDAK BERUBAH) --- */}
+        <div className="main-graphic-card">
+          <div className="snapshot-grid">
+            <div className="snapshot-item">
+              <span className="snapshot-icon total"><BsBarChartFill /></span>
+              <div className="snapshot-info">
+                <h3>Total Audit</h3>
+                <p>{stats.total_audit}</p>
+              </div>
+            </div>
+            <div className="snapshot-item">
+              <span className="snapshot-icon berlangsung"><BsClockHistory /></span>
+              <div className="snapshot-info">
+                <h3>Berlangsung</h3>
+                <p>{stats.audit_berlangsung}</p>
+              </div>
+            </div>
+            <div className="snapshot-item">
+              <span className="snapshot-icon temuan"><BsSearch /></span>
+              <div className="snapshot-info">
+                <h3>Total Temuan</h3>
+                <p>{stats.total_temuan}</p>
+              </div>
+            </div>
+            <div className="snapshot-item">
+              <span className="snapshot-icon selesai"><BsCheckCircleFill /></span>
+              <div className="snapshot-info">
+                <h3>Selesai</h3>
+                <p>{stats.audit_selesai}</p>
+              </div>
+            </div>
+          </div>
+          <div className="trend-chart-container">
+            {loading ? (
+              <div>Loading Chart...</div>
+            ) : error ? (
+              <div>Error memuat data...</div>
+            ) : (
+              <Line options={lineChartOptions} data={lineChartData} />
+            )}
+          </div>
         </div>
 
-        {/* Aktivitas Terbaru (masih statis) */}
-        <div className="recent-activity">
-          <h2>Aktivitas Terbaru</h2>
-          <ul>
-            {recentActivities.map((activity) => (
-              <li key={activity.id}>
-                <p>{activity.text}</p>
-                <span>{activity.time}</span>
-              </li>
-            ))}
-</ul>
-        </div>
+        {/* --- 6. JSX BAGIAN BAWAH DIPERBARUI --- */}
+        <div className="content-grid">
+          <div className="recent-activity">
+            <h2>Aktivitas Terbaru</h2>
+            <ul>
+              {recentActivities.map((activity) => (
+                <li key={activity.id}>
+                  <span className="activity-icon">
+                    {getActivityIcon(activity.type)}
+                  </span>
+                  <div className="activity-text">
+                    <p>{activity.text}</p>
+                    <span>{activity.time}</span>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
 
-        {/* Tombol Aksi Cepat (masih statis) */}
-        <div className="quick-actions">
-          <h2>Aksi Cepat</h2>
-          <button>+ Buat Audit Baru</button>
-          <button>Lihat Semua Temuan</button>
+          <div className="quick-actions">
+            <h2>Aksi Cepat</h2>
+            <div className="action-buttons">
+              <button>
+                <span className="btn-icon"><BsPlusLg /></span>
+                Buat Audit Baru
+              </button>
+              <button className="secondary">
+                <span className="btn-icon"><BsSearch /></span>
+                Lihat Semua Temuan
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </>

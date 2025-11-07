@@ -16,24 +16,21 @@ return [
     */
 
     // 'paths' => ['*'],
-    // 'paths' => ['api/*', 'sanctum/csrf-cookie'],
-    'paths' => ['api/*', 'sanctum/csrf-cookie', 'login', 'logout'],
-    // 'paths' => [
-    //     'api/*',
-    //     'login',
-    //     'logout',
-    //     'register',
-    //     'sanctum/csrf-cookie'
-    // ],
+    // 'paths' => ['api/*', 'sanctum/csrf-cookie', 'login', 'logout'],
+    'paths' => [
+        'api/*',
+        'login',
+        'logout',
+        'register',
+        'sanctum/csrf-cookie'
+    ],
 
     'allowed_methods' => ['*'],
 
     // 'allowed_origins' => explode(',', env('CORS_ALLOWED_ORIGINS', '*')),
-    'allowed_origins' => ['http://localhost:5173', 'http://192.168.0.24:5173'],
-    
+    'allowed_origins' => ['http://localhost:5174', 'http://192.168.0.24:5174'],
+
     // 'allowed_origins' => ['http://192.168.0.33:5176', 'http://192.168.1.9:5173',],
-    // 'allowed_origins' => ['http://192.168.0.27:5174'],
-    // 'allowed_origins' => ['http://localhost:5173', 'http://192.168.1.5:5173', 'http://192.168.0.27:5174',],
     // 'allowed_origins' => [
     //     'http://pa.test',
     //     'http://localhost:5174',

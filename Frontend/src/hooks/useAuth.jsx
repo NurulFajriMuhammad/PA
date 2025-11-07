@@ -1,43 +1,53 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import apiClient from '../api/axios';
 
-// 1. Buat Context
 const AuthContext = createContext();
 
-// 2. Buat Provider (pembungkus)
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
-  
-  // 'loading' dan 'useEffect' dihapus
-  // Hook ini sekarang 100% pasif dan hanya akan
-  // diisi oleh halaman Login.
+  const [user, setUserState] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Fungsi untuk logout
+  useEffect(() => {
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      setUserState(JSON.parse(storedUser));
+    }
+    setIsLoading(false);
+  }, []);
+
+  const setUser = (newUser) => {
+    if (newUser) {
+      localStorage.setItem('user', JSON.stringify(newUser));
+    } else {
+      localStorage.removeItem('user');
+    }
+    setUserState(newUser);
+  };
+
   const logout = async () => {
     try {
       await apiClient.post('/api/logout');
     } catch (e) {
       console.error('Logout gagal', e);
     } finally {
-      setUser(null); // Hapus user dari state
+      setUser(null);
     }
   };
 
-  // Nilai yang diberikan ke komponen anak
   const value = {
     user,
     setUser,
-    logout // Kita tidak lagi mengirim 'loading'
+    logout,
+    isLoading,
   };
 
   return (
     <AuthContext.Provider value={value}>
-      {children} {/* Tidak perlu menunggu loading lagi */}
+      {children}
     </AuthContext.Provider>
   );
 }
 
-// 3. Buat hook kustom untuk memakai context ini
 export function useAuth() {
   return useContext(AuthContext);
 }

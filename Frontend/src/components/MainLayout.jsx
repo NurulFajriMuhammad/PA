@@ -7,19 +7,19 @@ import { useAuth } from '../hooks/useAuth';
 
 export default function MainLayout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const { user } = useAuth(); // <-- 3. AMBIL USER DARI CONTEXT
+  const { user } = useAuth(); // <- Anda sudah memanggil ini, bagus!
 
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
   };
 
-  // 4. JIKA TIDAK ADA USER (BELUM LOGIN), ARAHKAN KE /LOGIN
+  // --- 1. Tambahkan pengecekan Autentikasi ---
+  // Jika tidak ada user, lempar ke halaman login
   if (!user) {
-    // replace: mengganti histori agar tidak bisa "back" ke dashboard
+    // Pastikan Anda punya route '/login'
     return <Navigate to="/login" replace />; 
   }
 
-  // 5. Jika ada user, tampilkan layout
   return (
     <>
       <style>
@@ -33,11 +33,14 @@ export default function MainLayout() {
             flex-direction: column;
             width: 100%;
             min-height: 100vh;
-            margin-left: ${isSidebarOpen ? '250px' : '80px'};
-            transition: margin-left 0.3s ease-out;
+            
+            /* --- 2. PASTIKAN NILAI INI SAMA DENGAN LEBAR SIDEBAR --- */
+            margin-left: ${isSidebarOpen ? '260px' : '70px'};
+            
+            transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
           }
           .main-content {
-            padding: 20px;
+            padding: 24px; /* Saya sarankan padding sedikit lebih besar */
             width: 100%;
             flex-grow: 1;
           }
@@ -51,7 +54,6 @@ export default function MainLayout() {
         />
         
         <div className="content-wrapper">
-          {/* 6. TopHeader akan mengambil data user sendiri */}
           <TopHeader /> 
           
           <main className="main-content">
