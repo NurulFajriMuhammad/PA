@@ -12,7 +12,6 @@ function App() {
       <Route path="/login" element={<LoginPage />} />
       <Route element={<ProtectedRoute />}>
         <Route path="/" element={<MainLayout />}>
-         
           <Route index element={<Dashboard />} /> 
           <Route path="admin/users" element={<UserManagementPage />} /> 
         </Route>

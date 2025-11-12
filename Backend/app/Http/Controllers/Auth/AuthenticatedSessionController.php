@@ -14,7 +14,7 @@ class AuthenticatedSessionController extends Controller
      */
     public function store(LoginRequest $request)
     {
-        // Coba autentikasi user berdasarkan email & password
+        // Autentikasi user
         if (!Auth::attempt($request->only('email', 'password'))) {
             return response()->json([
                 'success' => false,
@@ -22,7 +22,7 @@ class AuthenticatedSessionController extends Controller
             ], 401);
         }
 
-        $user = Auth::user();
+        $user = Auth::user()->load('roles'); // 🟢 Tambahkan ini!
 
         // Buat token baru (Sanctum)
         $token = $user->createToken('auth_token')->plainTextToken;
@@ -36,6 +36,7 @@ class AuthenticatedSessionController extends Controller
             ],
         ]);
     }
+
 
     /**
      * Destroy an authenticated session (Logout).

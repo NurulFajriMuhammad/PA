@@ -5,7 +5,6 @@ use Illuminate\Support\Facades\Route;
 
 // LOGIN
 Route::post('/login', [AuthenticatedSessionController::class, 'store'])
-    ->middleware('guest')
     ->name('login');
 
 // LOGOUT

@@ -11,17 +11,13 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
-
-  // 2. Ambil 'user' dan 'isLoading' dari hook Anda
   const { user, setUser, isLoading } = useAuth();
 
-  // 3. TAMBAHKAN useEffect INI
   useEffect(() => {
-    // Jika hook selesai loading DAN menemukan ada user (sudah login)
     if (!isLoading && user) {
-      navigate("/"); // Langsung alihkan ke halaman utama/dashboard
+      navigate("/");
     }
-  }, [user, isLoading, navigate]); // Efek ini berjalan saat user atau loading berubah
+  }, [user, isLoading, navigate]);
 
 
   const handleLogin = async (e) => {
@@ -54,14 +50,10 @@ export default function LoginPage() {
     }
   };
 
-  // 4. TAMBAHKAN INI:
-  // Tampilkan halaman kosong (null) selagi 'useAuth' memeriksa
-  // atau jika 'user' sudah ditemukan (karena akan dialihkan)
   if (isLoading || user) {
-    return null; // Ini mencegah form login "berkedip"
+    return null;
   }
 
-  // 5. Form ini HANYA akan tampil jika loading selesai DAN user-nya null
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-slate-100 flex items-center justify-center p-4">
       <div className="w-full max-w-6xl grid lg:grid-cols-2 gap-8 items-center">

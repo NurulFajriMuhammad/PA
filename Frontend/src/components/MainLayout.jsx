@@ -1,13 +1,12 @@
 import React, { useState } from 'react';
-import { Outlet, Navigate } from 'react-router-dom'; // <-- 1. IMPORT NAVIGATE
+import { Outlet, Navigate } from 'react-router-dom'; 
 import Sidebar from './Sidebar';
 import TopHeader from './TopHeader';
 import { useAuth } from '../hooks/useAuth';
 
-
 export default function MainLayout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const { user } = useAuth(); // <- Anda sudah memanggil ini, bagus!
+  const { user } = useAuth();
 
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
@@ -30,11 +29,10 @@ export default function MainLayout() {
             flex-direction: column;
             width: 100%;
             min-height: 100vh;
-            
-            /* --- 2. PASTIKAN NILAI INI SAMA DENGAN LEBAR SIDEBAR --- */
             margin-left: ${isSidebarOpen ? '260px' : '70px'};
-            
-            transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            width: calc(100% - ${isSidebarOpen ? '260px' : '70px'});
+            transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
+            width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
           }
           .main-content {
             padding: 24px; /* Saya sarankan padding sedikit lebih besar */
@@ -51,7 +49,7 @@ export default function MainLayout() {
         />
         
         <div className="content-wrapper">
-          <TopHeader /> 
+          <TopHeader isSidebarOpen={isSidebarOpen} /> 
           
           <main className="main-content">
             <Outlet /> 

@@ -503,12 +503,12 @@ export default function Sidebar({ isSidebarOpen, toggleSidebar }) {
                 <span className="sidebar-text">Manajemen User</span>
               </Link>
             </li>
-            <li>
+            {/* <li>
               <Link to="/audits">
                 <span className="sidebar-icon"><BsClipboardCheck /></span>
                 <span className="sidebar-text">Daftar Audit</span>
               </Link>
-            </li>
+            </li> */}
             
             {/* --- DROPDOWN 2: INTERNAL AUDIT (DIPERBAIKI) --- */}
             <li className="sidebar-dropdown-container">
