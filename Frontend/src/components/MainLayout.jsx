@@ -35,9 +35,16 @@ export default function MainLayout() {
             width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
           }
           .main-content {
-            padding: 24px; /* Saya sarankan padding sedikit lebih besar */
+            padding: 24px;
             width: 100%;
             flex-grow: 1;
+          }
+          @media (max-width: 768px) {
+            .content-wrapper {
+              margin-left: 0 !important;
+              width: 100% !important;
+              transition: none; /* Hapus transisi di mobile */
+            }
           }
         `}
       </style>

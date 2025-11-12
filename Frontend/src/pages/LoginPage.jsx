@@ -1,13 +1,15 @@
-import React, { useState, useEffect } from "react"; // 1. Impor useEffect
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Shield, Eye, EyeOff, AlertCircle, CheckCircle2 } from "lucide-react";
-import apiClient, { getCsrfCookie } from "../api/axios";
-import { useAuth } from "../hooks/useAuth";
+// PERBAIKAN: Menambahkan ekstensi file .js dan .jsx pada import
+import apiClient, { getCsrfCookie } from "../api/axios.js";
+import { useAuth } from "../hooks/useAuth.jsx";
+import { notifySuccess, notifyError } from '../utils/notifier.js';
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+  // const [error, setError] = useState(""); // <-- SUDAH TIDAK DIPERLUKAN
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
@@ -22,7 +24,7 @@ export default function LoginPage() {
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    setError("");
+    // setError(""); // <-- SUDAH TIDAK DIPERLUKAN
     setLoading(true);
 
     try {
@@ -33,18 +35,19 @@ export default function LoginPage() {
       console.log("Login sukses:", loginResponse.data);
 
       sessionStorage.setItem("isLoggedIn", "true");
-      setUser(loginResponse.data.data);
+      setUser(loginResponse.data.data); // Ini harusnya sudah benar
+
+      // PANGGIL NOTIFIKASI SUKSES
+      notifySuccess("Login berhasil! Mengalihkan ke dashboard...");
+      
       navigate("/");
 
     } catch (err) {
       console.error("Error saat login:", err);
-      if (err.response && (err.response.status === 422 || err.response.status === 401)) {
-        setError("Email atau password salah. Silakan coba lagi.");
-      } else if (err.response && err.response.status === 419) {
-        setError("Session expired atau CSRF token tidak valid. Refresh halaman lalu coba lagi.");
-      } else {
-        setError("Terjadi kesalahan koneksi ke server. Periksa koneksi Anda.");
-      }
+      
+      // GANTI SEMUA BLOK 'if/else' LAMA DENGAN SATU BARIS INI
+      notifyError(err); // Notifier kita akan otomatis menerjemahkan error-nya
+
     } finally {
       setLoading(false);
     }
@@ -136,6 +139,8 @@ export default function LoginPage() {
               </p>
             </div>
 
+            {/* BLOK ERROR INI SUDAH TIDAK DIPERLUKAN LAGI */}
+            {/*
             {error && (
               <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start space-x-3">
                 <AlertCircle className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
@@ -147,6 +152,7 @@ export default function LoginPage() {
                 </div>
               </div>
             )}
+            */}
 
             <form onSubmit={handleLogin} className="space-y-5">
               <div>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react'; // Impor useState
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 // Impor ikon yang dibutuhkan dari react-icons
 import { 
@@ -13,25 +13,15 @@ import {
   BsBarChart,
   BsGear,
   BsDatabaseGear,
-  // ------------------------------
-  
-  // --- IKON BARU UNTUK DROPDOWN ---
-  BsPersonVcard,    // Ikon untuk Profil SPI
-  BsChevronDown,    // Ikon panah dropdown
-  // ------------------------------
-
-  // Ikon Toggle
+  BsPersonVcard,
+  BsChevronDown,
   BsChevronLeft,
   BsChevronRight
 } from 'react-icons/bs';
 
 export default function Sidebar({ isSidebarOpen, toggleSidebar }) {
-  // State untuk melacak dropdown yang terbuka
   const [openDropdown, setOpenDropdown] = useState(null);
-
-  // Fungsi untuk toggle dropdown
   const handleDropdownToggle = (menuName) => {
-    // Jika menu yang diklik sudah terbuka, tutup. Jika tidak, buka.
     setOpenDropdown(openDropdown === menuName ? null : menuName);
   };
 
@@ -39,7 +29,6 @@ export default function Sidebar({ isSidebarOpen, toggleSidebar }) {
     <>
       <style>
         {`
-          /* ... CSS Anda tidak berubah ... */
           .sidebar-container {
             width: 260px;
             height: 100vh;
@@ -49,8 +38,8 @@ export default function Sidebar({ isSidebarOpen, toggleSidebar }) {
             background-color: #2c3e50;
             color: white;
             box-shadow: 2px 0 8px rgba(0,0,0,0.15);
-            transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            overflow: hidden;
+            transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            overflow: hidden; 
             z-index: 1000;
             display: flex;
             flex-direction: column;
@@ -58,6 +47,7 @@ export default function Sidebar({ isSidebarOpen, toggleSidebar }) {
           
           .sidebar-container.sidebar-collapsed {
             width: 70px;
+            overflow: visible; 
           }
 
           .sidebar-header {
@@ -145,6 +135,11 @@ export default function Sidebar({ isSidebarOpen, toggleSidebar }) {
             scrollbar-width: thin;
             scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
           }
+          
+          .sidebar-container.sidebar-collapsed .sidebar-nav {
+             overflow-x: visible;
+             overflow-y: visible; 
+          }
 
           .sidebar-nav::-webkit-scrollbar {
             width: 6px;
@@ -171,7 +166,7 @@ export default function Sidebar({ isSidebarOpen, toggleSidebar }) {
 
           .sidebar-nav li {
             margin-bottom: 4px;
-            padding: 0 8px; /* Jarak tepi kiri/kanan 8px */
+            padding: 0 8px; 
           }
 
           .sidebar-nav a {
@@ -276,30 +271,23 @@ export default function Sidebar({ isSidebarOpen, toggleSidebar }) {
             opacity: 0;
           }
           
-          /* --- CSS BARU UNTUK DROPDOWN --- */
- .sidebar-nav li.sidebar-dropdown-container {
+          .sidebar-nav li.sidebar-dropdown-container {
             padding-left: 0;
             padding-right: 0;
-            /* Tambahkan margin-bottom agar tidak menempel */
             margin-bottom: 4px;
+            position: relative; 
           }
 
           .sidebar-dropdown-toggle {
             color: #ecf0f1;
             display: flex;
             align-items: center;
-            /* Hapus radius di sini, kita atur di .open */
             border-radius: 0; 
             transition: all 0.25s ease;
             white-space: nowrap;
-            
-            /* --- INI PERBAIKANNYA --- */
-            width: 100%; /* 1. Buat lebar penuh */
-            margin: 0;   /* 2. Hapus margin */
-            /* 3. Sesuaikan padding kiri (8px margin + 14px padding) */
+            width: 100%; 
+            margin: 0;
             padding: 12px 14px 12px 22px; 
-            /* ------------------------- */
-
             background: none;
             border: none;
             cursor: pointer;
@@ -309,14 +297,11 @@ export default function Sidebar({ isSidebarOpen, toggleSidebar }) {
             font-weight: 500;
           }
 
-          /* Atur radius HANYA saat tidak terbuka */
           .sidebar-dropdown-toggle:not(.open) {
-             /* Beri radius 8px di dalam gutter 8px */
-             border-radius: 8px;
-             width: calc(100% - 16px);
-             margin: 0 8px;
-             /* Kembalikan padding normal */
-             padding: 12px 14px;
+            border-radius: 8px;
+            width: calc(100% - 16px);
+            margin: 0 8px;
+            padding: 12px 14px;
           }
 
           .sidebar-dropdown-toggle:hover:not(.open) {
@@ -328,12 +313,10 @@ export default function Sidebar({ isSidebarOpen, toggleSidebar }) {
             background-color: rgba(52, 152, 219, 0.2);
             color: #ffffff;
             font-weight: 600;
-            /* Atur radius atas agar menyatu */
             border-top-left-radius: 8px;
             border-top-right-radius: 8px;
             border-bottom-left-radius: 0;
             border-bottom-right-radius: 0;
-            /* Pastikan margin & padding full-width saat open */
             margin: 0;
             width: 100%;
             padding: 12px 14px 12px 22px;
@@ -358,7 +341,6 @@ export default function Sidebar({ isSidebarOpen, toggleSidebar }) {
             transition: max-height 0.3s ease-in-out, padding 0.3s ease-in-out;
             margin: 0;
             width: 100%; 
-            /* Atur radius bawah agar menyatu */
             border-bottom-left-radius: 8px;
             border-bottom-right-radius: 8px;
           }
@@ -366,7 +348,7 @@ export default function Sidebar({ isSidebarOpen, toggleSidebar }) {
           .sidebar-submenu.open {
             max-height: 600px;
             padding-top: 4px;
-            padding-bottom: 8px; /* Beri padding bawah sedikit lebih banyak */
+            padding-bottom: 8px; 
           }
           
           .sidebar-submenu li {
@@ -382,7 +364,6 @@ export default function Sidebar({ isSidebarOpen, toggleSidebar }) {
             height: auto;
             transition: all 0.25s ease;
             font-size: 0.9em;
-            /* 68px = 22px (padding kiri) + 32px (icon) + 14px (margin) */
             padding: 10px 14px 10px 68px; 
             margin: 0 8px 2px 8px; 
             border-radius: 6px;
@@ -402,10 +383,40 @@ export default function Sidebar({ isSidebarOpen, toggleSidebar }) {
             display: none; 
           }
 
-          /* Aturan untuk sidebar collapsed */
           .sidebar-container.sidebar-collapsed .sidebar-submenu {
-            display: none;
+            position: absolute;
+            left: calc(100% + 4px); 
+            top: 0; 
+            width: 250px; 
+            max-height: none; 
+            padding: 8px; 
+            background-color: #ffffff; 
+            border-radius: 8px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+            border: 1px solid #e0e0e0;
+            opacity: 0;
+            transform: translateX(10px);
+            pointer-events: none;
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            overflow: visible; 
           }
+
+
+          /* --- MODIFIKASI 5: GANTI ':hover' MENJADI '.open' --- */
+          /* Ganti selector ':hover' ini...
+            .sidebar-container.sidebar-collapsed .sidebar-dropdown-container:hover .sidebar-submenu {
+            ... 
+            }
+            ...menjadi selector class '.open' ini:
+          */
+          .sidebar-container.sidebar-collapsed .sidebar-submenu.open {
+            opacity: 1;
+            transform: translateX(0);
+            pointer-events: auto;
+            z-index: 1001; /* Pastikan di atas konten lain */
+          }
+          /* --- AKHIR MODIFIKASI 5 --- */
+
           
           .sidebar-container.sidebar-collapsed .dropdown-chevron {
             display: none;
@@ -413,7 +424,6 @@ export default function Sidebar({ isSidebarOpen, toggleSidebar }) {
           
           .sidebar-container.sidebar-collapsed .sidebar-dropdown-toggle {
             justify-content: center;
-            /* Kembalikan ke padding & margin normal saat collapsed */
             padding: 12px 14px;
             margin: 0 8px;
             width: calc(100% - 16px);
@@ -422,7 +432,39 @@ export default function Sidebar({ isSidebarOpen, toggleSidebar }) {
           .sidebar-container.sidebar-collapsed .sidebar-dropdown-toggle:hover {
             transform: translateX(0) scale(1.05);
           }
-          /* --- AKHIR CSS DROPDOWN --- */
+          
+          .sidebar-container.sidebar-collapsed .sidebar-submenu a {
+            color: #333; 
+            font-size: 0.9em;
+            padding: 10px 16px; 
+            margin: 2px 0; 
+            white-space: normal; 
+            height: auto;
+          }
+          
+          .sidebar-container.sidebar-collapsed .sidebar-submenu a:hover {
+            background-color: #f5f5f5; 
+            color: #3498db; 
+            transform: none;
+          }
+          
+          .sidebar-container.sidebar-collapsed .sidebar-submenu.open {
+            max-height: none;
+            padding: 8px; 
+          }
+ 
+          .sidebar-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 999; 
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          }
 
 
           @media (max-width: 768px) {
@@ -435,14 +477,30 @@ export default function Sidebar({ isSidebarOpen, toggleSidebar }) {
             .sidebar-container.sidebar-collapsed {
               transform: translateX(-100%);
               width: 260px;
+              overflow: hidden; 
             }
 
             .sidebar-container:not(.sidebar-collapsed) {
               transform: translateX(0);
             }
+
+            .sidebar-overlay.overlay-visible {
+              opacity: 1;
+              pointer-events: auto;
+            }
+
+            .sidebar-container.sidebar-collapsed .sidebar-submenu {
+                display: none;
+            }
           }
         `}
       </style>
+      
+      <div 
+        className={`sidebar-overlay ${isSidebarOpen ? 'overlay-visible' : ''}`}
+        onClick={toggleSidebar}
+        aria-hidden="true"
+      ></div>
       
       <div className={`sidebar-container ${!isSidebarOpen ? 'sidebar-collapsed' : ''}`}>
         <div className="sidebar-header">
@@ -466,7 +524,6 @@ export default function Sidebar({ isSidebarOpen, toggleSidebar }) {
               </Link>
             </li>
 
-            {/* --- DROPDOWN 1: PROFIL --- */}
             <li className="sidebar-dropdown-container">
               <button 
                 className={`sidebar-dropdown-toggle ${openDropdown === 'profil' ? 'open' : ''}`}
@@ -503,14 +560,7 @@ export default function Sidebar({ isSidebarOpen, toggleSidebar }) {
                 <span className="sidebar-text">Manajemen User</span>
               </Link>
             </li>
-            {/* <li>
-              <Link to="/audits">
-                <span className="sidebar-icon"><BsClipboardCheck /></span>
-                <span className="sidebar-text">Daftar Audit</span>
-              </Link>
-            </li> */}
             
-            {/* --- DROPDOWN 2: INTERNAL AUDIT (DIPERBAIKI) --- */}
             <li className="sidebar-dropdown-container">
               <button 
                 className={`sidebar-dropdown-toggle ${openDropdown === 'internal' ? 'open' : ''}`}
@@ -560,7 +610,6 @@ export default function Sidebar({ isSidebarOpen, toggleSidebar }) {
               </Link>
             </li>
             
-            {/* --- DROPDOWN 3: MASTER (DIPERBAIKI) --- */}
             <li className="sidebar-dropdown-container">
               <button 
                 className={`sidebar-dropdown-toggle ${openDropdown === 'master' ? 'open' : ''}`}
@@ -582,7 +631,6 @@ export default function Sidebar({ isSidebarOpen, toggleSidebar }) {
               </ul>
             </li>
             
-            {/* --- DROPDOWN 4: SETTING (DIPERBAIKI) --- */}
             <li className="sidebar-dropdown-container">
               <button 
                 className={`sidebar-dropdown-toggle ${openDropdown === 'setting' ? 'open' : ''}`}

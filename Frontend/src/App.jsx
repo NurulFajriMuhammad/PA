@@ -5,6 +5,7 @@ import LoginPage from "./pages/LoginPage";
 import Dashboard from "./pages/Dashboard";
 import MainLayout from "./components/MainLayout";
 import ProtectedRoute from "./components/ProtectedRoute"; 
+import ProfilSpiPage from './pages/Profil SPI';
 
 function App() {
   return (
@@ -14,6 +15,7 @@ function App() {
         <Route path="/" element={<MainLayout />}>
           <Route index element={<Dashboard />} /> 
           <Route path="admin/users" element={<UserManagementPage />} /> 
+          <Route path="/profil/:slug" element={<ProfilSpiPage />} />
         </Route>
       </Route>
 
