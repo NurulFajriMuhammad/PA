@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react"; // 1. Impor useEffect
 import { useNavigate } from "react-router-dom";
 import { Shield, Eye, EyeOff, AlertCircle, CheckCircle2 } from "lucide-react";
 import apiClient, { getCsrfCookie } from "../api/axios";
@@ -11,75 +11,60 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
-  const { setUser } = useAuth();
 
-  //  const handleLogin = async (e) => {
-  //   e.preventDefault();
-  //   setError('');
-  //   setLoading(true);
+  // 2. Ambil 'user' dan 'isLoading' dari hook Anda
+  const { user, setUser, isLoading } = useAuth();
 
-  //   try {
-  //     await getCsrfCookie();
-  //     console.log('CSRF cookie didapatkan');
-
-  //     await apiClient.post('/api/login', {
-  //       email,
-  //       password,
-  //     });
-
-  //     const response = await apiClient.get('/api/user');
-  //     setUser(response.data);
-  //     navigate('/');
-
-  //   } catch (err) {
-  //     console.error('Error saat login:', err);
-  //     if (err.response && (err.response.status === 422 || err.response.status === 401)) {
-  //       setError('Email atau password salah. Silakan coba lagi.');
-  //     } else {
-  //       setError('Terjadi kesalahan koneksi ke server. Periksa koneksi Anda.');
-  //     }
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
-
-const handleLogin = async (e) => {
-  e.preventDefault();
-  setError("");
-  setLoading(true);
-
-  try {
-    await getCsrfCookie();
-    console.log("CSRF cookie didapatkan");
-
-    const loginResponse = await apiClient.post("/api/login", { email, password });
-    console.log("Login sukses:", loginResponse.data);
-
-    // ✅ Simpan status login agar fetchUserOnLoad tahu
-    sessionStorage.setItem("isLoggedIn", "true");
-
-    // ✅ Set user langsung jika mau (opsional)
-    setUser(loginResponse.data.data);
-
-    navigate("/");
-  } catch (err) {
-    console.error("Error saat login:", err);
-    if (err.response && (err.response.status === 422 || err.response.status === 401)) {
-      setError("Email atau password salah. Silakan coba lagi.");
-    } else if (err.response && err.response.status === 419) {
-      setError("Session expired atau CSRF token tidak valid. Refresh halaman lalu coba lagi.");
-    } else {
-      setError("Terjadi kesalahan koneksi ke server. Periksa koneksi Anda.");
+  // 3. TAMBAHKAN useEffect INI
+  useEffect(() => {
+    // Jika hook selesai loading DAN menemukan ada user (sudah login)
+    if (!isLoading && user) {
+      navigate("/"); // Langsung alihkan ke halaman utama/dashboard
     }
-  } finally {
-    setLoading(false);
-  }
-};
+  }, [user, isLoading, navigate]); // Efek ini berjalan saat user atau loading berubah
 
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+
+    try {
+      await getCsrfCookie();
+      console.log("CSRF cookie didapatkan");
+
+      const loginResponse = await apiClient.post("/api/login", { email, password });
+      console.log("Login sukses:", loginResponse.data);
+
+      sessionStorage.setItem("isLoggedIn", "true");
+      setUser(loginResponse.data.data);
+      navigate("/");
+
+    } catch (err) {
+      console.error("Error saat login:", err);
+      if (err.response && (err.response.status === 422 || err.response.status === 401)) {
+        setError("Email atau password salah. Silakan coba lagi.");
+      } else if (err.response && err.response.status === 419) {
+        setError("Session expired atau CSRF token tidak valid. Refresh halaman lalu coba lagi.");
+      } else {
+        setError("Terjadi kesalahan koneksi ke server. Periksa koneksi Anda.");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 4. TAMBAHKAN INI:
+  // Tampilkan halaman kosong (null) selagi 'useAuth' memeriksa
+  // atau jika 'user' sudah ditemukan (karena akan dialihkan)
+  if (isLoading || user) {
+    return null; // Ini mencegah form login "berkedip"
+  }
+
+  // 5. Form ini HANYA akan tampil jika loading selesai DAN user-nya null
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-slate-100 flex items-center justify-center p-4">
       <div className="w-full max-w-6xl grid lg:grid-cols-2 gap-8 items-center">
-        {/* Left Side - Branding & Features */}
         <div className="hidden lg:flex flex-col justify-center space-y-6 px-8">
           <div className="flex items-center space-x-3">
             <div className="bg-blue-600 p-3 rounded-xl shadow-lg">
@@ -138,7 +123,6 @@ const handleLogin = async (e) => {
           </div>
         </div>
 
-        {/* Right Side - Login Form */}
         <div className="w-full max-w-md mx-auto">
           <div className="bg-white rounded-2xl shadow-xl p-8 border border-slate-200">
             {/* Mobile Logo */}
@@ -151,7 +135,6 @@ const handleLogin = async (e) => {
               </span>
             </div>
 
-            {/* Header */}
             <div className="mb-8">
               <h2 className="text-2xl font-bold text-slate-800 mb-2">
                 Selamat Datang Kembali
@@ -161,7 +144,6 @@ const handleLogin = async (e) => {
               </p>
             </div>
 
-            {/* Error Alert */}
             {error && (
               <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start space-x-3">
                 <AlertCircle className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
@@ -174,9 +156,7 @@ const handleLogin = async (e) => {
               </div>
             )}
 
-            {/* Login Form */}
             <form onSubmit={handleLogin} className="space-y-5">
-              {/* Email Field */}
               <div>
                 <label
                   htmlFor="email"
@@ -197,7 +177,6 @@ const handleLogin = async (e) => {
                 />
               </div>
 
-              {/* Password Field */}
               <div>
                 <label
                   htmlFor="password"
@@ -231,7 +210,6 @@ const handleLogin = async (e) => {
                 </div>
               </div>
 
-              {/* Remember Me & Forgot Password */}
               <div className="flex items-center justify-between text-sm">
                 <label className="flex items-center space-x-2 cursor-pointer">
                   <input
@@ -243,7 +221,6 @@ const handleLogin = async (e) => {
                 </label>
               </div>
 
-              {/* Submit Button */}
               <button
                 type="submit"
                 disabled={loading}

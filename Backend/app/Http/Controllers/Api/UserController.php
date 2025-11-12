@@ -36,26 +36,25 @@ class UserController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'name'     => 'required|string|max:255',
-            'email'    => 'required|email|unique:users,email',
+            'name'  => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email',
             'password' => 'required|min:6',
-            'role'     => 'required|string|exists:roles,name',
+            'role_id' => 'required|integer|exists:roles,id',
         ]);
 
-        // Buat user baru
         $user = User::create([
-            'name'     => $request->name,
-            'email'    => $request->email,
+            'name' => $request->name,
+            'email' => $request->email,
             'password' => Hash::make($request->password),
         ]);
 
-        // Assign role ke user baru
-        $user->assignRole($request->role);
+        $user->assignRole($request->role_id);
+        $newUser = User::with('roles')->find($user->id);
 
         return response()->json([
             'success' => true,
             'message' => 'User berhasil dibuat',
-            'data'    => $user->load('roles'),
-        ]);
+            'data' => $newUser, // Kirim data user baru ke frontend
+        ], 201); // Beri status 201 Created
     }
 }

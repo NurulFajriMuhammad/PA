@@ -13,10 +13,7 @@ export default function MainLayout() {
     setIsSidebarOpen(!isSidebarOpen);
   };
 
-  // --- 1. Tambahkan pengecekan Autentikasi ---
-  // Jika tidak ada user, lempar ke halaman login
   if (!user) {
-    // Pastikan Anda punya route '/login'
     return <Navigate to="/login" replace />; 
   }
 

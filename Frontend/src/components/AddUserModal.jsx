@@ -6,14 +6,11 @@ import apiClient from '../api/axios';
 // 2. onClose: (function) untuk menutup modal dari dalam
 // 3. onUserAdded: (function) untuk memberitahu halaman UserManagement bahwa user baru telah ditambahkan
 export default function AddUserModal({ isOpen, onClose, onUserAdded }) {
-  // State untuk form input
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [passwordConfirmation, setPasswordConfirmation] = useState('');
   const [roleId, setRoleId] = useState('2'); // Default 'Auditee' (sesuaikan ID-nya)
-
-  // State untuk loading dan error
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -69,7 +66,6 @@ export default function AddUserModal({ isOpen, onClose, onUserAdded }) {
     onClose(); // Panggil fungsi onClose dari props
   };
 
-  // Jangan render apapun jika 'isOpen' adalah false
   if (!isOpen) {
     return null;
   }
