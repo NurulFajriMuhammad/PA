@@ -22,9 +22,10 @@ class AuthenticatedSessionController extends Controller
             ], 401);
         }
 
-        $user = Auth::user()->load('roles'); // 🟢 Tambahkan ini!
-
-        // Buat token baru (Sanctum)
+        // $user = Auth::user()->load('roles');
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+        $user->load('roles');
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([

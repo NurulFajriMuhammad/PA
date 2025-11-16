@@ -15,22 +15,12 @@ class DashboardController extends Controller
      */
     public function getStats(Request $request)
     {
-        try {
-            // Logika ini hanya contoh. Silakan sesuaikan dengan query Anda.
-            
-            // Contoh: Menghitung total audit
+        try {            
             $totalAudit = Audit::count();
-            
-            // Contoh: Menghitung audit yang masih berjalan (misal status 'berlangsung')
             $auditBerlangsung = Audit::where('status', 'berlangsung')->count();
-            
-            // Contoh: Menghitung total temuan
             $totalTemuan = Temuan::count();
-            
-            // Contoh: Menghitung audit yang sudah selesai
             $auditSelesai = Audit::where('status', 'selesai')->count();
 
-            // Kembalikan data dalam format JSON
             return response()->json([
                 'success' => true,
                 'data' => [
@@ -42,7 +32,6 @@ class DashboardController extends Controller
             ]);
 
         } catch (\Exception $e) {
-            // Jika terjadi error
             return response()->json([
                 'success' => false,
                 'message' => 'Gagal mengambil data statistik.',
