@@ -11,6 +11,7 @@ const ApiRoutePage = ({ routes = [], setNotification, onRefresh }) => {
   const [itemToDelete, setItemToDelete] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [filterMethod, setFilterMethod] = useState("all");
+  const [filterController, setFilterController] = useState("all");
 
   const handleAddRoute = () => {
     setEditingRoute(null);
@@ -66,15 +67,33 @@ const ApiRoutePage = ({ routes = [], setNotification, onRefresh }) => {
   };
 
   const handleCopyRoute = (route) => {
-    const routeText = `${route.method} /api/${route.path}`;
+    const routeText = `${route.method} /api${route.path}`;
     navigator.clipboard.writeText(routeText);
     notifySuccess(`Route disalin: ${routeText}`);
   };
 
-  // Filter routes
-  const filteredRoutes = filterMethod === "all" 
-    ? routes 
-    : routes.filter(r => r.method.toUpperCase() === filterMethod.toUpperCase());
+  const controllerList = [
+    "all",
+    ...Array.from(new Set(routes.map((r) => r.controller))).sort(),
+  ];
+
+  const filteredRoutes = routes.filter((route) => {
+    const methodMatch =
+      filterMethod === "all" ||
+      route.method.toUpperCase() === filterMethod.toUpperCase();
+
+    const controllerMatch =
+      filterController === "all" || route.controller === filterController;
+
+    return methodMatch && controllerMatch;
+  });
+
+  // const filteredRoutes =
+  //   filterMethod === "all"
+  //     ? routes
+  //     : routes.filter(
+  //         (r) => r.method.toUpperCase() === filterMethod.toUpperCase()
+  // );
 
   const methodColors = {
     GET: "bg-blue-100 text-blue-800",
@@ -89,7 +108,9 @@ const ApiRoutePage = ({ routes = [], setNotification, onRefresh }) => {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-6">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">⚡ Manajemen API Routes</h2>
+          <h2 className="text-2xl font-bold text-gray-900">
+            ⚡ Manajemen API Routes
+          </h2>
           <p className="text-gray-600 text-sm mt-1">
             Buat dan kelola routes API secara dinamis tanpa mengubah kode PHP
           </p>
@@ -116,6 +137,19 @@ const ApiRoutePage = ({ routes = [], setNotification, onRefresh }) => {
           <option value="DELETE">DELETE</option>
           <option value="PATCH">PATCH</option>
         </select>
+
+        <select
+          value={filterController}
+          onChange={(e) => setFilterController(e.target.value)}
+          className="px-3 py-2 border border-gray-300 rounded-lg text-sm hover:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          {controllerList.map((ctrl) => (
+            <option key={ctrl} value={ctrl}>
+              {ctrl === "all" ? "Semua Controller" : ctrl}
+            </option>
+          ))}
+        </select>
+
         <span className="text-sm text-gray-600 py-2">
           Total: <strong>{filteredRoutes.length}</strong> routes
         </span>
@@ -126,41 +160,73 @@ const ApiRoutePage = ({ routes = [], setNotification, onRefresh }) => {
         <table className="w-full min-w-max divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Method</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Path</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Controller</th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Aksi</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                Method
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                Path
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                Controller
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                Action
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                Izin
+              </th>
+              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                Aksi
+              </th>
             </tr>
           </thead>
 
           <tbody className="divide-y divide-gray-200">
             {Array.isArray(filteredRoutes) && filteredRoutes.length > 0 ? (
               filteredRoutes.map((route) => (
-                <tr key={route.id} className="hover:bg-gray-50 transition-colors">
+                <tr
+                  key={route.id}
+                  className="hover:bg-gray-50 transition-colors"
+                >
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-3 py-1 text-xs font-bold rounded ${methodColors[route.method] || "bg-gray-100 text-gray-800"}`}>
+                    <span
+                      className={`px-3 py-1 text-xs font-bold rounded ${
+                        methodColors[route.method] ||
+                        "bg-gray-100 text-gray-800"
+                      }`}
+                    >
                       {route.method}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap font-mono text-sm text-gray-900">
-                    /api/{route.path}
+                    /api{route.path}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                     {route.controller}
                   </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                    {route.action || (
+                      <span className="text-gray-400 italic">-</span>
+                    )}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                    {route.permission || (
+                      <span className="text-gray-400 italic">-</span>
+                    )}
+                  </td>
+
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 py-1 text-xs font-medium rounded ${route.is_active ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}>
+                    <span
+                      className={`px-2 py-1 text-xs font-medium rounded ${
+                        route.is_active
+                          ? "bg-green-100 text-green-800"
+                          : "bg-red-100 text-red-800"
+                      }`}
+                    >
                       {route.is_active ? "✓ Aktif" : "✗ Nonaktif"}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm space-x-2">
-                    <button
-                      onClick={() => handleCopyRoute(route)}
-                      className="text-gray-600 hover:text-gray-800 hover:bg-gray-100 px-2 py-1 rounded inline-flex items-center gap-1 transition-colors"
-                      title="Salin route"
-                    >
-                      <Copy className="w-4 h-4" />
-                    </button>
                     <button
                       onClick={() => handleEditRoute(route)}
                       className="text-blue-600 hover:text-blue-800 hover:bg-blue-50 px-2 py-1 rounded inline-flex items-center gap-1 transition-colors"
@@ -209,7 +275,7 @@ const ApiRoutePage = ({ routes = [], setNotification, onRefresh }) => {
         isOpen={!!itemToDelete}
         onClose={() => setItemToDelete(null)}
         onConfirm={handleDeleteRoute}
-        itemName={`Route: ${itemToDelete?.method} /api/${itemToDelete?.path}`}
+        itemName={`Route: ${itemToDelete?.method} /api${itemToDelete?.path}`}
       />
     </div>
   );

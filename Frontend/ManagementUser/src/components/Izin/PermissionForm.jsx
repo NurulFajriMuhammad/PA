@@ -1,7 +1,13 @@
-import React, { useState, useEffect } from 'react';
-import { X, Save, AlertCircle } from 'lucide-react';
+import React, { useState, useEffect } from "react";
+import { X, Save, AlertCircle } from "lucide-react";
 
-const PermissionForm = ({ isOpen, onClose, onSave, existingPermission, isLoading = false }) => {
+const PermissionForm = ({
+  isOpen,
+  onClose,
+  onSave,
+  existingPermission,
+  isLoading = false,
+}) => {
   const [name, setName] = useState("");
   const [errors, setErrors] = useState({});
 
@@ -36,7 +42,7 @@ const PermissionForm = ({ isOpen, onClose, onSave, existingPermission, isLoading
 
     onSave({
       id: existingPermission?.id || null,
-      name
+      name,
     });
   };
 
@@ -46,11 +52,13 @@ const PermissionForm = ({ isOpen, onClose, onSave, existingPermission, isLoading
 
   return (
     <>
-      <div className="fixed inset-0 bg-black bg-opacity-40 z-40" onClick={onClose}></div>
+      <div
+        className="fixed inset-0 bg-black bg-opacity-40 z-40"
+        onClick={onClose}
+      ></div>
 
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
-          
           {/* Header */}
           <div className="bg-gradient-to-r from-green-600 to-green-700 px-6 py-4 flex items-center justify-between">
             <h3 className="text-lg font-bold text-white">
@@ -67,17 +75,20 @@ const PermissionForm = ({ isOpen, onClose, onSave, existingPermission, isLoading
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="p-6 space-y-4">
-            
             {/* Info */}
             <div className="bg-green-50 border border-green-200 rounded-lg p-3">
               <p className="text-sm text-green-700">
-                💡 Contoh permission: <strong>create users</strong>, <strong>edit posts</strong>, <strong>delete comments</strong>
+                💡 Contoh permission: <strong>create users</strong>,{" "}
+                <strong>edit posts</strong>, <strong>delete comments</strong>
               </p>
             </div>
 
             {/* Name */}
             <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+              <label
+                htmlFor="name"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
                 Nama Permission <span className="text-red-500">*</span>
               </label>
               <input
@@ -86,7 +97,7 @@ const PermissionForm = ({ isOpen, onClose, onSave, existingPermission, isLoading
                 value={name}
                 onChange={(e) => {
                   setName(e.target.value);
-                  if (errors.name) setErrors(prev => ({ ...prev, name: "" }));
+                  if (errors.name) setErrors((prev) => ({ ...prev, name: "" }));
                 }}
                 placeholder="Contoh: create users, edit posts"
                 className={`w-full px-4 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500 ${
@@ -124,14 +135,27 @@ const PermissionForm = ({ isOpen, onClose, onSave, existingPermission, isLoading
             >
               {isLoading ? (
                 <>
-                  <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <svg
+                    className="animate-spin h-4 w-4"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
                   </svg>
                   Menyimpan...
                 </>
               ) : (
                 <>
-                  <Save className="w-4 h-4" /> {isEdit ? "Update Permission" : "Buat Permission"}
+                  <Save className="w-4 h-4" />{" "}
+                  {isEdit ? "Update Permission" : "Buat Permission"}
                 </>
               )}
             </button>

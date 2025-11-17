@@ -15,7 +15,6 @@ class PermissionController extends Controller
     {
         // 2. Ambil semua data permission dari database
         $permissions = Permission::all();
-        
         // 3. Kembalikan sebagai JSON
         return response()->json($permissions);
     }

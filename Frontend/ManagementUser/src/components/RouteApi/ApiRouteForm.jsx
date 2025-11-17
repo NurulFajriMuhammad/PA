@@ -1,15 +1,21 @@
-import React, { useState, useEffect } from 'react';
-import { X, AlertCircle } from 'lucide-react';
+import React, { useState, useEffect } from "react";
+import { X, AlertCircle } from "lucide-react";
 
-const ApiRouteForm = ({ isOpen, onClose, onSave, existingRoute, permissions = [], isLoading = false }) => {
+const ApiRouteForm = ({
+  isOpen,
+  onClose,
+  onSave,
+  existingRoute,
+  permissions = [],
+  isLoading = false,
+}) => {
   const [formData, setFormData] = useState({
-    method: 'GET',
-    path: '',
-    controller: '',
-    action: '',
-    permission: '',
+    method: "GET",
+    path: "",
+    controller: "",
+    action: "",
+    permission: "",
     is_active: true,
-    description: '',
   });
   const [errors, setErrors] = useState({});
 
@@ -19,13 +25,12 @@ const ApiRouteForm = ({ isOpen, onClose, onSave, existingRoute, permissions = []
         setFormData(existingRoute);
       } else {
         setFormData({
-          method: 'GET',
-          path: '',
-          controller: '',
-          action: '',
-          permission: '',
+          method: "GET",
+          path: "",
+          controller: "",
+          action: "",
+          permission: "",
           is_active: true,
-          description: '',
         });
       }
       setErrors({});
@@ -35,10 +40,10 @@ const ApiRouteForm = ({ isOpen, onClose, onSave, existingRoute, permissions = []
   const validateForm = () => {
     const newErrors = {};
 
-    if (!formData.method.trim()) newErrors.method = 'Method diperlukan';
-    if (!formData.path.trim()) newErrors.path = 'Path diperlukan';
-    if (!formData.controller.trim()) newErrors.controller = 'Controller diperlukan';
-    if (!formData.action.trim()) newErrors.action = 'Action diperlukan';
+    if (!formData.method.trim()) newErrors.method = "Method diperlukan";
+    if (!formData.path.trim()) newErrors.path = "Path diperlukan";
+    // if (!formData.controller.trim()) newErrors.controller = 'Controller diperlukan';
+    // if (!formData.action.trim()) newErrors.action = 'Action diperlukan';
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -55,21 +60,44 @@ const ApiRouteForm = ({ isOpen, onClose, onSave, existingRoute, permissions = []
         ...formData,
       });
     } catch (err) {
-      console.error('Error submitting form:', err);
+      console.error("Error submitting form:", err);
     }
   };
 
+  // const handleInputChange = (e) => {
+  //   const { name, value, type, checked } = e.target;
+  //   setFormData(prev => ({
+  //     ...prev,
+  //     [name]: type === 'checkbox' ? checked : value,
+  //   }));
+
+  //   if (errors[name]) {
+  //     setErrors(prev => ({
+  //       ...prev,
+  //       [name]: '',
+  //     }));
+  //   }
+  // };
+
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setFormData(prev => ({
+
+    let newValue = value;
+
+    // Hapus "/" di awal path
+    if (name === "path") {
+      newValue = value.replace(/^\//, "");
+    }
+
+    setFormData((prev) => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value,
+      [name]: type === "checkbox" ? checked : newValue,
     }));
 
     if (errors[name]) {
-      setErrors(prev => ({
+      setErrors((prev) => ({
         ...prev,
-        [name]: '',
+        [name]: "",
       }));
     }
   };
@@ -85,11 +113,10 @@ const ApiRouteForm = ({ isOpen, onClose, onSave, existingRoute, permissions = []
 
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-screen overflow-y-auto">
-          
           {/* Header */}
           <div className="sticky top-0 bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4 flex items-center justify-between border-b border-blue-800">
             <h3 className="text-lg font-bold text-white">
-              {existingRoute ? '✏️ Edit Route API' : '➕ Tambah Route API Baru'}
+              {existingRoute ? "✏️ Edit Route API" : "➕ Tambah Route API Baru"}
             </h3>
             <button
               onClick={onClose}
@@ -102,21 +129,23 @@ const ApiRouteForm = ({ isOpen, onClose, onSave, existingRoute, permissions = []
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="p-6 space-y-4">
-            
             {/* Info Box */}
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 flex gap-2">
               <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
               <p className="text-sm text-blue-700">
-                Buat route API baru yang akan diintegrasikan ke dalam sistem routing Laravel Anda secara otomatis.
+                Buat route API baru yang akan diintegrasikan ke dalam sistem
+                routing Laravel Anda secara otomatis.
               </p>
             </div>
 
             {/* Grid 2 Kolom */}
             <div className="grid grid-cols-2 gap-4">
-              
               {/* Method */}
               <div>
-                <label htmlFor="method" className="block text-sm font-medium text-gray-700 mb-2">
+                <label
+                  htmlFor="method"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
                   Method HTTP <span className="text-red-500">*</span>
                 </label>
                 <select
@@ -125,7 +154,7 @@ const ApiRouteForm = ({ isOpen, onClose, onSave, existingRoute, permissions = []
                   value={formData.method}
                   onChange={handleInputChange}
                   className={`w-full px-4 py-2 border rounded-lg text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    errors.method ? 'border-red-500' : 'border-gray-300'
+                    errors.method ? "border-red-500" : "border-gray-300"
                   }`}
                   disabled={isLoading}
                 >
@@ -135,12 +164,17 @@ const ApiRouteForm = ({ isOpen, onClose, onSave, existingRoute, permissions = []
                   <option value="DELETE">DELETE</option>
                   <option value="PATCH">PATCH</option>
                 </select>
-                {errors.method && <p className="text-red-600 text-xs mt-1">{errors.method}</p>}
+                {errors.method && (
+                  <p className="text-red-600 text-xs mt-1">{errors.method}</p>
+                )}
               </div>
 
               {/* Path */}
               <div>
-                <label htmlFor="path" className="block text-sm font-medium text-gray-700 mb-2">
+                <label
+                  htmlFor="path"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
                   Path <span className="text-red-500">*</span>
                 </label>
                 <div className="flex items-center">
@@ -153,18 +187,23 @@ const ApiRouteForm = ({ isOpen, onClose, onSave, existingRoute, permissions = []
                     onChange={handleInputChange}
                     placeholder="users, posts/{id}, articles/search"
                     className={`flex-1 px-3 py-2 border rounded-lg text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                      errors.path ? 'border-red-500' : 'border-gray-300'
+                      errors.path ? "border-red-500" : "border-gray-300"
                     }`}
                     disabled={isLoading}
                   />
                 </div>
-                {errors.path && <p className="text-red-600 text-xs mt-1">{errors.path}</p>}
+                {errors.path && (
+                  <p className="text-red-600 text-xs mt-1">{errors.path}</p>
+                )}
               </div>
 
               {/* Controller */}
               <div>
-                <label htmlFor="controller" className="block text-sm font-medium text-gray-700 mb-2">
-                  Controller <span className="text-red-500">*</span>
+                <label
+                  htmlFor="controller"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
+                  Controller
                 </label>
                 <input
                   id="controller"
@@ -174,17 +213,23 @@ const ApiRouteForm = ({ isOpen, onClose, onSave, existingRoute, permissions = []
                   onChange={handleInputChange}
                   placeholder="UserController, PostController"
                   className={`w-full px-4 py-2 border rounded-lg text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    errors.controller ? 'border-red-500' : 'border-gray-300'
+                    errors.controller ? "border-red-500" : "border-gray-300"
                   }`}
                   disabled={isLoading}
                 />
-                {errors.controller && <p className="text-red-600 text-xs mt-1">{errors.controller}</p>}
+                {errors.controller && (
+                  <p className="text-red-600 text-xs mt-1">
+                    {errors.controller}
+                  </p>
+                )}
               </div>
 
-              {/* Action
               <div>
-                <label htmlFor="action" className="block text-sm font-medium text-gray-700 mb-2">
-                  Action <span className="text-red-500">*</span>
+                <label
+                  htmlFor="action"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
+                  Action (opsional)
                 </label>
                 <input
                   id="action"
@@ -192,16 +237,31 @@ const ApiRouteForm = ({ isOpen, onClose, onSave, existingRoute, permissions = []
                   name="action"
                   value={formData.action}
                   onChange={handleInputChange}
-                  placeholder="index, store, show, update, destroy"
-                  className={`w-full px-4 py-2 border rounded-lg text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    errors.action ? 'border-red-500' : 'border-gray-300'
-                  }`}
+                  placeholder="index, store, update... (boleh kosong)"
+                  className="w-full px-4 py-2 border rounded-lg text-sm border-gray-300 focus:ring-2 focus:ring-blue-500"
                   disabled={isLoading}
                 />
-                {errors.action && <p className="text-red-600 text-xs mt-1">{errors.action}</p>}
-              </div> */}
-            </div>
+              </div>
 
+              <div>
+                <label
+                  htmlFor="permission"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
+                  Permission (opsional)
+                </label>
+                <input
+                  id="permission"
+                  type="text"
+                  name="permission"
+                  value={formData.permission}
+                  onChange={handleInputChange}
+                  placeholder="view users, create post ... (boleh kosong)"
+                  className="w-full px-4 py-2 border rounded-lg text-sm border-gray-300 focus:ring-2 focus:ring-blue-500"
+                  disabled={isLoading}
+                />
+              </div>
+            </div>
 
             {/* Status */}
             <div className="flex items-center">
@@ -214,22 +274,36 @@ const ApiRouteForm = ({ isOpen, onClose, onSave, existingRoute, permissions = []
                 className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-2 focus:ring-blue-500"
                 disabled={isLoading}
               />
-              <label htmlFor="is_active" className="ml-2 text-sm font-medium text-gray-700">
+              <label
+                htmlFor="is_active"
+                className="ml-2 text-sm font-medium text-gray-700"
+              >
                 ✓ Aktifkan route ini
               </label>
             </div>
 
             {/* Info Preview */}
             <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
-              <p className="text-xs font-medium text-gray-700 mb-2">Preview Route:</p>
+              <p className="text-xs font-medium text-gray-700 mb-2">
+                Preview Route:
+              </p>
               <p className="font-mono text-sm text-gray-600 bg-white p-2 rounded border border-gray-200">
-                <span className={`font-bold px-2 py-1 rounded text-white ${
-                  formData.method === 'GET' ? 'bg-blue-600' :
-                  formData.method === 'POST' ? 'bg-green-600' :
-                  formData.method === 'PUT' ? 'bg-yellow-600' :
-                  formData.method === 'DELETE' ? 'bg-red-600' : 'bg-purple-600'
-                }`}>{formData.method}</span>
-                {' '}/api/{formData.path || 'path'}
+                <span
+                  className={`font-bold px-2 py-1 rounded text-white ${
+                    formData.method === "GET"
+                      ? "bg-blue-600"
+                      : formData.method === "POST"
+                      ? "bg-green-600"
+                      : formData.method === "PUT"
+                      ? "bg-yellow-600"
+                      : formData.method === "DELETE"
+                      ? "bg-red-600"
+                      : "bg-purple-600"
+                  }`}
+                >
+                  {formData.method}
+                </span>{" "}
+                /api/{formData.path || "path"}
               </p>
             </div>
           </form>
@@ -252,15 +326,25 @@ const ApiRouteForm = ({ isOpen, onClose, onSave, existingRoute, permissions = []
             >
               {isLoading ? (
                 <>
-                  <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <svg
+                    className="animate-spin h-4 w-4"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
                   </svg>
                   Menyimpan...
                 </>
               ) : (
-                <>
-                  {existingRoute ? 'Update Route' : 'Buat Route'}
-                </>
+                <>{existingRoute ? "Update Route" : "Buat Route"}</>
               )}
             </button>
           </div>

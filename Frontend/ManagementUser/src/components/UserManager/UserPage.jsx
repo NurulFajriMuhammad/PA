@@ -5,7 +5,7 @@ import DeleteConfirmationModal from "../common/DeleteModal";
 import { notifySuccess, notifyError } from "../../../../Shared/utils/notifier";
 import apiClient from "../../../../Shared/api/apiClient";
 
-const UserPage = ({ users = [], roles = [], setNotification }) => {
+const UserPage = ({ users = [], roles = [], setNotification, onRefresh }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
   const [itemToDelete, setItemToDelete] = useState(null);
@@ -22,44 +22,47 @@ const UserPage = ({ users = [], roles = [], setNotification }) => {
   };
 
   const handleSaveUser = async (formData) => {
-    setIsLoading(true); // ✅ SET TO TRUE
-
+    setIsLoading(true);
     try {
       console.log("📡 Saving user:", formData);
 
       const payload = {
         name: formData.name,
         email: formData.email,
-        role_ids: formData.roleIds || [],
+        // 'role_id': formData.roleIds || [],
+        role_id: formData.roleIds || [],
+        // role_ids: formData.roleIds || [],
+        // role_id: formData.roleIds ? formData.roleIds[0] : null,
       };
+      
 
       // Hanya include password jika ada
       if (formData.password) {
         payload.password = formData.password;
+        payload.password_confirmation = formData.passwordConfirmation || formData.password;
       }
 
       if (formData.id) {
-        // Edit user
         await apiClient.put(`/api/users/${formData.id}`, payload);
         notifySuccess("✅ User berhasil diperbarui");
       } else {
-        // Create user baru
         await apiClient.post("/api/users", payload);
         notifySuccess("✅ User berhasil ditambahkan");
       }
 
       setIsModalOpen(false);
       setEditingUser(null);
+      if (onRefresh) {
+         await onRefresh(); 
+      }
       
-      // Refresh data users (jika ada function dari parent)
-      // await onRefresh(); 
       
     } catch (err) {
       console.error("❌ Error:", err);
       const errorMsg = err.response?.data?.message || err.message || "Gagal menyimpan user";
       notifyError(`❌ ${errorMsg}`);
     } finally {
-      setIsLoading(false); // ✅ SET TO FALSE
+      setIsLoading(false);
     }
   };
 
@@ -73,8 +76,7 @@ const UserPage = ({ users = [], roles = [], setNotification }) => {
       notifySuccess("✅ User berhasil dihapus");
       setItemToDelete(null);
       
-      // Refresh users list
-      // await onRefresh();
+      await onRefresh();
       
     } catch (err) {
       console.error("❌ Delete Error:", err);

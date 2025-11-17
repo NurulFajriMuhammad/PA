@@ -12,7 +12,7 @@ import {
 // Terima prop 'onLogout' dari DashboardApp.jsx
 export default function Header({ onLogout }) {
   const navigate = useNavigate();
-  const { user: userDataContainer } = useAuth(); 
+  const { user: userDataContainer, logout } = useAuth();
   console.log("Objek User dari useAuth:", userDataContainer);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
@@ -32,19 +32,18 @@ export default function Header({ onLogout }) {
   }, [isDropdownOpen]);
 
   // Fungsi logout yang clear token dan navigate ke login
-  const handleLogoutClick = () => {
+  const handleLogoutClick = async () => {
     setIsDropdownOpen(false);
-    
-    // Clear token dan user data dari localStorage
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    sessionStorage.clear();
-    
+    // localStorage.removeItem("token");
+    // localStorage.removeItem("user");
+    // sessionStorage.clear();
+    await logout();
+
     // Panggil callback onLogout jika ada
     if (onLogout) {
       onLogout();
     }
-    
+
     // Navigate ke login page
     navigate("/login", { replace: true });
   };

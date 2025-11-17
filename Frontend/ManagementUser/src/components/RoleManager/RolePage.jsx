@@ -5,7 +5,12 @@ import DeleteConfirmationModal from "../common/DeleteModal";
 import { notifySuccess, notifyError } from "../../../../Shared/utils/notifier";
 import apiClient from "../../../../Shared/api/apiClient";
 
-const RolePage = ({ roles = [], permissions = [], setNotification, onRefresh }) => {
+const RolePage = ({
+  roles = [],
+  permissions = [],
+  setNotification,
+  onRefresh,
+}) => {
   const [localRoles, setLocalRoles] = useState(roles);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingRole, setEditingRole] = useState(null);
@@ -77,7 +82,8 @@ const RolePage = ({ roles = [], permissions = [], setNotification, onRefresh }) 
       await fetchRoles(); // ✅ Fetch ulang setelah save
     } catch (err) {
       console.error("❌ Error:", err);
-      const errorMsg = err.response?.data?.message || err.message || "Gagal menyimpan role";
+      const errorMsg =
+        err.response?.data?.message || err.message || "Gagal menyimpan role";
       notifyError(`❌ ${errorMsg}`);
     } finally {
       setIsLoading(false);
@@ -103,7 +109,9 @@ const RolePage = ({ roles = [], permissions = [], setNotification, onRefresh }) 
   };
 
   const handleCopyRole = (role) => {
-    const roleText = `${role.name} (${role.permissions?.length || 0} permissions)`;
+    const roleText = `${role.name} (${
+      role.permissions?.length || 0
+    } permissions)`;
     navigator.clipboard.writeText(roleText);
     notifySuccess(`✅ Role disalin: ${roleText}`);
   };
@@ -113,7 +121,9 @@ const RolePage = ({ roles = [], permissions = [], setNotification, onRefresh }) 
       {/* Header */}
       <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-6">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">🔐 Manajemen Role</h2>
+          <h2 className="text-2xl font-bold text-gray-900">
+            🔐 Manajemen Role
+          </h2>
           <p className="text-gray-600 text-sm mt-1">
             Buat dan kelola role dengan permission yang sesuai
           </p>
@@ -159,17 +169,28 @@ const RolePage = ({ roles = [], permissions = [], setNotification, onRefresh }) 
           <table className="w-full min-w-max divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nama Role</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Permission</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total Permission</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Aksi</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Nama Role
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Permission
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Total Permission
+                </th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                  Aksi
+                </th>
               </tr>
             </thead>
 
             <tbody className="divide-y divide-gray-200">
               {Array.isArray(localRoles) && localRoles.length > 0 ? (
                 localRoles.map((role) => (
-                  <tr key={role.id} className="hover:bg-gray-50 transition-colors">
+                  <tr
+                    key={role.id}
+                    className="hover:bg-gray-50 transition-colors"
+                  >
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                       {role.name}
                     </td>
@@ -196,13 +217,13 @@ const RolePage = ({ roles = [], permissions = [], setNotification, onRefresh }) 
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm space-x-2">
-                      <button
+                      {/* <button
                         onClick={() => handleCopyRole(role)}
                         className="text-gray-600 hover:text-gray-800 hover:bg-gray-100 px-2 py-1 rounded inline-flex items-center gap-1 transition-colors"
                         title="Salin role"
                       >
                         <Copy className="w-4 h-4" />
-                      </button>
+                      </button> */}
                       <button
                         onClick={() => handleEditRole(role)}
                         className="text-blue-600 hover:text-blue-800 hover:bg-blue-50 px-2 py-1 rounded inline-flex items-center gap-1 transition-colors"
@@ -220,7 +241,10 @@ const RolePage = ({ roles = [], permissions = [], setNotification, onRefresh }) 
                 ))
               ) : (
                 <tr>
-                  <td colSpan="4" className="px-6 py-8 text-center text-gray-500">
+                  <td
+                    colSpan="4"
+                    className="px-6 py-8 text-center text-gray-500"
+                  >
                     ℹ️ Tidak ada role ditemukan. <br />
                     <button
                       onClick={handleAddRole}

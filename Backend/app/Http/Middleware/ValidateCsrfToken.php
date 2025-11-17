@@ -13,6 +13,7 @@ class ValidateCsrfToken extends Middleware
      */
     protected $except = [
         // Tambahkan route yang tidak perlu CSRF jika diperlukan
+        'api/*',
         'api/users',
         'api/roles',
         'api/permissions',

@@ -8,14 +8,20 @@ return new class extends Migration
 {
     public function up(): void
     {
+
         Schema::create('api_routes', function (Blueprint $table) {
             $table->id();
             $table->enum('method', ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'])->index();
             $table->string('path')->unique();
-            $table->string('controller');
+            $table->string('controller'); 
+            $table->string('permission')->nullable()->index();
+            $table->string('action'); 
             $table->boolean('is_active')->default(true)->index();
             $table->timestamps();
         });
+
+
+
     }
 
     public function down(): void

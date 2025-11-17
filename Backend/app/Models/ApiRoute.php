@@ -12,6 +12,8 @@ class ApiRoute extends Model
         'method',
         'path',
         'controller',
+        'permission',
+        'action',
         'is_active',
     ];
 
