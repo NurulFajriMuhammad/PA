@@ -22,10 +22,23 @@ class PermissionController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
-    {
-        // (Nanti bisa diisi untuk membuat permission baru)
-    }
+public function store(Request $request)
+{
+    $request->validate([
+        'name' => 'required|string|unique:permissions,name',
+    ]);
+
+    $permission = Permission::create([
+        'name' => $request->name,
+        'guard_name' => 'web'
+    ]);
+
+    return response()->json([
+        'success' => true,
+        'message' => 'Permission berhasil dibuat',
+        'data' => $permission
+    ], 201);
+}
 
     /**
      * Display the specified resource.

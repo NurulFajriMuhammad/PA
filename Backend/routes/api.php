@@ -13,11 +13,6 @@ use App\Http\Controllers\Api\PermissionController;
 // -----------------------------------------------------------------
 
 require __DIR__ . '/auth.php';
-
-
-// -----------------------------------------------------------------
-// RUTE PRIVAT (Wajib Login / Punya Token)
-// -----------------------------------------------------------------
 Route::middleware('auth:sanctum')->group(function () {
 
      // Route::get('/check-auth', function () {
@@ -83,8 +78,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/permissions/{permission}', [PermissionController::class, 'update']);
     Route::delete('/permissions/{permission}', [PermissionController::class, 'destroy']);
 
-    // ganti menjadi API-Routes agar sama dengan frontend dan hindari nama pendek
-    // gunakan FQCN agar tidak dipotong namespace saat didaftarkan
     Route::apiResource('api-routes', \App\Http\Controllers\Api\ApiRouteController::class);
 
     // API Routes 

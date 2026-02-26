@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use App\Models\ApiRoute; // Ganti dengan Model yang Anda gunakan
+use App\Models\ApiRoute;
 
 class ApiRouteController extends Controller
 {
