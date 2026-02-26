@@ -6,10 +6,7 @@ use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\Api\PermissionController;
-use App\Http\Controllers\Api\ApiRouteController;
-use App\Services\DynamicApiRouteLoader;
 
-DynamicApiRouteLoader::load();
 
 // -----------------------------------------------------------------
 // RUTE PUBLIK (Untuk Login, Register, dll)
@@ -37,7 +34,8 @@ Route::middleware('auth:sanctum')->group(function () {
           $user->load('roles', 'permissions');
           return $user;
      });
-     Route::apiResource('/routes', 'ApiRouteController');
+     // Route::apiResource('/routes', 'ApiRouteController');
+     // Route::apiResource('/routes', ApiRouteController::class);
 
      // Route::get('/users', [UserController::class, 'index']);
      // //     ->middleware('permission:view users');
@@ -85,6 +83,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/permissions/{permission}', [PermissionController::class, 'update']);
     Route::delete('/permissions/{permission}', [PermissionController::class, 'destroy']);
 
+    // ganti menjadi API-Routes agar sama dengan frontend dan hindari nama pendek
+    // gunakan FQCN agar tidak dipotong namespace saat didaftarkan
+    Route::apiResource('api-routes', \App\Http\Controllers\Api\ApiRouteController::class);
+
     // API Routes 
 // Route::apiResource('api-routes', ApiRouteController::class)->middleware('permission:manage routes');
 //     Route::apiResource('api-routes', ApiRouteController::class);
@@ -92,8 +94,8 @@ Route::middleware('auth:sanctum')->group(function () {
           //   ->middleware('permission:manage routes');
 
 
-Route::get('/api-routes', [ApiRouteController::class, 'index']);
-Route::post('/api-routes', [ApiRouteController::class, 'store']);
-Route::put('/api-routes/{apiRoute}', [ApiRouteController::class, 'update']);
-Route::delete('/api-routes/{apiRoute}', [ApiRouteController::class, 'destroy']);
+// Route::get('/api-routes', [ApiRouteController::class, 'index']);
+// Route::post('/api-routes', [ApiRouteController::class, 'store']);
+// Route::put('/api-routes/{apiRoute}', [ApiRouteController::class, 'update']);
+// Route::delete('/api-routes/{apiRoute}', [ApiRouteController::class, 'destroy']);
 });
