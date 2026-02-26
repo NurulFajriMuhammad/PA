@@ -127,7 +127,7 @@ export default function LoginPage() {
 
             <div className="mb-8">
               <h2 className="text-2xl font-bold text-slate-800 mb-2">
-                Selamat Datang Kembali
+                Selamat Datang
               </h2>
               <p className="text-slate-600">
                 Masukkan kredensial Anda untuk melanjutkan
