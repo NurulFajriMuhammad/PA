@@ -243,7 +243,7 @@ const ApiRouteForm = ({
                 />
               </div>
 
-              <div>
+              {/* <div>
                 <label
                   htmlFor="permission"
                   className="block text-sm font-medium text-gray-700 mb-2"
@@ -260,7 +260,7 @@ const ApiRouteForm = ({
                   className="w-full px-4 py-2 border rounded-lg text-sm border-gray-300 focus:ring-2 focus:ring-blue-500"
                   disabled={isLoading}
                 />
-              </div>
+              </div> */}
             </div>
 
             {/* Status */}
@@ -293,12 +293,12 @@ const ApiRouteForm = ({
                     formData.method === "GET"
                       ? "bg-blue-600"
                       : formData.method === "POST"
-                      ? "bg-green-600"
-                      : formData.method === "PUT"
-                      ? "bg-yellow-600"
-                      : formData.method === "DELETE"
-                      ? "bg-red-600"
-                      : "bg-purple-600"
+                        ? "bg-green-600"
+                        : formData.method === "PUT"
+                          ? "bg-yellow-600"
+                          : formData.method === "DELETE"
+                            ? "bg-red-600"
+                            : "bg-purple-600"
                   }`}
                 >
                   {formData.method}
@@ -313,7 +313,7 @@ const ApiRouteForm = ({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors font-medium text-sm disabled:opacity-50"
+              className="px-5 py-2 bg-red-50 border border-red-200 text-red-600 rounded-xl hover:bg-red-600 hover:text-white transition-all font-semibold text-sm disabled:opacity-50"
               disabled={isLoading}
             >
               Batal

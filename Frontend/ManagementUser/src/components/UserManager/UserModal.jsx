@@ -1,7 +1,14 @@
-import React, { useState, useEffect } from 'react';
-import { X, Save, AlertCircle } from 'lucide-react';
+import React, { useState, useEffect } from "react";
+import { X, Save, AlertCircle } from "lucide-react";
 
-const UserFormModal = ({ isOpen, onClose, onSave, roles, existingUser, isLoading = false }) => {
+const UserFormModal = ({
+  isOpen,
+  onClose,
+  onSave,
+  roles,
+  existingUser,
+  isLoading = false,
+}) => {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -15,7 +22,7 @@ const UserFormModal = ({ isOpen, onClose, onSave, roles, existingUser, isLoading
     if (existingUser) {
       setName(existingUser.name || "");
       setEmail(existingUser.email || "");
-      setSelectedRoles(existingUser.roles?.map(r => r.id) || []);
+      setSelectedRoles(existingUser.roles?.map((r) => r.id) || []);
       setPassword("");
       setPasswordConfirm("");
     } else {
@@ -71,14 +78,12 @@ const UserFormModal = ({ isOpen, onClose, onSave, roles, existingUser, isLoading
   };
 
   const handleRoleToggle = (id) => {
-    setSelectedRoles(prev =>
-      prev.includes(id)
-        ? prev.filter(r => r !== id)
-        : [...prev, id]
+    setSelectedRoles((prev) =>
+      prev.includes(id) ? prev.filter((r) => r !== id) : [...prev, id],
     );
     // Clear error saat user ubah role
     if (errors.roles) {
-      setErrors(prev => ({ ...prev, roles: "" }));
+      setErrors((prev) => ({ ...prev, roles: "" }));
     }
   };
 
@@ -96,14 +101,14 @@ const UserFormModal = ({ isOpen, onClose, onSave, roles, existingUser, isLoading
       name,
       email,
       password: password || null,
-      roleIds: selectedRoles
+      roleIds: selectedRoles,
     });
   };
 
   if (!isOpen) return null;
 
   // Cek apakah form valid untuk enable/disable tombol
-  const isFormValid = 
+  const isFormValid =
     name?.trim() &&
     email?.trim() &&
     selectedRoles.length > 0 &&
@@ -112,14 +117,16 @@ const UserFormModal = ({ isOpen, onClose, onSave, roles, existingUser, isLoading
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center z-50 p-4">
-      <form onSubmit={submitForm} className="bg-white w-full max-w-lg rounded-lg shadow-xl overflow-hidden">
-        
+      <form
+        onSubmit={submitForm}
+        className="bg-white w-full max-w-lg rounded-lg shadow-xl overflow-hidden"
+      >
         {/* Header */}
         <div className="p-4 border-b bg-gradient-to-r from-blue-600 to-blue-700 flex justify-between items-center">
           <h2 className="font-bold text-lg text-white">
             {isEdit ? "✏️ Edit Pengguna" : "➕ Tambah Pengguna"}
           </h2>
-          <button 
+          <button
             type="button"
             onClick={onClose}
             className="text-white hover:bg-blue-500 p-1 rounded transition-colors"
@@ -131,22 +138,21 @@ const UserFormModal = ({ isOpen, onClose, onSave, roles, existingUser, isLoading
 
         {/* Body */}
         <div className="p-4 space-y-4 max-h-96 overflow-y-auto">
-          
           {/* Nama */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Nama Lengkap <span className="text-red-500">*</span>
             </label>
-            <input 
-              value={name} 
+            <input
+              value={name}
               onChange={(e) => {
                 setName(e.target.value);
-                if (errors.name) setErrors(prev => ({ ...prev, name: "" }));
+                if (errors.name) setErrors((prev) => ({ ...prev, name: "" }));
               }}
               className={`w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                 errors.name ? "border-red-500" : "border-gray-300"
               }`}
-              placeholder="Nama lengkap" 
+              placeholder="Nama lengkap"
               disabled={isLoading}
             />
             {errors.name && (
@@ -161,17 +167,17 @@ const UserFormModal = ({ isOpen, onClose, onSave, roles, existingUser, isLoading
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Email <span className="text-red-500">*</span>
             </label>
-            <input 
-              value={email} 
+            <input
+              value={email}
               onChange={(e) => {
                 setEmail(e.target.value);
-                if (errors.email) setErrors(prev => ({ ...prev, email: "" }));
+                if (errors.email) setErrors((prev) => ({ ...prev, email: "" }));
               }}
-              type="email" 
+              type="email"
               className={`w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                 errors.email ? "border-red-500" : "border-gray-300"
               }`}
-              placeholder="user@example.com" 
+              placeholder="user@example.com"
               disabled={isLoading}
             />
             {errors.email && (
@@ -186,17 +192,20 @@ const UserFormModal = ({ isOpen, onClose, onSave, roles, existingUser, isLoading
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Password {!isEdit && <span className="text-red-500">*</span>}
             </label>
-            <input 
-              value={password} 
+            <input
+              value={password}
               onChange={(e) => {
                 setPassword(e.target.value);
-                if (errors.password) setErrors(prev => ({ ...prev, password: "" }));
+                if (errors.password)
+                  setErrors((prev) => ({ ...prev, password: "" }));
               }}
-              type="password" 
+              type="password"
               className={`w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                 errors.password ? "border-red-500" : "border-gray-300"
               }`}
-              placeholder={isEdit ? "Password (opsional)" : "Minimal 6 karakter"}
+              placeholder={
+                isEdit ? "Password (opsional)" : "Minimal 6 karakter"
+              }
               disabled={isLoading}
             />
             {errors.password && (
@@ -210,15 +219,17 @@ const UserFormModal = ({ isOpen, onClose, onSave, roles, existingUser, isLoading
           {(password || isEdit) && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Konfirmasi Password {!isEdit && password && <span className="text-red-500">*</span>}
+                Konfirmasi Password{" "}
+                {!isEdit && password && <span className="text-red-500">*</span>}
               </label>
-              <input 
-                value={passwordConfirm} 
+              <input
+                value={passwordConfirm}
                 onChange={(e) => {
                   setPasswordConfirm(e.target.value);
-                  if (errors.passwordConfirm) setErrors(prev => ({ ...prev, passwordConfirm: "" }));
+                  if (errors.passwordConfirm)
+                    setErrors((prev) => ({ ...prev, passwordConfirm: "" }));
                 }}
-                type="password" 
+                type="password"
                 className={`w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                   errors.passwordConfirm ? "border-red-500" : "border-gray-300"
                 }`}
@@ -238,13 +249,18 @@ const UserFormModal = ({ isOpen, onClose, onSave, roles, existingUser, isLoading
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Role <span className="text-red-500">*</span>
             </label>
-            <div className={`border rounded p-3 space-y-2 ${
-              errors.roles ? "border-red-500 bg-red-50" : "border-gray-300"
-            }`}>
+            <div
+              className={`border rounded p-3 space-y-2 ${
+                errors.roles ? "border-red-500 bg-red-50" : "border-gray-300"
+              }`}
+            >
               {Array.isArray(roles) && roles.length > 0 ? (
-                roles.map(role => (
-                  <label key={role.id} className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 p-1 rounded transition-colors">
-                    <input 
+                roles.map((role) => (
+                  <label
+                    key={role.id}
+                    className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 p-1 rounded transition-colors"
+                  >
+                    <input
                       type="checkbox"
                       checked={selectedRoles.includes(role.id)}
                       onChange={() => handleRoleToggle(role.id)}
@@ -268,16 +284,16 @@ const UserFormModal = ({ isOpen, onClose, onSave, roles, existingUser, isLoading
 
         {/* Footer */}
         <div className="p-4 border-t bg-gray-50 flex justify-end gap-3">
-          <button 
-            type="button" 
-            onClick={onClose} 
-            className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition-colors font-medium disabled:opacity-50"
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-5 py-2 bg-red-50 border border-red-200 text-red-600 rounded-xl hover:bg-red-600 hover:text-white transition-all font-semibold text-sm disabled:opacity-50"
             disabled={isLoading}
           >
             Batal
           </button>
-          <button 
-            type="submit" 
+          <button
+            type="submit"
             className={`px-4 py-2 rounded flex items-center gap-2 font-medium transition-colors ${
               isFormValid && !isLoading
                 ? "bg-blue-600 text-white hover:bg-blue-700 cursor-pointer"
@@ -287,8 +303,20 @@ const UserFormModal = ({ isOpen, onClose, onSave, roles, existingUser, isLoading
           >
             {isLoading ? (
               <>
-                <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <svg
+                  className="animate-spin h-4 w-4"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  ></circle>
                 </svg>
                 Menyimpan...
               </>

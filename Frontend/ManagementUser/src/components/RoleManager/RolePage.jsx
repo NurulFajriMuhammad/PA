@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Plus, Trash2, Edit, Copy } from "lucide-react";
+import { Plus, Trash2, Edit } from "lucide-react"; // Copy dihapus jika tidak dipakai
 import RoleModal from "./RoleModal";
 import DeleteConfirmationModal from "../common/DeleteModal";
 import { notifySuccess, notifyError } from "../../../../Shared/utils/notifier";
@@ -8,7 +8,6 @@ import apiClient from "../../../../Shared/api/apiClient";
 const RolePage = ({
   roles = [],
   permissions = [],
-  setNotification,
   onRefresh,
 }) => {
   const [localRoles, setLocalRoles] = useState(roles);
@@ -17,16 +16,13 @@ const RolePage = ({
   const [itemToDelete, setItemToDelete] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  // ✅ Fetch roles saat component mount
   useEffect(() => {
     fetchRoles();
   }, []);
 
-  // ✅ Update local state saat props roles berubah
   useEffect(() => {
-    if (Array.isArray(roles) && roles.length > 0) {
+    if (Array.isArray(roles)) {
       setLocalRoles(roles);
-      console.log("✅ Roles updated from props:", roles);
     }
   }, [roles]);
 
@@ -34,14 +30,9 @@ const RolePage = ({
     setIsLoading(true);
     try {
       const res = await apiClient.get("/api/roles");
-      console.log("📡 Raw response:", res.data);
-
-      // Handle berbagai format response
       const rolesData = res.data?.data || res.data || [];
       setLocalRoles(Array.isArray(rolesData) ? rolesData : []);
-      console.log("✅ Roles fetched:", rolesData);
     } catch (err) {
-      console.error("❌ Fetch Error:", err);
       notifyError("❌ Gagal memuat roles");
     } finally {
       setIsLoading(false);
@@ -60,14 +51,11 @@ const RolePage = ({
 
   const handleSaveRole = async (formData) => {
     setIsLoading(true);
-
     try {
       const payload = {
         name: formData.name,
         permission_ids: formData.permissionIds || [],
       };
-
-      console.log("📤 Sending payload:", payload);
 
       if (formData.id) {
         await apiClient.put(`/api/roles/${formData.id}`, payload);
@@ -79,11 +67,9 @@ const RolePage = ({
 
       setIsModalOpen(false);
       setEditingRole(null);
-      await fetchRoles(); // ✅ Fetch ulang setelah save
+      await fetchRoles();
     } catch (err) {
-      console.error("❌ Error:", err);
-      const errorMsg =
-        err.response?.data?.message || err.message || "Gagal menyimpan role";
+      const errorMsg = err.response?.data?.message || "Gagal menyimpan role";
       notifyError(`❌ ${errorMsg}`);
     } finally {
       setIsLoading(false);
@@ -92,28 +78,17 @@ const RolePage = ({
 
   const handleDeleteRole = async () => {
     if (!itemToDelete) return;
-
     setIsLoading(true);
-
     try {
       await apiClient.delete(`/api/roles/${itemToDelete.id}`);
       notifySuccess("✅ Role berhasil dihapus");
       setItemToDelete(null);
-      await fetchRoles(); // ✅ Fetch ulang setelah delete
+      await fetchRoles();
     } catch (err) {
-      console.error("❌ Delete Error:", err);
       notifyError("❌ Gagal menghapus role");
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const handleCopyRole = (role) => {
-    const roleText = `${role.name} (${
-      role.permissions?.length || 0
-    } permissions)`;
-    navigator.clipboard.writeText(roleText);
-    notifySuccess(`✅ Role disalin: ${roleText}`);
   };
 
   return (
@@ -121,45 +96,29 @@ const RolePage = ({
       {/* Header */}
       <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-6">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">
-            🔐 Manajemen Role
-          </h2>
+          <h2 className="text-2xl font-bold text-gray-900">🔐 Manajemen Role</h2>
           <p className="text-gray-600 text-sm mt-1">
             Buat dan kelola role dengan permission yang sesuai
           </p>
         </div>
-        <button
-          onClick={handleAddRole}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg flex items-center hover:bg-blue-700 transition-colors shadow-md w-fit"
-        >
-          <Plus className="w-5 h-5 mr-2" /> Tambah Role
-        </button>
+        <div className="flex flex-col items-end gap-1">
+          <button
+            onClick={handleAddRole}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg flex items-center hover:bg-blue-700 transition-colors shadow-md w-fit"
+          >
+            <Plus className="w-5 h-5 mr-2" /> Tambah Role
+          </button>
+          <span className="text-sm text-gray-700 mr-3">
+            Total Role: <strong>{localRoles.length}</strong>
+          </span>
+        </div>
       </div>
 
       {/* Loading State */}
       {isLoading && localRoles.length === 0 && (
         <div className="p-8 text-center text-gray-500 bg-white rounded-lg shadow">
-          <svg
-            className="animate-spin h-8 w-8 text-blue-600 mx-auto"
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-          >
-            <circle
-              className="opacity-25"
-              cx="12"
-              cy="12"
-              r="10"
-              stroke="currentColor"
-              strokeWidth="4"
-            ></circle>
-            <path
-              className="opacity-75"
-              fill="currentColor"
-              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-            ></path>
-          </svg>
-          <p className="mt-2">Memuat roles...</p>
+          <div className="animate-spin h-8 w-8 text-blue-600 mx-auto border-4 border-t-transparent rounded-full mb-2"></div>
+          <p>Memuat roles...</p>
         </div>
       )}
 
@@ -175,22 +134,16 @@ const RolePage = ({
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                   Permission
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">
                   Total Permission
-                </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                  Aksi
                 </th>
               </tr>
             </thead>
 
             <tbody className="divide-y divide-gray-200">
-              {Array.isArray(localRoles) && localRoles.length > 0 ? (
+              {localRoles.length > 0 ? (
                 localRoles.map((role) => (
-                  <tr
-                    key={role.id}
-                    className="hover:bg-gray-50 transition-colors"
-                  >
+                  <tr key={role.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                       {role.name}
                     </td>
@@ -211,19 +164,13 @@ const RolePage = ({
                         )}
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                      <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full font-medium">
+                    {/* ✅ Isi Total Permission ditengah */}
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-center">
+                      <span className="inline-block px-3 py-1 bg-blue-100 text-blue-800 rounded-full font-medium min-w-[32px]">
                         {role.permissions?.length || 0}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm space-x-2">
-                      {/* <button
-                        onClick={() => handleCopyRole(role)}
-                        className="text-gray-600 hover:text-gray-800 hover:bg-gray-100 px-2 py-1 rounded inline-flex items-center gap-1 transition-colors"
-                        title="Salin role"
-                      >
-                        <Copy className="w-4 h-4" />
-                      </button> */}
                       <button
                         onClick={() => handleEditRole(role)}
                         className="text-blue-600 hover:text-blue-800 hover:bg-blue-50 px-2 py-1 rounded inline-flex items-center gap-1 transition-colors"
@@ -241,15 +188,9 @@ const RolePage = ({
                 ))
               ) : (
                 <tr>
-                  <td
-                    colSpan="4"
-                    className="px-6 py-8 text-center text-gray-500"
-                  >
+                  <td colSpan="4" className="px-6 py-8 text-center text-gray-500">
                     ℹ️ Tidak ada role ditemukan. <br />
-                    <button
-                      onClick={handleAddRole}
-                      className="text-blue-600 hover:underline mt-2"
-                    >
+                    <button onClick={handleAddRole} className="text-blue-600 hover:underline mt-2">
                       Buat role pertama Anda
                     </button>
                   </td>
