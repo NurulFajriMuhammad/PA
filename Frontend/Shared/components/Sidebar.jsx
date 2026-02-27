@@ -1,659 +1,327 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-// Impor ikon yang dibutuhkan dari react-icons
+import { Link, useLocation } from 'react-router-dom';
 import { 
-  // --- IKON OUTLINE KONSISTEN ---
-  BsGrid1X2,
-  BsPeople,
-  BsClipboardCheck,
-  BsBuilding,
-  BsShare,
-  BsSearch,
-  BsArrowRepeat,
-  BsBarChart,
-  BsGear,
-  BsDatabaseGear,
-  BsPersonVcard,
-  BsChevronDown,
-  BsChevronLeft,
-  BsChevronRight
+  BsGrid1X2, BsBuilding, BsShare, BsSearch, BsArrowRepeat, 
+  BsBarChart, BsGear, BsDatabaseGear, BsPersonVcard, 
+  BsChevronDown, BsChevronLeft, BsChevronRight, BsShieldCheck 
 } from 'react-icons/bs';
 
 export default function Sidebar({ isSidebarOpen, toggleSidebar }) {
   const [openDropdown, setOpenDropdown] = useState(null);
+  const location = useLocation();
+
   const handleDropdownToggle = (menuName) => {
-    setOpenDropdown(openDropdown === menuName ? null : menuName);
+    if (isSidebarOpen) {
+      setOpenDropdown(openDropdown === menuName ? null : menuName);
+    }
   };
+  
+
+  const isActive = (path) => location.pathname === path;
 
   return (
     <>
       <style>
         {`
+          :root {
+            --audit-navy: #0f172a;
+            --audit-navy-light: #1e293b;
+            --audit-blue-primary: #3b82f6;
+            --audit-text: #f8fafc;
+            --audit-text-muted: #94a3b8;
+            --sb-width: 280px;
+            --sb-collapsed: 75px;
+          }
+
           .sidebar-container {
-            width: 260px;
+            width: var(--sb-width);
             height: 100vh;
             position: fixed;
-            top: 0;
-            left: 0;
-            background-color: #2c3e50;
-            color: white;
-            box-shadow: 2px 0 8px rgba(0,0,0,0.15);
-            transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            overflow: hidden; 
+            background: var(--audit-navy);
+            color: var(--audit-text);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             z-index: 1000;
             display: flex;
             flex-direction: column;
           }
           
-          .sidebar-container.sidebar-collapsed {
-            width: 70px;
-            overflow: visible; 
-          }
+          .sidebar-collapsed { width: var(--sb-collapsed); }
 
-          .sidebar-header {
-            position: relative;
-            padding: 24px 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-            min-height: 70px;
-            transition: all 0.3s;
-          }
-
-          .sidebar-container.sidebar-collapsed .sidebar-header {
-            padding: 20px 10px;
-            justify-content: center;
-          }
-          
-          .sidebar-logo {
-            font-size: 1.5em;
-            font-weight: 700;
-            white-space: nowrap;
-            opacity: 1;
-            transform: translateX(0);
-            transition: opacity 0.25s ease-out, transform 0.25s ease-out;
-            letter-spacing: 0.5px;
-            background: linear-gradient(135deg, #ffffff 0%, #ecf0f1 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-          }
-
-          .sidebar-container.sidebar-collapsed .sidebar-logo {
-            opacity: 0;
-            transform: translateX(-20px);
-            width: 0;
-            overflow: hidden;
-          }
-
-          .sidebar-toggle {
-            position: absolute;
-            right: 15px;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 32px;
-            height: 32px;
-            background-color: rgba(52, 73, 94, 0.8);
-            color: white;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 1.3em;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.3s ease;
-            backdrop-filter: blur(10px);
-          }
-
-          .sidebar-toggle:hover {
-            background-color: rgba(74, 99, 125, 0.9);
-            border-color: rgba(255, 255, 255, 0.2);
-            transform: translateY(-50%) scale(1.05);
-          }
-
-          .sidebar-toggle:active {
-            transform: translateY(-50%) scale(0.95);
-          }
-
-          .sidebar-container.sidebar-collapsed .sidebar-toggle {
-            right: auto;
-            left: 50%;
-            transform: translate(-50%, -50%);
-          }
-
-          .sidebar-container.sidebar-collapsed .sidebar-toggle:hover {
-            transform: translate(-50%, -50%) scale(1.05);
-          }
-
+          /* HIDE SCROLLBAR */
           .sidebar-nav {
             flex: 1;
             overflow-y: auto;
-            overflow-x: hidden;
-            padding: 20px 0;
-            scrollbar-width: thin;
-            scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+            padding-bottom: 50px;
           }
-          
-          .sidebar-container.sidebar-collapsed .sidebar-nav {
-             overflow-x: visible;
-             overflow-y: visible; 
-          }
+          .sidebar-nav::-webkit-scrollbar { display: none; }
 
-          .sidebar-nav::-webkit-scrollbar {
-            width: 6px;
-          }
-
-          .sidebar-nav::-webkit-scrollbar-track {
-            background: transparent;
-          }
-
-          .sidebar-nav::-webkit-scrollbar-thumb {
-            background-color: rgba(255, 255, 255, 0.2);
-            border-radius: 3px;
-          }
-
-          .sidebar-nav::-webkit-scrollbar-thumb:hover {
-            background-color: rgba(255, 255, 255, 0.3);
-          }
-
-          .sidebar-nav ul {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-          }
-
-          .sidebar-nav li {
-            margin-bottom: 4px;
-            padding: 0 8px; 
-          }
-
-          .sidebar-nav a {
-            color: #ecf0f1;
-            text-decoration: none;
+          .sidebar-header {
+            padding: 20px;
             display: flex;
             align-items: center;
-            padding: 12px 14px;
-            border-radius: 8px;
-            transition: all 0.25s ease;
-            white-space: nowrap;
-            position: relative;
-            overflow: hidden;
+            min-height: 75px;
+            background: rgba(0,0,0,0.2);
+            justify-content: ${isSidebarOpen ? 'flex-start' : 'center'};
           }
 
-          .sidebar-nav a::before {
-            content: '';
+          .toggle-btn {
             position: absolute;
-            left: 0;
-            top: 0;
-            bottom: 0;
-            width: 3px;
-            background-color: #3498db;
-            transform: scaleY(0);
-            transition: transform 0.25s ease;
-          }
-
-          .sidebar-nav a:hover {
-            background-color: rgba(52, 73, 94, 0.6);
-            transform: translateX(4px);
-          }
-
-          .sidebar-nav a.active {
-            background-color: rgba(52, 152, 219, 0.2);
-            color: #ffffff;
-            font-weight: 600;
-          }
-
-          .sidebar-nav a.active::before {
-            transform: scaleY(1);
-          }
-
-          .sidebar-nav a:hover::before {
-            transform: scaleY(0.6);
-          }
-
-          .sidebar-container.sidebar-collapsed .sidebar-nav a {
-            justify-content: center;
-            padding: 12px 0;
-          }
-
-          .sidebar-container.sidebar-collapsed .sidebar-nav a:hover {
-            transform: translateX(0) scale(1.05);
-          }
-
-          .sidebar-icon {
-            font-size: 1.3em;
-            margin-right: 14px;
-            width: 32px;
-            text-align: center;
-            flex-shrink: 0;
-            transition: transform 0.25s ease;
-            display: inline-flex;
+            right: -12px;
+            top: 30px;
+            width: 24px;
+            height: 24px;
+            background: var(--audit-blue-primary);
+            border: none;
+            border-radius: 4px;
+            color: white;
+            display: flex;
             align-items: center;
             justify-content: center;
+            cursor: pointer;
+            z-index: 1100;
           }
 
-          .sidebar-nav a:hover .sidebar-icon {
-            transform: scale(1.1);
+          .nav-item-wrapper { position: relative; width: 100%; }
+
+          .nav-link, .dropdown-btn {
+            display: flex;
+            align-items: center;
+            padding: 12px 20px;
+            color: var(--audit-text);
+            text-decoration: none;
+            width: 100%;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: 0.2s;
           }
 
-          .sidebar-container.sidebar-collapsed .sidebar-icon {
-            margin-right: 0;
+          /* Penyesuaian Icon saat Collapsed agar benar-benar di tengah */
+          .sidebar-collapsed .nav-link, 
+          .sidebar-collapsed .dropdown-btn {
+            padding: 12px 0;
+            justify-content: center;
+          }
+
+          .nav-link:hover, .dropdown-btn:hover {
+            background: var(--audit-navy-light);
+          }
+
+          .nav-link.active {
+            background: rgba(59, 130, 246, 0.1);
+            color: var(--audit-blue-primary);
+            box-shadow: inset 4px 0 0 var(--audit-blue-primary);
+          }
+
+          .sidebar-icon { 
+            font-size: 1.25rem; 
+            min-width: ${isSidebarOpen ? '35px' : '0'};
+            display: flex;
+            justify-content: center;
           }
 
           .sidebar-text {
-            transition: opacity 0.2s ease, transform 0.2s ease;
-            opacity: 1;
-            transform: translateX(0);
-            font-size: 0.95em;
-            font-weight: 500;
-          }
-
-          .sidebar-container.sidebar-collapsed .sidebar-text {
-            opacity: 0;
-            transform: translateX(-10px);
-            width: 0;
-            overflow: hidden;
-            pointer-events: none;
-          }
-
-          .sidebar-footer {
-            padding: 16px;
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
-            text-align: center;
-            font-size: 0.8em;
-            color: rgba(255, 255, 255, 0.5);
-            transition: opacity 0.3s;
-          }
-
-          .sidebar-container.sidebar-collapsed .sidebar-footer {
-            opacity: 0;
-          }
-          
-          .sidebar-nav li.sidebar-dropdown-container {
-            padding-left: 0;
-            padding-right: 0;
-            margin-bottom: 4px;
-            position: relative; 
-          }
-
-          .sidebar-dropdown-toggle {
-            color: #ecf0f1;
-            display: flex;
-            align-items: center;
-            border-radius: 0; 
-            transition: all 0.25s ease;
             white-space: nowrap;
-            width: 100%; 
-            margin: 0;
-            padding: 12px 14px 12px 22px; 
-            background: none;
-            border: none;
-            cursor: pointer;
-            font-family: inherit;
-            text-align: left;
-            font-size: 0.95em;
-            font-weight: 500;
+            opacity: ${isSidebarOpen ? '1' : '0'};
+            display: ${isSidebarOpen ? 'block' : 'none'};
+            margin-left: 10px;
           }
 
-          .sidebar-dropdown-toggle:not(.open) {
-            border-radius: 8px;
-            width: calc(100% - 16px);
-            margin: 0 8px;
-            padding: 12px 14px;
+          .chevron { 
+            margin-left: auto; 
+            display: ${isSidebarOpen ? 'block' : 'none'}; 
+            transition: transform 0.3s;
           }
 
-          .sidebar-dropdown-toggle:hover:not(.open) {
-            background-color: rgba(52, 73, 94, 0.6);
-            transform: translateX(4px);
-          }
-
-          .sidebar-dropdown-toggle.open {
-            background-color: rgba(52, 152, 219, 0.2);
-            color: #ffffff;
-            font-weight: 600;
-            border-top-left-radius: 8px;
-            border-top-right-radius: 8px;
-            border-bottom-left-radius: 0;
-            border-bottom-right-radius: 0;
-            margin: 0;
-            width: 100%;
-            padding: 12px 14px 12px 22px;
-          }
-
-          .dropdown-chevron {
-            margin-left: auto;
-            font-size: 0.9em;
-            transition: transform 0.3s ease;
-          }
-
-          .sidebar-dropdown-toggle.open .dropdown-chevron {
-            transform: rotate(180deg);
-          }
-
-          .sidebar-submenu {
+          /* --- SUBMENU STYLE (OPEN SIDEBAR) --- */
+          .submenu-list {
             list-style: none;
             padding: 0;
-            background-color: rgba(0, 0, 0, 0.15);
+            margin: 0;
+            background: rgba(0,0,0,0.15);
             max-height: 0;
             overflow: hidden;
-            transition: max-height 0.3s ease-in-out, padding 0.3s ease-in-out;
-            margin: 0;
-            width: 100%; 
-            border-bottom-left-radius: 8px;
-            border-bottom-right-radius: 8px;
+            transition: max-height 0.3s ease-out;
           }
 
-          .sidebar-submenu.open {
-            max-height: 600px;
-            padding-top: 4px;
-            padding-bottom: 8px; 
-          }
-          
-          .sidebar-submenu li {
-            padding: 0; 
-            margin: 0;
+          .sidebar-container:not(.sidebar-collapsed) .submenu-list.is-open {
+            max-height: 1000px;
+            padding: 5px 0;
           }
 
-          .sidebar-submenu a {
-            color: #bdc3c7;
+          .submenu-item {
+            display: block;
+            padding: 10px 20px 10px 65px;
+            color: var(--audit-text-muted);
             text-decoration: none;
-            display: block; 
-            white-space: normal;
-            height: auto;
-            transition: all 0.25s ease;
-            font-size: 0.9em;
-            padding: 10px 14px 10px 68px; 
-            margin: 0 8px 2px 8px; 
-            border-radius: 6px;
-          }
-          
-          .sidebar-submenu li:last-child a {
-            margin-bottom: 0;
+            font-size: 0.85rem;
+            transition: 0.2s;
           }
 
-          .sidebar-submenu a:hover {
-            color: #ffffff;
-            background-color: rgba(52, 73, 94, 0.8);
-            transform: none; 
-          }
-          
-          .sidebar-submenu a::before {
-            display: none; 
-          }
+          .submenu-item:hover { color: white; background: rgba(255,255,255,0.05); }
 
-          .sidebar-container.sidebar-collapsed .sidebar-submenu {
-            position: absolute;
-            left: calc(100% + 4px); 
-            top: 0; 
-            width: 250px; 
-            max-height: none; 
-            padding: 8px; 
-            background-color: #ffffff; 
-            border-radius: 8px;
-            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
-            border: 1px solid #e0e0e0;
-            opacity: 0;
-            transform: translateX(10px);
-            pointer-events: none;
-            transition: opacity 0.3s ease, transform 0.3s ease;
-            overflow: visible; 
-          }
+/* --- FLOATING STYLE (COLLAPSED SIDEBAR WITH ANIMATION) --- */
+@media (min-width: 769px) {
 
-          .sidebar-container.sidebar-collapsed .sidebar-submenu.open {
-            opacity: 1;
-            transform: translateX(0);
-            pointer-events: auto;
-            z-index: 1001; 
-          }
+  .sidebar-collapsed .submenu-list {
+    position: absolute;
+    left: 85px;
+    top: 0;
+    width: 260px;
+    background: var(--audit-navy);
+    box-shadow: 0 15px 35px rgba(0,0,0,0.4);
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.08);
+    padding: 10px 0;
 
-          
-          .sidebar-container.sidebar-collapsed .dropdown-chevron {
-            display: none;
-          }
-          
-          .sidebar-container.sidebar-collapsed .sidebar-dropdown-toggle {
-            justify-content: center;
-            padding: 12px 14px;
-            margin: 0 8px;
-            width: calc(100% - 16px);
-          }
+    opacity: 0;
+    transform: translateX(10px) scale(0.95);
+    pointer-events: none;
+    transition: 
+      opacity 0.25s ease,
+      transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  }
 
-          .sidebar-container.sidebar-collapsed .sidebar-dropdown-toggle:hover {
-            transform: translateX(0) scale(1.05);
-          }
-          
-          .sidebar-container.sidebar-collapsed .sidebar-submenu a {
-            color: #333; 
-            font-size: 0.9em;
-            padding: 10px 16px; 
-            margin: 2px 0; 
-            white-space: normal; 
-            height: auto;
-          }
-          
-          .sidebar-container.sidebar-collapsed .sidebar-submenu a:hover {
-            background-color: #f5f5f5; 
-            color: #3498db; 
-            transform: none;
-          }
-          
-          .sidebar-container.sidebar-collapsed .sidebar-submenu.open {
-            max-height: none;
-            padding: 8px; 
-          }
- 
-          .sidebar-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
-            z-index: 999; 
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-          }
+  .sidebar-collapsed .nav-item-wrapper:hover .submenu-list {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+    pointer-events: auto;
+  }
 
+  .sidebar-collapsed .submenu-item {
+    padding: 12px 20px;
+  }
 
-          @media (max-width: 768px) {
-            .sidebar-container {
-              width: 260px;
-              transform: translateX(-100%);
-              transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            }
+  .sidebar-collapsed .submenu-item:hover {
+    background: var(--audit-navy-light);
+    color: white;
+  }
+}
 
-            .sidebar-container.sidebar-collapsed {
-              transform: translateX(-100%);
-              width: 260px;
-              overflow: hidden; 
-            }
-
-            .sidebar-container:not(.sidebar-collapsed) {
-              transform: translateX(0);
-            }
-
-            .sidebar-overlay.overlay-visible {
-              opacity: 1;
-              pointer-events: auto;
-            }
-
-            .sidebar-container.sidebar-collapsed .sidebar-submenu {
-                display: none;
-            }
+          .nav-section-label {
+            padding: 20px 25px 10px;
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--audit-blue-primary);
+            font-weight: 800;
+            display: ${isSidebarOpen ? 'block' : 'none'};
           }
         `}
       </style>
-      
-      <div 
-        className={`sidebar-overlay ${isSidebarOpen ? 'overlay-visible' : ''}`}
-        onClick={toggleSidebar}
-        aria-hidden="true"
-      ></div>
-      
+
       <div className={`sidebar-container ${!isSidebarOpen ? 'sidebar-collapsed' : ''}`}>
+        <button className="toggle-btn" onClick={toggleSidebar}>
+          {isSidebarOpen ? <BsChevronLeft size={14}/> : <BsChevronRight size={14}/>}
+        </button>
+
         <div className="sidebar-header">
-          {isSidebarOpen && <div className="sidebar-logo">AuditApp</div>}
-          
-          <button 
-            className="sidebar-toggle" 
-            onClick={toggleSidebar}
-            aria-label={isSidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
-          >
-            {isSidebarOpen ? <BsChevronLeft /> : <BsChevronRight />}
-          </button>
+          <BsShieldCheck className="logo-icon" />
+          <span className="sidebar-text" style={{fontWeight: 800, fontSize: '1.1rem'}}>AUDIT SYSTEM</span>
         </div>
 
         <nav className="sidebar-nav">
-          <ul>
-            <li>
-              <Link to="/">
-                <span className="sidebar-icon"><BsGrid1X2 /></span>
-                <span className="sidebar-text">Dashboard</span>
-              </Link>
-            </li>
+          <Link to="/" className={`nav-link ${isActive('/') ? 'active' : ''}`}>
+            <span className="sidebar-icon"><BsGrid1X2 /></span>
+            <span className="sidebar-text">Dashboard</span>
+          </Link>
 
-            <li className="sidebar-dropdown-container">
-              <button 
-                className={`sidebar-dropdown-toggle ${openDropdown === 'profil' ? 'open' : ''}`}
-                onClick={() => handleDropdownToggle('profil')}
-                aria-expanded={openDropdown === 'profil'}
-                aria-controls="submenu-profil"
-              >
-                <span className="sidebar-icon"><BsPersonVcard /></span>
-                <span className="sidebar-text">Profil SPI</span>
-                <span className="dropdown-chevron"><BsChevronDown /></span>
-              </button>
-              
-              <ul 
-                id="submenu-profil"
-                className={`sidebar-submenu ${openDropdown === 'profil' ? 'open' : ''}`}
-              >
-                <li><Link to="/profil/visi-misi">Visi & Misi, Core Values, Code of Ethics</Link></li>
-                <li><Link to="/profil/tujuan-sasaran">Tujuan, Sasaran, Strategi pengawasan</Link></li>
-                <li><Link to="/profil/piagam-audit">Piagam Audit Internal</Link></li>
-                <li><Link to="/profil/struktur-organisasi">Struktur Organisasi dan Tugas Fungsi</Link></li>
-                <li><Link to="/profil/profil-pengawas">Profil Pengawas</Link></li>
-                <li><Link to="/profil/achievement">Achievement</Link></li>
-                <li><Link to="/profil/audit-universe">Audit Universe</Link></li>
-                <li><Link to="/profil/rencana-panjang">Rencana SPI Jangka Panjang</Link></li>
-                <li><Link to="/profil/rencana-tahunan">Rencana Kerja Audit Tahunan</Link></li>
-                <li><Link to="/profil/rencana-anggaran">Rencana Kerja Anggaran</Link></li>
-              </ul>
-            </li>
-
-
-            <li>
-              <Link to="/admin/users">
-                <span className="sidebar-icon"><BsPeople /></span>
-                <span className="sidebar-text">Manajemen User</span>
-              </Link>
-            </li>
-            
-            <li className="sidebar-dropdown-container">
-              <button 
-                className={`sidebar-dropdown-toggle ${openDropdown === 'internal' ? 'open' : ''}`}
-                onClick={() => handleDropdownToggle('internal')}
-                aria-expanded={openDropdown === 'internal'}
-                aria-controls="submenu-internal"
-              >
-                <span className="sidebar-icon"><BsBuilding /></span>
-                <span className="sidebar-text">Internal Audit</span>
-                <span className="dropdown-chevron"><BsChevronDown /></span>
-              </button>
-              
-              <ul 
-                id="submenu-internal"
-                className={`sidebar-submenu ${openDropdown === 'internal' ? 'open' : ''}`}
-              >
-                <li><Link to="/internal/surat-tugas">Surat Tugas</Link></li>
-                <li><Link to="/internal/assurance">Assurance</Link></li>
-                <li><Link to="/internal/advisory-service">Advisory Service</Link></li>
-                <li><Link to="/internal/audit-evaluasi">Audit Evaluasi</Link></li>
-                <li><Link to="/internal/consulting">Consulting</Link></li>
-              </ul>
-            </li>
-
-            <li>
-              <Link to="/audit/external">
-                <span className="sidebar-icon"><BsShare /></span>
-                <span className="sidebar-text">Eksternal Audit</span>
-              </Link>
-            </li>
-            <li>
-              <Link to="/findings">
-                <span className="sidebar-icon"><BsSearch /></span>
-                <span className="sidebar-text">Temuan</span>
-              </Link>
-            </li>
-            <li>
-              <Link to="/findings/follow-up">
-                <span className="sidebar-icon"><BsArrowRepeat /></span>
-                <span className="sidebar-text">Tindak Lanjut Temuan</span>
-              </Link>
-            </li>
-            <li>
-              <Link to="/reports">
-                <span className="sidebar-icon"><BsBarChart /></span>
-                <span className="sidebar-text">Laporan</span>
-              </Link>
-            </li>
-            
-            <li className="sidebar-dropdown-container">
-              <button 
-                className={`sidebar-dropdown-toggle ${openDropdown === 'master' ? 'open' : ''}`}
-                onClick={() => handleDropdownToggle('master')}
-                aria-expanded={openDropdown === 'master'}
-                aria-controls="submenu-master"
-              >
-                <span className="sidebar-icon"><BsDatabaseGear /></span>
-                <span className="sidebar-text">Master</span>
-                <span className="dropdown-chevron"><BsChevronDown /></span>
-              </button>
-              
-              <ul 
-                id="submenu-master"
-                className={`sidebar-submenu ${openDropdown === 'master' ? 'open' : ''}`}
-              >
-                <li><Link to="/master/template-kka">Template KKA</Link></li>
-                <li><Link to="/master/checklist-pemeriksaan">Checklist Pemeriksaan</Link></li>
-              </ul>
-            </li>
-            
-            <li className="sidebar-dropdown-container">
-              <button 
-                className={`sidebar-dropdown-toggle ${openDropdown === 'setting' ? 'open' : ''}`}
-                onClick={() => handleDropdownToggle('setting')}
-                aria-expanded={openDropdown === 'setting'}
-                aria-controls="submenu-setting"
-              >
-                <span className="sidebar-icon"><BsGear /></span>
-                <span className="sidebar-text">Setting</span>
-                <span className="dropdown-chevron"><BsChevronDown /></span>
-              </button>
-              
-              <ul 
-                id="submenu-setting"
-                className={`sidebar-submenu ${openDropdown === 'setting' ? 'open' : ''}`}
-              >
-                <li><Link to="/setting/status-pengajuan">Status Pengajuan Pemeriksaan</Link></li>
-                <li><Link to="/setting/setting-pengajuan">Setting Pengajuan Pemeriksaan</Link></li>
-                <li><Link to="/setting/read-only">Read Only</Link></li>
-                <li><Link to="/setting/status-temuan">Status Temuan</Link></li>
-                <li><Link to="/setting/periode">Periode</Link></li>
-              </ul>
-            </li>
-
-          </ul>
-        </nav>
-
-        {isSidebarOpen && (
-          <div className="sidebar-footer">
-            © 2024 AuditApp v1.0
+          {/* --- ORGANISASI --- */}
+          <div className="nav-section-label">Organisasi</div>
+          
+          <div className="nav-item-wrapper">
+            <button className="dropdown-btn" onClick={() => handleDropdownToggle('profil')}>
+              <span className="sidebar-icon"><BsPersonVcard /></span>
+              <span className="sidebar-text">Profil SPI</span>
+              <BsChevronDown className="chevron" style={{transform: openDropdown === 'profil' ? 'rotate(180deg)' : ''}}/>
+            </button>
+            <div className={`submenu-list ${openDropdown === 'profil' ? 'is-open' : ''}`}>
+              <Link to="/profil/visi-misi" className="submenu-item">Visi & Misi</Link>
+              <Link to="/profil/tujuan-sasaran" className="submenu-item">Tujuan & Sasaran</Link>
+              <Link to="/profil/piagam-audit" className="submenu-item">Piagam Audit</Link>
+              <Link to="/profil/dasar-hukum" className="submenu-item">Dasar Hukum</Link>
+              <Link to="/profil/struktur-organisasi" className="submenu-item">Struktur & Tupoksi</Link>
+              <Link to="/profil/profil-pengawas" className="submenu-item">Profil Pengawas</Link>
+              <Link to="/profil/standar-audit" className="submenu-item">Standar Audit</Link>
+              <Link to="/profil/achievement" className="submenu-item">Achievement</Link>
+              <Link to="/profil/audit-universe" className="submenu-item">Audit Universe</Link>
+              <Link to="/profil/rencana-panjang" className="submenu-item">Rencana Jangka Panjang</Link>
+              <Link to="/profil/rencana-tahunan" className="submenu-item">Rencana Tahunan</Link>
+              <Link to="/profil/rencana-anggaran" className="submenu-item">Rencana Anggaran</Link>
+            </div>
           </div>
-        )}
+
+          {/* --- PELAKSANAAN --- */}
+          <div className="nav-section-label">Audit Execution</div>
+          
+          <div className="nav-item-wrapper">
+            <button className="dropdown-btn" onClick={() => handleDropdownToggle('internal')}>
+              <span className="sidebar-icon"><BsBuilding /></span>
+              <span className="sidebar-text">Internal Audit</span>
+              <BsChevronDown className="chevron" style={{transform: openDropdown === 'internal' ? 'rotate(180deg)' : ''}}/>
+            </button>
+            <div className={`submenu-list ${openDropdown === 'internal' ? 'is-open' : ''}`}>
+              <Link to="/internal/surat-tugas" className="submenu-item">Surat Tugas</Link>
+              <Link to="/internal/assurance" className="submenu-item">Assurance</Link>
+              <Link to="/internal/advisory-service" className="submenu-item">Advisory Service</Link>
+              <Link to="/internal/audit-evaluasi" className="submenu-item">Audit Evaluasi</Link>
+              <Link to="/internal/consulting" className="submenu-item">Consulting</Link>
+            </div>
+          </div>
+
+          <Link to="/audit/external" className="nav-link">
+            <span className="sidebar-icon"><BsShare /></span>
+            <span className="sidebar-text">Eksternal Audit</span>
+          </Link>
+
+          <Link to="/findings" className="nav-link">
+            <span className="sidebar-icon"><BsSearch /></span>
+            <span className="sidebar-text">Temuan Audit</span>
+          </Link>
+
+          <Link to="/findings/follow-up" className="nav-link">
+            <span className="sidebar-icon"><BsArrowRepeat /></span>
+            <span className="sidebar-text">Tindak Lanjut</span>
+          </Link>
+
+          <Link to="/reports" className="nav-link">
+            <span className="sidebar-icon"><BsBarChart /></span>
+            <span className="sidebar-text">Laporan Berkas</span>
+          </Link>
+
+          {/* --- SYSTEM --- */}
+          <div className="nav-section-label">Konfigurasi</div>
+          
+          <div className="nav-item-wrapper">
+            <button className="dropdown-btn" onClick={() => handleDropdownToggle('master')}>
+              <span className="sidebar-icon"><BsDatabaseGear /></span>
+              <span className="sidebar-text">Master Data</span>
+              <BsChevronDown className="chevron" style={{transform: openDropdown === 'master' ? 'rotate(180deg)' : ''}}/>
+            </button>
+            <div className={`submenu-list ${openDropdown === 'master' ? 'is-open' : ''}`}>
+              <Link to="/master/template-kka" className="submenu-item">Template KKA</Link>
+              <Link to="/master/checklist-pemeriksaan" className="submenu-item">Checklist</Link>
+            </div>
+          </div>
+
+          <div className="nav-item-wrapper">
+            <button className="dropdown-btn" onClick={() => handleDropdownToggle('setting')}>
+              <span className="sidebar-icon"><BsGear /></span>
+              <span className="sidebar-text">Pengaturan</span>
+              <BsChevronDown className="chevron" style={{transform: openDropdown === 'setting' ? 'rotate(180deg)' : ''}}/>
+            </button>
+            <div className={`submenu-list ${openDropdown === 'setting' ? 'is-open' : ''}`}>
+              <Link to="/setting/status-pengajuan" className="submenu-item">Status Pengajuan</Link>
+              <Link to="/setting/setting-pengajuan" className="submenu-item">Setting Pengajuan</Link>
+              <Link to="/setting/read-only" className="submenu-item">Hak Akses</Link>
+              <Link to="/setting/status-temuan" className="submenu-item">Status Temuan</Link>
+              <Link to="/setting/periode" className="submenu-item">Periode Audit</Link>
+            </div>
+          </div>
+        </nav>
       </div>
     </>
   );

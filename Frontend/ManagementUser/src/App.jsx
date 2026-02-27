@@ -1,11 +1,7 @@
 import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
-// Hapus import MainLayout lokal
-
 // Impor komponen Shared
 import ProtectedRoute from "../../Shared/components/ProtectedRoute.jsx"; 
-
-// Impor halaman ManagementUser
 import DashboardApp from "./pages/Dashboard.jsx"; // Nama file dashboard Anda
 import LoginPage from "./pages/LoginPage.jsx";       
 

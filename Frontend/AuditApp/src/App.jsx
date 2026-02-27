@@ -5,7 +5,7 @@ import LoginPage from './pages/LoginPage.jsx';
 import Dashboard from './pages/Dashboard.jsx';
 import MainLayout from "../../Shared/components/MainLayout.jsx";
 import ProtectedRouter from "../../Shared/components/ProtectedRoute.jsx";
-import ProfilSpiPage from './pages/Profil SPI'; 
+import ProfilSpiPage from './pages/Profil SPI/ProfilSPIPage.jsx'; 
 
 function App() {
   
