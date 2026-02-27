@@ -23,8 +23,13 @@ class DynamicApiRouteLoader
                     $middleware[] = "permission:$r->permission";
                 }
 
-                Route::middleware($middleware)
-                    ->match([$r->method], $r->path, [$controllerClass, $r->action]);
+                // ensure path does not accidentally begin with a slash (we always prefix with api below)
+                $routePath = ltrim($r->path, '/');
+
+                // register under the api prefix; this mirrors Laravel's default api.php behaviour
+                Route::prefix('api')
+                    ->middleware($middleware)
+                    ->match([$r->method], $routePath, [$controllerClass, $r->action]);
             }
         } catch (QueryException $e) {
             // Database or table doesn't exist yet, skip dynamic routes

@@ -11,7 +11,7 @@ class ApiRouteSeeder extends Seeder
     {
         ApiRoute::create([
             'method' => 'GET',
-            'path' => '/users',
+            'path' => 'users',
             'controller' => 'UserController',
             'action' => 'index',
             'permission' => 'view users',
@@ -20,7 +20,7 @@ class ApiRouteSeeder extends Seeder
 
         ApiRoute::create([
             'method' => 'POST',
-            'path' => '/users',
+            'path' => 'users',
             'controller' => 'UserController',
             'action' => 'store',
             'permission' => 'create users',
