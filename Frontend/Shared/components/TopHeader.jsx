@@ -9,20 +9,19 @@ import {
   BsBoxArrowRight,
 } from "react-icons/bs";
 
-export default function TopHeader() {
+// 1. Tambahkan props isSidebarOpen di sini
+export default function TopHeader({ isSidebarOpen }) {
   const { user: userDataContainer, logout } = useAuth();
-  console.log("Objek User dari useAuth:", userDataContainer);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
+
   if (!userDataContainer || !userDataContainer.user) {
     return null;
   }
 
   const user = userDataContainer.user;
   const userName = user.name || "Pengguna";
-
-  const userRole =
-    user.roles && user.roles.length > 0 ? user.roles[0].name : "User";
+  const userRole = user.roles && user.roles.length > 0 ? user.roles[0].name : "User";
 
   useEffect(() => {
     function handleClickOutside(event) {
@@ -42,7 +41,6 @@ export default function TopHeader() {
     <>
       <style>
         {`
-          /* ... (CSS lama Anda, .top-header-container, .header-icons, .user-profile, dll. tetap sama) ... */
           .top-header-container {
             background-color: #ffffff;
             border-bottom: 1px solid #e0e0e0;
@@ -57,11 +55,18 @@ export default function TopHeader() {
             z-index: 900;
           }
 
+          /* --- ANIMASI JUDUL --- */
           .header-title {
             font-size: 1.5em;
             font-weight: 700;
             color: #333;
             letter-spacing: 0.3px;
+            
+            /* Logika Animasi */
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            opacity: ${isSidebarOpen ? "0" : "1"};
+            transform: ${isSidebarOpen ? "translateX(-20px)" : "translateX(0)"};
+            pointer-events: ${isSidebarOpen ? "none" : "auto"};
           }
 
           .header-actions {
@@ -146,8 +151,6 @@ export default function TopHeader() {
             pointer-events: none;
           }
 
-          /* --- PENYESUAIAN UKURAN DROPDOWN DI SINI --- */
-
           .user-menu-container {
             position: relative;
           }
@@ -156,15 +159,13 @@ export default function TopHeader() {
             position: absolute;
             top: calc(100% + 8px); 
             right: 0;
-            
-            width: 140px; /* <-- DIKECILKAN dari 220px */
-            
+            width: 140px;
             background-color: #ffffff;
             border-radius: 8px;
             border: 1px solid #e0e0e0;
             box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
             z-index: 1100;
-            padding: 6px 0; /* <-- DIKECILKAN dari 8px 0 */
+            padding: 6px 0;
             overflow: hidden;
             animation: fadeIn 0.2s ease-out;
           }
@@ -177,9 +178,9 @@ export default function TopHeader() {
           .dropdown-item {
             display: flex;
             align-items: center;
-            gap: 10px; /* <-- DIKECILKAN dari 12px */
-            padding: 4px 8px; /* <-- DIKECILKAN dari 10px 16px */
-            font-size: 0.9em; /* <-- DIKECILKAN dari 0.95em */
+            gap: 10px;
+            padding: 4px 8px;
+            font-size: 0.9em;
             color: #333;
             text-decoration: none; 
             cursor: pointer;
@@ -189,50 +190,29 @@ export default function TopHeader() {
           .dropdown-item:hover {
             background-color: #f5f5f5;
           }
-          
-          .dropdown-item .item-icon {
-            font-size: 1em; /* <-- DIKECILKAN dari 1.1em */
-            color: #555;
-            width: 10px; /* <-- DIKECILKAN dari 20px */
-            text-align: center;
-          }
 
           .dropdown-divider {
             height: 1px;
             background-color: #f0f0f0;
-            margin: 4px 0; /* <-- DIKECILKAN dari 8px 0 */
+            margin: 4px 0;
           }
 
           .dropdown-item.logout-item:hover {
              background-color: #FFF0F0;
              color: #D93025;
           }
-
-          .dropdown-item.logout-item:hover .item-icon {
-            color: #D93025;
-          }
-
-          /* ... (Sisa CSS responsive Anda) ... */
-          @media (max-width: 768px) {
-            /* ... (CSS responsive tetap sama) ... */
-          }
         `}
       </style>
 
       <header className="top-header-container">
+        {/* Teks AuditApp sekarang akan hilang/muncul berdasarkan isSidebarOpen */}
         <div className="header-title">AuditApp</div>
 
         <div className="header-actions">
           <div className="header-icons">
-            <span title="Grid">
-              <BsGridFill />
-            </span>
-            <span title="Notifications">
-              <BsBellFill />
-            </span>
-            <span title="Help">
-              <BsQuestionCircleFill />
-            </span>
+            <span title="Grid"><BsGridFill /></span>
+            <span title="Notifications"><BsBellFill /></span>
+            <span title="Help"><BsQuestionCircleFill /></span>
           </div>
 
           <div className="user-menu-container" ref={dropdownRef}>
@@ -256,16 +236,12 @@ export default function TopHeader() {
                   className="dropdown-item"
                   onClick={() => setIsDropdownOpen(false)}
                 >
-                  <span className="item-icon">
-                    <BsPersonFill />
-                  </span>
+                  <span className="item-icon"><BsPersonFill /></span>
                   <span className="item-text">Profile</span>
                 </Link>
                 <div className="dropdown-divider"></div>
                 <div className="dropdown-item logout-item" onClick={logout}>
-                  <span className="item-icon">
-                    <BsBoxArrowRight />
-                  </span>
+                  <span className="item-icon"><BsBoxArrowRight /></span>
                   <span className="item-text">Logout</span>
                 </div>
               </div>

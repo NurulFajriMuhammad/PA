@@ -7,7 +7,6 @@ import { useAuth } from '../hooks/useAuth.jsx';
 export default function MainLayout() {
   const sidebarWidth = 280;
   const collapsedWidth = 75;
-  
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const { user } = useAuth(); 
 

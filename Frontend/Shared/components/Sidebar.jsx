@@ -1,23 +1,63 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { 
   BsGrid1X2, BsBuilding, BsShare, BsSearch, BsArrowRepeat, 
-  BsBarChart, BsGear, BsDatabaseGear, BsPersonVcard, 
-  BsChevronDown, BsChevronLeft, BsChevronRight, BsShieldCheck 
+  BsGear, BsDatabaseGear, BsPersonVcard, 
+  BsChevronDown, BsShieldCheck, BsFolder2Open 
 } from 'react-icons/bs';
 
 export default function Sidebar({ isSidebarOpen, toggleSidebar }) {
-  const [openDropdown, setOpenDropdown] = useState(null);
   const location = useLocation();
-
-  const handleDropdownToggle = (menuName) => {
-    if (isSidebarOpen) {
-      setOpenDropdown(openDropdown === menuName ? null : menuName);
-    }
-  };
-  
+  const sidebarRef = useRef(null);
 
   const isActive = (path) => location.pathname === path;
+  const isChildActive = (parentPath) => location.pathname.startsWith(parentPath);
+
+  const [openDropdown, setOpenDropdown] = useState(() => {
+    const path = location.pathname;
+    if (path.startsWith('/profil')) return 'profil';
+    if (path.startsWith('/internal')) return 'internal';
+    if (path.startsWith('/master-data')) return 'master';
+    if (path.startsWith('/pengaturan')) return 'pengaturan';
+    return null;
+  });
+
+  const [floatingPos, setFloatingPos] = useState(0); 
+
+  useEffect(() => {
+    setOpenDropdown(null);
+  }, [isSidebarOpen]);
+
+  useEffect(() => {
+    if (!isSidebarOpen) {
+      setOpenDropdown(null);
+    }
+  }, [location.pathname]);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (!isSidebarOpen && sidebarRef.current && !sidebarRef.current.contains(event.target)) {
+        setOpenDropdown(null);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isSidebarOpen]);
+
+  const handleDropdownToggle = (e, menuName) => {
+    e.preventDefault();
+    if (!isSidebarOpen) {
+      const rect = e.currentTarget.getBoundingClientRect();
+      setFloatingPos(rect.top);
+    }
+    setOpenDropdown(prev => prev === menuName ? null : menuName);
+  };
+
+  const closeFloatingOnNav = () => {
+    if (!isSidebarOpen) setOpenDropdown(null);
+  };
+
+  const getTooltip = (text) => !isSidebarOpen ? text : "";
 
   return (
     <>
@@ -31,6 +71,7 @@ export default function Sidebar({ isSidebarOpen, toggleSidebar }) {
             --audit-text-muted: #94a3b8;
             --sb-width: 280px;
             --sb-collapsed: 75px;
+            --transition-speed: 0.3s; /* Sedikit diperlambat agar lebih elegan */
           }
 
           .sidebar-container {
@@ -39,49 +80,40 @@ export default function Sidebar({ isSidebarOpen, toggleSidebar }) {
             position: fixed;
             background: var(--audit-navy);
             color: var(--audit-text);
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: width var(--transition-speed) cubic-bezier(0.4, 0, 0.2, 1);
             z-index: 1000;
             display: flex;
             flex-direction: column;
+            border-right: 1px solid rgba(255,255,255,0.05);
           }
           
           .sidebar-collapsed { width: var(--sb-collapsed); }
 
-          /* HIDE SCROLLBAR */
+          .sidebar-header {
+            padding: 0 20px;
+            display: flex;
+            align-items: center;
+            min-height: 75px;
+            background: rgba(0,0,0,0.1);
+            justify-content: ${isSidebarOpen ? 'flex-start' : 'center'};
+            cursor: pointer;
+          }
+
+          /* Animasi khusus logo di header */
+          .header-logo {
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+          }
+          .sidebar-collapsed .header-logo {
+            transform: scale(1.1);
+          }
+
           .sidebar-nav {
             flex: 1;
             overflow-y: auto;
             scrollbar-width: none;
-            -ms-overflow-style: none;
-            padding-bottom: 50px;
+            padding: 10px 0;
           }
           .sidebar-nav::-webkit-scrollbar { display: none; }
-
-          .sidebar-header {
-            padding: 20px;
-            display: flex;
-            align-items: center;
-            min-height: 75px;
-            background: rgba(0,0,0,0.2);
-            justify-content: ${isSidebarOpen ? 'flex-start' : 'center'};
-          }
-
-          .toggle-btn {
-            position: absolute;
-            right: -12px;
-            top: 30px;
-            width: 24px;
-            height: 24px;
-            background: var(--audit-blue-primary);
-            border: none;
-            border-radius: 4px;
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            z-index: 1100;
-          }
 
           .nav-item-wrapper { position: relative; width: 100%; }
 
@@ -96,13 +128,12 @@ export default function Sidebar({ isSidebarOpen, toggleSidebar }) {
             border: none;
             cursor: pointer;
             font-size: 0.9rem;
-            transition: 0.2s;
+            transition: all 0.2s ease;
           }
 
-          /* Penyesuaian Icon saat Collapsed agar benar-benar di tengah */
           .sidebar-collapsed .nav-link, 
           .sidebar-collapsed .dropdown-btn {
-            padding: 12px 0;
+            padding: 15px 0;
             justify-content: center;
           }
 
@@ -110,46 +141,79 @@ export default function Sidebar({ isSidebarOpen, toggleSidebar }) {
             background: var(--audit-navy-light);
           }
 
-          .nav-link.active {
-            background: rgba(59, 130, 246, 0.1);
+          /* Efek Icon saat Hover */
+          .nav-link:hover .sidebar-icon, 
+          .dropdown-btn:hover .sidebar-icon {
+            transform: scale(1.1);
             color: var(--audit-blue-primary);
+          }
+
+          .nav-link.active, .dropdown-btn.active-parent {
+            background: rgba(59, 130, 246, 0.12) !important;
+            color: var(--audit-blue-primary) !important;
             box-shadow: inset 4px 0 0 var(--audit-blue-primary);
           }
 
+          /* ANIMASI ICON UTAMA */
           .sidebar-icon { 
-            font-size: 1.25rem; 
+            font-size: 1.2rem; 
             min-width: ${isSidebarOpen ? '35px' : '0'};
             display: flex;
             justify-content: center;
+            flex-shrink: 0;
+            transition: all var(--transition-speed) ease; /* Membuat perpindahan posisi ikon halus */
           }
 
           .sidebar-text {
             white-space: nowrap;
-            opacity: ${isSidebarOpen ? '1' : '0'};
             display: ${isSidebarOpen ? 'block' : 'none'};
             margin-left: 10px;
+            opacity: ${isSidebarOpen ? '1' : '0'};
+            transition: opacity 0.2s ease;
           }
 
           .chevron { 
             margin-left: auto; 
             display: ${isSidebarOpen ? 'block' : 'none'}; 
-            transition: transform 0.3s;
+            transition: transform 0.2s ease;
           }
 
-          /* --- SUBMENU STYLE (OPEN SIDEBAR) --- */
+          /* --- SUBMENU LOGIC --- */
           .submenu-list {
             list-style: none;
             padding: 0;
             margin: 0;
-            background: rgba(0,0,0,0.15);
-            max-height: 0;
+            background: rgba(0,0,0,0.1);
             overflow: hidden;
-            transition: max-height 0.3s ease-out;
           }
 
+          .sidebar-container:not(.sidebar-collapsed) .submenu-list {
+            max-height: 0;
+            transition: max-height 0.3s ease-out;
+          }
           .sidebar-container:not(.sidebar-collapsed) .submenu-list.is-open {
             max-height: 1000px;
-            padding: 5px 0;
+            transition: max-height 0.5s ease-in;
+          }
+
+          .sidebar-collapsed .submenu-list {
+            display: none;
+            visibility: hidden;
+          }
+
+          .sidebar-collapsed .submenu-list.is-open {
+            display: block;
+            visibility: visible;
+            position: fixed;
+            left: var(--sb-collapsed);
+            margin-left: 5px;
+            width: 240px;
+            background: var(--audit-navy);
+            box-shadow: 12px 0 30px rgba(0,0,0,0.5);
+            border-radius: 0 8px 8px 8px;
+            z-index: 9999;
+            border: 1px solid rgba(255,255,255,0.1);
+            transition: none !important; 
           }
 
           .submenu-item {
@@ -158,167 +222,124 @@ export default function Sidebar({ isSidebarOpen, toggleSidebar }) {
             color: var(--audit-text-muted);
             text-decoration: none;
             font-size: 0.85rem;
-            transition: 0.2s;
+            transition: all 0.2s ease;
           }
 
-          .submenu-item:hover { color: white; background: rgba(255,255,255,0.05); }
-
-/* --- FLOATING STYLE (COLLAPSED SIDEBAR WITH ANIMATION) --- */
-@media (min-width: 769px) {
-
-  .sidebar-collapsed .submenu-list {
-    position: absolute;
-    left: 85px;
-    top: 0;
-    width: 260px;
-    background: var(--audit-navy);
-    box-shadow: 0 15px 35px rgba(0,0,0,0.4);
-    border-radius: 10px;
-    border: 1px solid rgba(255,255,255,0.08);
-    padding: 10px 0;
-
-    opacity: 0;
-    transform: translateX(10px) scale(0.95);
-    pointer-events: none;
-    transition: 
-      opacity 0.25s ease,
-      transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-
-  .sidebar-collapsed .nav-item-wrapper:hover .submenu-list {
-    opacity: 1;
-    transform: translateX(0) scale(1);
-    pointer-events: auto;
-  }
-
-  .sidebar-collapsed .submenu-item {
-    padding: 12px 20px;
-  }
-
-  .sidebar-collapsed .submenu-item:hover {
-    background: var(--audit-navy-light);
-    color: white;
-  }
-}
+          .sidebar-collapsed .submenu-item { padding: 12px 20px; }
+          .submenu-item:hover { color: white; background: var(--audit-navy-light); padding-left: ${isSidebarOpen ? '70px' : '25px'}; }
 
           .nav-section-label {
-            padding: 20px 25px 10px;
+            padding: 18px 25px 8px;
             font-size: 0.65rem;
             text-transform: uppercase;
-            letter-spacing: 1.5px;
+            letter-spacing: 1.2px;
             color: var(--audit-blue-primary);
-            font-weight: 800;
+            font-weight: 700;
             display: ${isSidebarOpen ? 'block' : 'none'};
+            opacity: 0.6;
           }
         `}
       </style>
 
-      <div className={`sidebar-container ${!isSidebarOpen ? 'sidebar-collapsed' : ''}`}>
-        <button className="toggle-btn" onClick={toggleSidebar}>
-          {isSidebarOpen ? <BsChevronLeft size={14}/> : <BsChevronRight size={14}/>}
-        </button>
-
-        <div className="sidebar-header">
-          <BsShieldCheck className="logo-icon" />
-          <span className="sidebar-text" style={{fontWeight: 800, fontSize: '1.1rem'}}>AUDIT SYSTEM</span>
+      <div ref={sidebarRef} className={`sidebar-container ${!isSidebarOpen ? 'sidebar-collapsed' : ''}`}>
+        
+        <div className="sidebar-header" onClick={toggleSidebar}>
+          <div className="header-logo">
+            <BsShieldCheck style={{color: 'var(--audit-blue-primary)', fontSize: '1.6rem', flexShrink: 0}} />
+          </div>
+          <span className="sidebar-text" style={{fontWeight: 700, fontSize: '1.2rem'}}>AUDIT APP</span>
         </div>
 
         <nav className="sidebar-nav">
-          <Link to="/" className={`nav-link ${isActive('/') ? 'active' : ''}`}>
+          <Link to="/" className={`nav-link ${isActive('/') ? 'active' : ''}`} title={getTooltip("Dashboard")} onClick={closeFloatingOnNav}>
             <span className="sidebar-icon"><BsGrid1X2 /></span>
             <span className="sidebar-text">Dashboard</span>
           </Link>
 
-          {/* --- ORGANISASI --- */}
           <div className="nav-section-label">Organisasi</div>
-          
           <div className="nav-item-wrapper">
-            <button className="dropdown-btn" onClick={() => handleDropdownToggle('profil')}>
+            <button className={`dropdown-btn ${isChildActive('/profil') ? 'active-parent' : ''}`} onClick={(e) => handleDropdownToggle(e, 'profil')} title={getTooltip("Profil SPI")}>
               <span className="sidebar-icon"><BsPersonVcard /></span>
               <span className="sidebar-text">Profil SPI</span>
               <BsChevronDown className="chevron" style={{transform: openDropdown === 'profil' ? 'rotate(180deg)' : ''}}/>
             </button>
-            <div className={`submenu-list ${openDropdown === 'profil' ? 'is-open' : ''}`}>
-              <Link to="/profil/visi-misi" className="submenu-item">Visi & Misi</Link>
-              <Link to="/profil/tujuan-sasaran" className="submenu-item">Tujuan & Sasaran</Link>
-              <Link to="/profil/piagam-audit" className="submenu-item">Piagam Audit</Link>
-              <Link to="/profil/dasar-hukum" className="submenu-item">Dasar Hukum</Link>
-              <Link to="/profil/struktur-organisasi" className="submenu-item">Struktur & Tupoksi</Link>
-              <Link to="/profil/profil-pengawas" className="submenu-item">Profil Pengawas</Link>
-              <Link to="/profil/standar-audit" className="submenu-item">Standar Audit</Link>
-              <Link to="/profil/achievement" className="submenu-item">Achievement</Link>
-              <Link to="/profil/audit-universe" className="submenu-item">Audit Universe</Link>
-              <Link to="/profil/rencana-panjang" className="submenu-item">Rencana Jangka Panjang</Link>
-              <Link to="/profil/rencana-tahunan" className="submenu-item">Rencana Tahunan</Link>
-              <Link to="/profil/rencana-anggaran" className="submenu-item">Rencana Anggaran</Link>
+            <div className={`submenu-list ${openDropdown === 'profil' ? 'is-open' : ''}`} style={!isSidebarOpen ? { top: `${floatingPos}px` } : {}}>
+              <Link to="/profil/visi-misi" className={`submenu-item ${isActive('/profil/visi-misi') ? 'active-sub' : ''}`} onClick={closeFloatingOnNav}>Visi & Misi</Link>
+              <Link to="/profil/tujuan-sasaran" className={`submenu-item ${isActive('/profil/tujuan-sasaran') ? 'active-sub' : ''}`} onClick={closeFloatingOnNav}>Tujuan & Sasaran</Link>
+              <Link to="/profil/piagam-audit" className={`submenu-item ${isActive('/profil/piagam-audit') ? 'active-sub' : ''}`} onClick={closeFloatingOnNav}>Piagam Audit</Link>
+              <Link to="/profil/dasar-hukum" className={`submenu-item ${isActive('/profil/dasar-hukum') ? 'active-sub' : ''}`} onClick={closeFloatingOnNav}>Dasar Hukum</Link>
+              <Link to="/profil/struktur-organisasi" className={`submenu-item ${isActive('/profil/struktur-organisasi') ? 'active-sub' : ''}`} onClick={closeFloatingOnNav}>Struktur & Tupoksi</Link>
+              <Link to="/profil/profil-pengawas" className={`submenu-item ${isActive('/profil/profil-pengawas') ? 'active-sub' : ''}`} onClick={closeFloatingOnNav}>Profil Pengawas</Link>
+              <Link to="/profil/standar-audit" className={`submenu-item ${isActive('/profil/standar-audit') ? 'active-sub' : ''}`} onClick={closeFloatingOnNav}>Standar Audit</Link>
+              <Link to="/profil/achievement" className={`submenu-item ${isActive('/profil/achievement') ? 'active-sub' : ''}`} onClick={closeFloatingOnNav}>Achievement</Link>
+              <Link to="/profil/audit-universe" className={`submenu-item ${isActive('/profil/audit-universe') ? 'active-sub' : ''}`} onClick={closeFloatingOnNav}>Audit Universe</Link>
+              <Link to="/profil/rencana-panjang" className={`submenu-item ${isActive('/profil/rencana-panjang') ? 'active-sub' : ''}`} onClick={closeFloatingOnNav}>Rencana Jangka Panjang</Link>
+              <Link to="/profil/rencana-tahunan" className={`submenu-item ${isActive('/profil/rencana-tahunan') ? 'active-sub' : ''}`} onClick={closeFloatingOnNav}>Rencana Tahunan</Link>
+              <Link to="/profil/rencana-anggaran" className={`submenu-item ${isActive('/profil/rencana-anggaran') ? 'active-sub' : ''}`} onClick={closeFloatingOnNav}>Rencana Anggaran</Link>
             </div>
           </div>
 
-          {/* --- PELAKSANAAN --- */}
           <div className="nav-section-label">Audit Execution</div>
-          
           <div className="nav-item-wrapper">
-            <button className="dropdown-btn" onClick={() => handleDropdownToggle('internal')}>
+            <button className={`dropdown-btn ${isChildActive('/internal') ? 'active-parent' : ''}`} onClick={(e) => handleDropdownToggle(e, 'internal')} title={getTooltip("Internal Audit")}>
               <span className="sidebar-icon"><BsBuilding /></span>
               <span className="sidebar-text">Internal Audit</span>
               <BsChevronDown className="chevron" style={{transform: openDropdown === 'internal' ? 'rotate(180deg)' : ''}}/>
             </button>
-            <div className={`submenu-list ${openDropdown === 'internal' ? 'is-open' : ''}`}>
-              <Link to="/internal/surat-tugas" className="submenu-item">Surat Tugas</Link>
-              <Link to="/internal/assurance" className="submenu-item">Assurance</Link>
-              <Link to="/internal/advisory-service" className="submenu-item">Advisory Service</Link>
-              <Link to="/internal/audit-evaluasi" className="submenu-item">Audit Evaluasi</Link>
-              <Link to="/internal/consulting" className="submenu-item">Consulting</Link>
+            <div className={`submenu-list ${openDropdown === 'internal' ? 'is-open' : ''}`} style={!isSidebarOpen ? { top: `${floatingPos}px` } : {}}>
+              <Link to="/internal/surat-tugas" className={`submenu-item ${isActive('/internal/surat-tugas') ? 'active-sub' : ''}`} onClick={closeFloatingOnNav}>Surat Tugas</Link>
+              <Link to="/internal/assurance" className={`submenu-item ${isActive('/internal/assurance') ? 'active-sub' : ''}`} onClick={closeFloatingOnNav}>Assurance</Link>
+              <Link to="/internal/advisory-service" className={`submenu-item ${isActive('/internal/advisory-service') ? 'active-sub' : ''}`} onClick={closeFloatingOnNav}>Advisory Service</Link>
+              <Link to="/internal/audit-evaluasi" className={`submenu-item ${isActive('/internal/audit-evaluasi') ? 'active-sub' : ''}`} onClick={closeFloatingOnNav}>Audit Evaluasi</Link>
+              <Link to="/internal/consulting" className={`submenu-item ${isActive('/internal/consulting') ? 'active-sub' : ''}`} onClick={closeFloatingOnNav}>Consulting</Link>
             </div>
           </div>
 
-          <Link to="/audit/external" className="nav-link">
+          <Link to="/external-audit" className={`nav-link ${isActive('/external-audit') ? 'active' : ''}`} title={getTooltip("Eksternal Audit")} onClick={closeFloatingOnNav}>
             <span className="sidebar-icon"><BsShare /></span>
             <span className="sidebar-text">Eksternal Audit</span>
           </Link>
 
-          <Link to="/findings" className="nav-link">
+          <Link to="/audit-findings" className={`nav-link ${isActive('/audit-findings') ? 'active' : ''}`} title={getTooltip("Temuan Audit")} onClick={closeFloatingOnNav}>
             <span className="sidebar-icon"><BsSearch /></span>
             <span className="sidebar-text">Temuan Audit</span>
           </Link>
 
-          <Link to="/findings/follow-up" className="nav-link">
+          <Link to="/follow-up" className={`nav-link ${isActive('/follow-up') ? 'active' : ''}`} title={getTooltip("Tindak Lanjut")} onClick={closeFloatingOnNav}>
             <span className="sidebar-icon"><BsArrowRepeat /></span>
             <span className="sidebar-text">Tindak Lanjut</span>
           </Link>
 
-          <Link to="/reports" className="nav-link">
-            <span className="sidebar-icon"><BsBarChart /></span>
-            <span className="sidebar-text">Laporan Berkas</span>
-          </Link>
-
-          {/* --- SYSTEM --- */}
           <div className="nav-section-label">Konfigurasi</div>
-          
           <div className="nav-item-wrapper">
-            <button className="dropdown-btn" onClick={() => handleDropdownToggle('master')}>
+            <button className={`dropdown-btn ${isChildActive('/master-data') ? 'active-parent' : ''}`} onClick={(e) => handleDropdownToggle(e, 'master')} title={getTooltip("Master Data")}>
               <span className="sidebar-icon"><BsDatabaseGear /></span>
               <span className="sidebar-text">Master Data</span>
               <BsChevronDown className="chevron" style={{transform: openDropdown === 'master' ? 'rotate(180deg)' : ''}}/>
             </button>
-            <div className={`submenu-list ${openDropdown === 'master' ? 'is-open' : ''}`}>
-              <Link to="/master/template-kka" className="submenu-item">Template KKA</Link>
-              <Link to="/master/checklist-pemeriksaan" className="submenu-item">Checklist</Link>
+            <div className={`submenu-list ${openDropdown === 'master' ? 'is-open' : ''}`} style={!isSidebarOpen ? { top: `${floatingPos}px` } : {}}>
+              <Link to="/master-data/template-kka" className={`submenu-item ${isActive('/master-data/template-kka') ? 'active-sub' : ''}`} onClick={closeFloatingOnNav}>Template KKA</Link>
+              <Link to="/master-data/checklist-pemeriksaan" className={`submenu-item ${isActive('/master-data/checklist-pemeriksaan') ? 'active-sub' : ''}`} onClick={closeFloatingOnNav}>Checklist</Link>
             </div>
           </div>
 
+          <Link to="/document-repository" className={`nav-link ${isActive('/document-repository') ? 'active' : ''}`} title={getTooltip("Repository Dokumen")} onClick={closeFloatingOnNav}>
+            <span className="sidebar-icon"><BsFolder2Open /></span>
+            <span className="sidebar-text">Repository Dokumen</span>
+          </Link>
+
           <div className="nav-item-wrapper">
-            <button className="dropdown-btn" onClick={() => handleDropdownToggle('setting')}>
+            <button className={`dropdown-btn ${isChildActive('/pengaturan') ? 'active-parent' : ''}`} onClick={(e) => handleDropdownToggle(e, 'pengaturan')} title={getTooltip("Pengaturan")}>
               <span className="sidebar-icon"><BsGear /></span>
               <span className="sidebar-text">Pengaturan</span>
-              <BsChevronDown className="chevron" style={{transform: openDropdown === 'setting' ? 'rotate(180deg)' : ''}}/>
+              <BsChevronDown className="chevron" style={{transform: openDropdown === 'pengaturan' ? 'rotate(180deg)' : ''}}/>
             </button>
-            <div className={`submenu-list ${openDropdown === 'setting' ? 'is-open' : ''}`}>
-              <Link to="/setting/status-pengajuan" className="submenu-item">Status Pengajuan</Link>
-              <Link to="/setting/setting-pengajuan" className="submenu-item">Setting Pengajuan</Link>
-              <Link to="/setting/read-only" className="submenu-item">Hak Akses</Link>
-              <Link to="/setting/status-temuan" className="submenu-item">Status Temuan</Link>
-              <Link to="/setting/periode" className="submenu-item">Periode Audit</Link>
+            <div className={`submenu-list ${openDropdown === 'pengaturan' ? 'is-open' : ''}`} style={!isSidebarOpen ? { top: `${floatingPos}px` } : {}}>
+              <Link to="/pengaturan/status-pengajuan" className={`submenu-item ${isActive('/pengaturan/status-pengajuan') ? 'active-sub' : ''}`} onClick={closeFloatingOnNav}>Status Pengajuan</Link>
+              <Link to="/pengaturan/setting-pengajuan" className={`submenu-item ${isActive('/pengaturan/setting-pengajuan') ? 'active-sub' : ''}`} onClick={closeFloatingOnNav}>Setting Pengajuan</Link>
+              <Link to="/pengaturan/read-only" className={`submenu-item ${isActive('/pengaturan/read-only') ? 'active-sub' : ''}`} onClick={closeFloatingOnNav}>Hak Akses</Link>
+              <Link to="/pengaturan/status-temuan" className={`submenu-item ${isActive('/pengaturan/status-temuan') ? 'active-sub' : ''}`} onClick={closeFloatingOnNav}>Status Temuan</Link>
+              <Link to="/pengaturan/periode" className={`submenu-item ${isActive('/pengaturan/periode') ? 'active-sub' : ''}`} onClick={closeFloatingOnNav}>Periode Audit</Link>
             </div>
           </div>
         </nav>

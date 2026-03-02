@@ -15,12 +15,16 @@ ReactDOM.createRoot(document.getElementById('root')).render(
         <App />
         
         <Toaster 
-          position="top-right" 
-          reverseOrder={false}
+          position="top-center" 
+          reverseOrder={false} 
+          gutter={8}
           toastOptions={{
+            duration: 4000,
             style: {
-              background: '#363636',
+              background: '#333',
               color: '#fff',
+              borderRadius: '10px',
+              fontSize: '14px',
             },
           }}
         />
