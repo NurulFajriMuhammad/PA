@@ -52,6 +52,9 @@ const RolePage = ({
   const handleSaveRole = async (formData) => {
     setIsLoading(true);
     try {
+      console.log("📡 Saving role:", formData);
+      console.log("📡 Permission IDs:", formData.permissionIds);
+
       const payload = {
         name: formData.name,
         permission_ids: formData.permissionIds || [],

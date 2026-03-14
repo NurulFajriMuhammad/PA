@@ -6,13 +6,19 @@ use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\Api\PermissionController;
-
+use App\Http\Controllers\InternalAuditCharterController;
+use App\Http\Controllers\PengawasController;
+use App\Http\Controllers\AuditUniverseController;
+use App\Http\Controllers\spijangkapanjangController;
+use App\Http\Controllers\pkptspicontroller;
+use App\Http\Controllers\rkaspicontroller;
 
 // -----------------------------------------------------------------
 // RUTE PUBLIK (Untuk Login, Register, dll)
 // -----------------------------------------------------------------
 
 require __DIR__ . '/auth.php';
+
 Route::middleware('auth:sanctum')->group(function () {
 
      // Route::get('/check-auth', function () {
@@ -61,34 +67,58 @@ Route::middleware('auth:sanctum')->group(function () {
           ->middleware('permission:view dashboard');
 
      // Users
-    Route::get('/users', [UserController::class, 'index']);
-    Route::post('/users', [UserController::class, 'store']);
-    Route::put('/users/{user}', [UserController::class, 'update']);
-    Route::delete('/users/{user}', [UserController::class, 'destroy']);
+     Route::get('/users', [UserController::class, 'index']);
+     Route::post('/users', [UserController::class, 'store']);
+     Route::put('/users/{user}', [UserController::class, 'update']);
+     Route::delete('/users/{user}', [UserController::class, 'destroy']);
 
-    // Roles 
-    Route::get('/roles', [RoleController::class, 'index']);
-    Route::post('/roles', [RoleController::class, 'store']);
-    Route::put('/roles/{role}', [RoleController::class, 'update']);
-    Route::delete('/roles/{role}', [RoleController::class, 'destroy']);
+     // Roles 
+     Route::get('/roles', [RoleController::class, 'index']);
+     Route::post('/roles', [RoleController::class, 'store']);
+     Route::put('/roles/{role}', [RoleController::class, 'update']);
+     Route::delete('/roles/{role}', [RoleController::class, 'destroy']);
 
-    // Permissions
-    Route::get('/permissions', [PermissionController::class, 'index']);
-    Route::post('/permissions', [PermissionController::class, 'store']);
-    Route::put('/permissions/{permission}', [PermissionController::class, 'update']);
-    Route::delete('/permissions/{permission}', [PermissionController::class, 'destroy']);
+     // Permissions
+     Route::get('/permissions', [PermissionController::class, 'index']);
+     Route::post('/permissions', [PermissionController::class, 'store']);
+     Route::put('/permissions/{permission}', [PermissionController::class, 'update']);
+     Route::delete('/permissions/{permission}', [PermissionController::class, 'destroy']);
 
-    Route::apiResource('api-routes', \App\Http\Controllers\Api\ApiRouteController::class);
+     Route::apiResource('api-routes', \App\Http\Controllers\Api\ApiRouteController::class);
 
-    // API Routes 
-// Route::apiResource('api-routes', ApiRouteController::class)->middleware('permission:manage routes');
-//     Route::apiResource('api-routes', ApiRouteController::class);
-//     Route::apiResource('api-routes', ApiRouteController::class);
-          //   ->middleware('permission:manage routes');
+     Route::post('/charter/upload', [InternalAuditCharterController::class, 'upload']);
+     Route::get('/charter/latest', [InternalAuditCharterController::class, 'getLatest']);
+     Route::get('/charter/download/{filename}', [InternalAuditCharterController::class, 'download']);
+     Route::apiResource('pengawas', PengawasController::class);
+     Route::get('/pengawas', [PengawasController::class, 'index']);
+     Route::post('/pengawas', [PengawasController::class, 'store']);
+     Route::delete('/pengawas/{id}', [PengawasController::class, 'destroy']);
+     Route::get('/audit-universe', [AuditUniverseController::class, 'index']);
+     Route::post('/audit-universe', [AuditUniverseController::class, 'store']);
+     Route::delete('/audit-universe/{id}', [AuditUniverseController::class, 'destroy']);
+     Route::get('/spijangkapanjang', [spijangkapanjangController::class, 'index']);
+     Route::post('/spijangkapanjang', [spijangkapanjangController::class, 'store']);
+     Route::delete('/spijangkapanjang/{id}', [spijangkapanjangController::class, 'destroy']);
+     Route::apiResource('pkptspi', pkptspicontroller::class);
+     Route::get('/pkptspi', [pkptspicontroller::class, 'index']);
+     Route::post('/pkptspi', [pkptspicontroller::class, 'store']);
+     Route::delete('/pkptspi/{id}', [pkptspicontroller::class, 'destroy']);
+     Route::apiResource('rka', rkaspicontroller::class);
+     Route::get('/rka', [rkaspicontroller::class, 'index']);
+     Route::post('/rka', [rkaspicontroller::class, 'store']);
+     Route::delete('/rka/{id}', [rkaspicontroller::class, 'destroy']);
 
 
-// Route::get('/api-routes', [ApiRouteController::class, 'index']);
-// Route::post('/api-routes', [ApiRouteController::class, 'store']);
-// Route::put('/api-routes/{apiRoute}', [ApiRouteController::class, 'update']);
-// Route::delete('/api-routes/{apiRoute}', [ApiRouteController::class, 'destroy']);
+
+     // API Routes 
+     // Route::apiResource('api-routes', ApiRouteController::class)->middleware('permission:manage routes');
+     //     Route::apiResource('api-routes', ApiRouteController::class);
+     //     Route::apiResource('api-routes', ApiRouteController::class);
+     //   ->middleware('permission:manage routes');
+
+
+     // Route::get('/api-routes', [ApiRouteController::class, 'index']);
+     // Route::post('/api-routes', [ApiRouteController::class, 'store']);
+     // Route::put('/api-routes/{apiRoute}', [ApiRouteController::class, 'update']);
+     // Route::delete('/api-routes/{apiRoute}', [ApiRouteController::class, 'destroy']);
 });

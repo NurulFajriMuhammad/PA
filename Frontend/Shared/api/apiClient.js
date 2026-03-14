@@ -9,7 +9,7 @@ export const getCsrfCookie = () => {
 };
 
 const apiClient = axios.create({
-  baseURL: "http://192.168.1.30:8000/",
+  baseURL: "http://192.168.1.25:8000/",
   withCredentials: true,
   headers: {
     Accept: "application/json",

@@ -247,7 +247,7 @@ export default function Sidebar({ isSidebarOpen, toggleSidebar }) {
           <div className="header-logo">
             <BsShieldCheck style={{color: 'var(--audit-blue-primary)', fontSize: '1.6rem', flexShrink: 0}} />
           </div>
-          <span className="sidebar-text" style={{fontWeight: 700, fontSize: '1.2rem'}}>AUDIT APP</span>
+          <span className="sidebar-text" style={{fontWeight: 700, fontSize: '1.5rem'}}>AuditApp</span>
         </div>
 
         <nav className="sidebar-nav">

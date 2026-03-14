@@ -26,16 +26,19 @@ const UserPage = ({ users = [], roles = [], setNotification, onRefresh }) => {
     try {
       console.log("📡 Saving user:", formData);
 
+      // Validasi role_id harus ada
+      if (!formData.roleIds || formData.roleIds.length === 0) {
+        notifyError("❌ Pilih minimal satu role");
+        setIsLoading(false);
+        return;
+      }
+
       const payload = {
         name: formData.name,
         email: formData.email,
-        // 'role_id': formData.roleIds || [],
         role_id: formData.roleIds || [],
-        // role_ids: formData.roleIds || [],
-        // role_id: formData.roleIds ? formData.roleIds[0] : null,
       };
       
-
       // Hanya include password jika ada
       if (formData.password) {
         payload.password = formData.password;
@@ -55,7 +58,6 @@ const UserPage = ({ users = [], roles = [], setNotification, onRefresh }) => {
       if (onRefresh) {
          await onRefresh(); 
       }
-      
       
     } catch (err) {
       console.error("❌ Error:", err);

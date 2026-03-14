@@ -22,31 +22,72 @@ export default function LoginPage() {
 
 
   const handleLogin = async (e) => {
-    e.preventDefault();
-    // setError(""); // Dihapus
-    setLoading(true);
+  e.preventDefault();
+  setLoading(true);
 
-    try {
-      await getCsrfCookie();
-      console.log("CSRF cookie didapatkan");
+  try {
+    // POST ke endpoint login
+    const response = await apiClient.post("/api/login", {
+      email,
+      password,
+    });
 
-      const loginResponse = await apiClient.post("/api/login", { email, password });
-      console.log("Login sukses:", loginResponse.data);
+    console.log("✅ Login Response:", response.data);
 
-      sessionStorage.setItem("isLoggedIn", "true");
-      setUser(loginResponse.data.data); // Ini sudah benar dari history kita
-      
-      notifySuccess("Login berhasil! Mengalihkan ke dashboard...");
-
-      navigate("/");
-
-    } catch (err) {
-      console.error("Error saat login:", err);
-      notifyError(err); // Panggil notifier error
-    } finally {
-      setLoading(false);
+    // Ekstrak token dan user dari response
+    // Response structure: { success, message, data: { user, token } }
+    const { data } = response.data; // Nested destructuring
+    
+    if (!data || !data.token) {
+      throw new Error("Token tidak ditemukan di response");
     }
-  };
+
+    const { token, user: userData } = data;
+
+    // 1. Simpan token ke localStorage dengan key konsisten
+    localStorage.setItem("authToken", token);
+    localStorage.setItem("token", token);
+
+    // 2. Simpan user data
+    localStorage.setItem("user", JSON.stringify(userData));
+    sessionStorage.setItem("isLoggedIn", "true");
+
+    // 3. Set user di context/state
+    if (setUser) {
+      setUser({
+        user: userData,
+        token: token,
+      });
+    }
+
+    console.log("✅ Token saved to localStorage:", token.substring(0, 10) + "...");
+    console.log("✅ User saved:", userData.name);
+
+    notifySuccess("Login berhasil! Mengalihkan ke dashboard...");
+
+    // 4. Redirect ke dashboard
+    setTimeout(() => {
+      navigate("/", { replace: true });
+    }, 500);
+
+  } catch (err) {
+    console.error("❌ Error saat login:", err);
+
+    // Clear storage jika ada error
+    localStorage.removeItem("authToken");
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+
+    const errorMessage =
+      err.response?.data?.message ||
+      err.message ||
+      "Kredensial salah atau server error.";
+
+    notifyError(errorMessage);
+  } finally {
+    setLoading(false);
+  }
+};
 
   if (isLoading || user) {
     return null;

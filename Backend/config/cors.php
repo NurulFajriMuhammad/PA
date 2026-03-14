@@ -31,7 +31,11 @@ return [
     // 'allowed_origins' => ['http://localhost:5173', 'http://192.168.0.4:5173', 'http://localhost:5174', 'http://192.168.0.4:5174'],
     // 'allowed_origins' => ['http://localhost:5173', 'http://192.168.1.9:5173', 'http://localhost:5174', 'http://192.168.1.9:5174'],
     // 'allowed_origins' => ['http://localhost:5173', 'http://192.168.0.28:5173', 'http://localhost:5174', 'http://192.168.0.28:5174'],
-    'allowed_origins' => ['http://localhost:5173', 'http://192.168.1.12:5173', 'http://localhost:5174', 'http://192.168.1.12:5174'],
+    'allowed_origins' => ['http://localhost:5173', 'http://192.168.1.25:5173', 'http://localhost:5174', 'http://192.168.1.25:5174'],
+    // 'allowed_origins' => ['http://localhost:5173', 'http://192.168.1.23:5173', 'http://localhost:5174', 'http://192.168.1.23:5174'],
+    // 'allowed_origins' => ['http://localhost:5173', 'http://10.253.130.166:5173', 'http://localhost:5174', 'http://10.253.130.166:5174'],
+    // 'allowed_origins' => ['http://localhost:5173', 'http://192.168.0.107:5173', 'http://localhost:5174', 'http://192.168.0.107:5174'],
+    // 'allowed_origins' => ['http://localhost:5173', 'http://10.253.128.182:5173', 'http://localhost:5174', 'http://10.253.128.182:5174'],
 
     // 'allowed_origins' => ['http://192.168.0.33:5176', 'http://192.168.1.9:5173',],
     // 'allowed_origins' => [

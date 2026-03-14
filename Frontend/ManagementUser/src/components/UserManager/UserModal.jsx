@@ -22,7 +22,13 @@ const UserFormModal = ({
     if (existingUser) {
       setName(existingUser.name || "");
       setEmail(existingUser.email || "");
-      setSelectedRoles(existingUser.roles?.map((r) => r.id) || []);
+      // Filter roles yang masih valid (ada di list roles dari database)
+      const validRoleIds = existingUser.roles?.map((r) => r.id) || [];
+      const filteredRoleIds = validRoleIds.filter((roleId) =>
+        roles.some((role) => role.id === roleId)
+      );
+      console.log("✅ Valid roles loaded for user:", filteredRoleIds);
+      setSelectedRoles(filteredRoleIds);
       setPassword("");
       setPasswordConfirm("");
     } else {
@@ -33,7 +39,7 @@ const UserFormModal = ({
       setSelectedRoles([]);
     }
     setErrors({});
-  }, [existingUser, isOpen]);
+  }, [existingUser, isOpen, roles]);
 
   const validateForm = () => {
     const newErrors = {};

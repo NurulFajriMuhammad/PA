@@ -7,28 +7,69 @@ const DasarHukumSpiPage = () => {
       kategori: "Regulasi Nasional",
       icon: <Landmark className="text-red-600" />,
       items: [
-        { no: "UU No. 28 Tahun 1999", tentang: "Penyelenggaraan Negara yang Bersih dan Bebas dari Korupsi, Kolusi, dan Nepotisme." },
-        { no: "UU No. 17 Tahun 2003", tentang: "Keuangan Negara." },
-        { no: "PP No. 60 Tahun 2008", tentang: "Sistem Pengendalian Intern Pemerintah (SPIP)." }
+        { 
+          no: "UU No. 28 Tahun 1999", 
+          tentang: "Penyelenggaraan Negara yang Bersih dan Bebas dari Korupsi, Kolusi, dan Nepotisme.",
+          url: "https://peraturan.bpk.go.id/Details/45345/uu-no-28-tahun-1999"
+        },
+        { 
+          no: "UU No. 17 Tahun 2003", 
+          tentang: "Keuangan Negara.",
+          // url: "https://jdih.kemenkeu.go.id/fulltext/2003/17TAHUN2003UU.htm"
+          // url: "https://peraturan.bpk.go.id/Download/31132/UU%20Nomor%2017%20Tahun%202003.pdf"
+          url: "https://peraturan.bpk.go.id/Details/43017/uu-no-17-tahun-2003"
+        },
+        { 
+          no: "PP No. 60 Tahun 2008", 
+          tentang: "Sistem Pengendalian Intern Pemerintah (SPIP).",
+          url: "https://peraturan.bpk.go.id/Details/4876/pp-no-60-tahun-2008"
+        }
       ]
     },
     {
       kategori: "Regulasi Kementerian",
       icon: <Gavel className="text-blue-600" />,
       items: [
-        { no: "Permendikbud No. 16 Tahun 2018", tentang: "Satuan Pengawasan Intern di Lingkungan Kementrian Pendidikan dan Kebudayaan." },
-        { no: "Permenpan-RB No. 5 Tahun 2008", tentang: "Standar Audit Aparat Pengawasan Intern Pemerintah (APIP)." }
+        { 
+          no: "Permendikbud No. 47 Tahun 2011", 
+          tentang: "Satuan Pengawasan Intern di Lingkungan Kemendikbud.",
+          // url: "https://jdih.kemdikbud.go.id/sipedas/pencarian/view?id=1418"
+          url: "https://peraturan.bpk.go.id/Details/163982/permendikbud-no-47-tahun-2011"
+        },
+        { 
+          no: "Permenpan-RB No. 5 Tahun 2008", 
+          tentang: "Standar Audit Aparat Pengawasan Intern Pemerintah (APIP).",
+          // url: "https://jdih.menpan.go.id/puu-633-Peraturan%20Menpan.html"
+          url: "https://peraturan.bpk.go.id/Details/132995/permen-pan-rb-no-per05mpan32008-tahun-2008"
+        }
       ]
     },
     {
       kategori: "Keputusan Internal",
       icon: <FileCheck className="text-emerald-600" />,
       items: [
-        { no: "Statuta Universitas", tentang: "Pedoman dasar penyelenggaraan dan pengelolaan institusi." },
-        { no: "SK Rektor No. 123/2023", tentang: "Pembentukan dan Tata Kerja Satuan Pengawas Internal." }
+        { 
+          no: "Statuta Universitas", 
+          tentang: "Pedoman dasar penyelenggaraan dan pengelolaan institusi.",
+          url: "#" // Ganti dengan link PDF internal universitas jika ada
+        },
+        { 
+          no: "SK Rektor No. 123/2023", 
+          tentang: "Pembentukan dan Tata Kerja Satuan Pengawas Internal.",
+          url: "#" // Ganti dengan link PDF internal universitas jika ada
+        }
       ]
     }
   ];
+
+  // Fungsi untuk membuka link di tab baru
+  const handleOpenDoc = (url) => {
+    if (url !== "#") {
+      window.open(url, '_blank', 'noopener,noreferrer');
+    } else {
+      alert("Dokumen internal belum tersedia di sistem.");
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
@@ -65,7 +106,10 @@ const DasarHukumSpiPage = () => {
               <div className="p-8">
                 <div className="grid grid-cols-1 gap-6">
                   {group.items.map((item, i) => (
-                    <div key={i} className="flex flex-col md:flex-row md:items-center gap-4 p-5 rounded-2xl border border-transparent hover:border-amber-100 hover:bg-amber-50/30 transition-all group">
+                    <div 
+                      key={i} 
+                      className="flex flex-col md:flex-row md:items-center gap-4 p-5 rounded-2xl border border-transparent hover:border-amber-100 hover:bg-amber-50/30 transition-all group"
+                    >
                       <div className="shrink-0">
                         <div className="bg-amber-100 text-amber-700 px-3 py-1 rounded-lg text-xs font-bold font-mono">
                           {item.no}
@@ -76,8 +120,11 @@ const DasarHukumSpiPage = () => {
                           Tentang {item.tentang}
                         </p>
                       </div>
-                      <div className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button className="flex items-center gap-1 text-xs font-bold text-amber-600 hover:text-amber-700">
+                      <div className="shrink-0 md:opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button 
+                          onClick={() => handleOpenDoc(item.url)}
+                          className="flex items-center gap-1 text-xs font-bold text-amber-600 hover:text-amber-700 bg-amber-100/50 md:bg-transparent px-3 py-2 md:p-0 rounded-lg"
+                        >
                           LIHAT DOKUMEN <ExternalLink size={14} />
                         </button>
                       </div>

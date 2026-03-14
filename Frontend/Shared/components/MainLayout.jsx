@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Outlet, Navigate } from 'react-router-dom'; 
+import React, { useState, useEffect, useRef } from 'react';
+import { Outlet, Navigate, useLocation } from 'react-router-dom'; 
 import Sidebar from './Sidebar.jsx';
 import TopHeader from './TopHeader.jsx';
 import { useAuth } from '../hooks/useAuth.jsx';
@@ -9,6 +9,8 @@ export default function MainLayout() {
   const collapsedWidth = 75;
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const { user } = useAuth(); 
+  const { pathname } = useLocation(); // Mendeteksi perubahan URL
+  const contentWrapperRef = useRef(null); // Ref untuk menembak element scroll
 
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
@@ -17,6 +19,13 @@ export default function MainLayout() {
   if (!user) {
     return <Navigate to="/login" replace />; 
   }
+
+  // Logic untuk reset scroll ke atas setiap kali pindah halaman
+  useEffect(() => {
+    if (contentWrapperRef.current) {
+      contentWrapperRef.current.scrollTo(0, 0);
+    }
+  }, [pathname]); // Akan jalan setiap kali isi 'pathname' (URL) berubah
 
   return (
     <>
@@ -37,13 +46,11 @@ export default function MainLayout() {
           .content-wrapper {
             display: flex;
             flex-direction: column;
-            min-height: 100vh;
+            height: 100vh;
             flex-grow: 1;
-            
-            /* Gunakan calc untuk presisi layout */
+            overflow-y: auto;
             margin-left: ${isSidebarOpen ? `${sidebarWidth}px` : `${collapsedWidth}px`};
             width: calc(100% - ${isSidebarOpen ? `${sidebarWidth}px` : `${collapsedWidth}px`});
-            
             transition: all var(--transition-speed) cubic-bezier(0.4, 0, 0.2, 1);
             position: relative;
           }
@@ -53,7 +60,6 @@ export default function MainLayout() {
             width: 100%;
             flex-grow: 1;
             box-sizing: border-box;
-            /* Efek fading lembut saat konten muncul */
             animation: fadeIn 0.5s ease-in-out;
           }
 
@@ -90,8 +96,7 @@ export default function MainLayout() {
           toggleSidebar={toggleSidebar} 
         />
         
-        <div className="content-wrapper">
-          {/* Header tetap di atas konten */}
+        <div className="content-wrapper" ref={contentWrapperRef}>
           <TopHeader 
             isSidebarOpen={isSidebarOpen} 
             toggleSidebar={toggleSidebar} // Berikan fungsi toggle jika ada tombol menu di header

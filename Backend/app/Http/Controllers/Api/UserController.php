@@ -52,7 +52,9 @@ class UserController extends Controller
         
         // $user->assignRole($request->role_id, 'api');
         if (!empty($request->role_id)) {
-            $user->assignRole($request->role_id); 
+            // Filter out invalid role IDs
+            $validRoleIds = \Spatie\Permission\Models\Role::whereIn('id', $request->role_id)->pluck('id')->toArray();
+            $user->assignRole($validRoleIds); 
         }
         
         $newUser = User::with('roles')->find($user->id);
@@ -76,26 +78,46 @@ class UserController extends Controller
             'password' => 'nullable|min:6',
         ]);
 
-        // 1. Update data user
-        $user->update([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => $request->password ? Hash::make($request->password) : $user->password,
-        ]);
-        
-        // 2. Sinkronkan Peran
-        // $user->syncRoles($request->role_id, 'api');
-        if (!empty($request->role_id)) {
-            $user->syncRoles($request->role_id); 
-        } else {
-             $user->syncRoles([]); 
+        try {
+            // 1. Update data user
+            $user->update([
+                'name' => $request->name,
+                'email' => $request->email,
+                'password' => $request->password ? Hash::make($request->password) : $user->password,
+            ]);
+            
+            // 2. Sinkronkan Peran dengan validasi ketat
+            if (!empty($request->role_id)) {
+                $requestedRoleIds = $request->role_id;
+                
+                // Cek apakah semua role ID valid di database
+                $validRoleIds = \Spatie\Permission\Models\Role::whereIn('id', $requestedRoleIds)
+                    ->pluck('id')
+                    ->toArray();
+                
+                // Jika ada role yang tidak ditemukan, throw error
+                if (count($validRoleIds) !== count($requestedRoleIds)) {
+                    $invalidIds = array_diff($requestedRoleIds, $validRoleIds);
+                    throw new \Exception("Role dengan ID " . implode(', ', $invalidIds) . " tidak ditemukan di database");
+                }
+                
+                $user->syncRoles($validRoleIds); 
+            } else {
+                 $user->syncRoles([]); 
+            }
+            
+            $updatedUser = $user->load('roles'); 
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'User berhasil diperbarui',
+                'data' => $updatedUser,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal memperbarui user: ' . $e->getMessage(),
+            ], 500);
         }
-        $updatedUser = $user->load('roles'); 
-        
-        return response()->json([
-            'success' => true,
-            'message' => 'User berhasil diperbarui',
-            'data' => $updatedUser,
-        ]);
     }
 }

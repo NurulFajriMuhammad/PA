@@ -1,133 +1,220 @@
-import React from 'react';
-import { 
-  Calendar, 
-  ClipboardCheck, 
-  PieChart, 
-  FileSearch, 
-  Clock, 
-  CheckCircle2, 
-  AlertCircle,
-  BarChart4
-} from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Plus, Trash2, X, Save } from 'lucide-react';
+import apiClient from "../../../../Shared/api/axios";
 
 const PKPTSpiPage = () => {
-  const tahapanPkpt = [
-    {
-      title: "Persiapan",
-      time: "Januari",
-      desc: "Penyusunan tim audit, penetapan objek audit (auditee), dan koordinasi awal dengan unit kerja.",
-      icon: <Clock className="text-blue-600" />
-    },
-    {
-      title: "Pelaksanaan",
-      time: "Februari - Oktober",
-      desc: "Audit lapangan, pengumpulan bukti, pengujian pengendalian, dan penyusunan draf laporan.",
-      icon: <FileSearch className="text-orange-600" />
-    },
-    {
-      title: "Pelaporan",
-      time: "November",
-      desc: "Finalisasi laporan hasil pemeriksaan (LHP) dan penyampaian rekomendasi kepada Rektor.",
-      icon: <ClipboardCheck className="text-green-600" />
-    },
-    {
-      title: "Evaluasi",
-      time: "Desember",
-      desc: "Review efektivitas audit tahun berjalan dan penyusunan rencana untuk tahun berikutnya.",
-      icon: <PieChart className="text-purple-600" />
+  const [plans, setPlans] = useState([]);
+  const [universes, setUniverses] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  
+  const [newPlan, setNewPlan] = useState({
+    audit_universe_id: '',
+    risk_category: '',
+    frequency: '',
+    start_week: '',
+    end_week: '',
+    year: new Date().getFullYear()
+  });
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const [resPkpt, resUniverse, resJangkaPanjang] = await Promise.all([
+        apiClient.get("/api/pkptspi"),
+        apiClient.get("/api/audit-universe"),
+        apiClient.get("/api/spijangkapanjang") 
+      ]);
+
+      const enrichedUniverses = resUniverse.data.map(u => {
+        const matchingPlan = resJangkaPanjang.data.find(p => p.audit_universe_id === u.id);
+        return {
+          ...u,
+          renstra_frequency: matchingPlan ? matchingPlan.frequency : "Belum diatur"
+        };
+      });
+
+      setPlans(resPkpt.data);
+      setUniverses(enrichedUniverses); 
+    } catch (err) {
+      console.error("Gagal mengambil data:", err);
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
+
+  useEffect(() => { 
+    fetchData(); 
+  }, []);
+
+  const handleUniverseChange = (id) => {
+    const selected = universes.find(u => u.id === parseInt(id));
+    
+    if (selected) {
+      setNewPlan({
+        ...newPlan,
+        audit_universe_id: id,
+        risk_category: selected.assessment_type || 'N/A', 
+        frequency: selected.renstra_frequency 
+      });
+    } else {
+      setNewPlan({ ...newPlan, audit_universe_id: id, risk_category: '', frequency: '' });
+    }
+  };
+
+  const handleSave = async (e) => {
+    e.preventDefault();
+    try {
+      await apiClient.post("/api/pkptspi", newPlan);
+      setShowForm(false);
+      setNewPlan({
+        audit_universe_id: "",
+        risk_category: "",
+        frequency: "",
+        start_week: "",
+        end_week: "",
+        year: new Date().getFullYear()
+      });
+      fetchData();
+    } catch (err) {
+      alert("Gagal simpan rencana tahunan");
+    }
+  };
+
+  const handleDelete = async (id) => {
+    try {
+      await apiClient.delete(`/api/pkptspi/${id}`);
+      fetchData();
+    } catch (err) { 
+      alert("Gagal menghapus"); 
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-6xl mx-auto">
+    <div className="min-h-screen bg-gray-50 py-12 px-6">
+      <div className="max-w-7xl mx-auto">
         
         {/* --- HEADER --- */}
-        <div className="text-center mb-16">
-          <div className="inline-flex items-center gap-2 bg-green-100 text-green-700 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest mb-4">
-            <Calendar size={14} /> Annual Audit Plan
-          </div>
-          <h1 className="text-4xl font-black text-gray-900 tracking-tight sm:text-5xl uppercase">
-            Rencana Kerja <span className="text-green-600">Audit Tahunan</span>
-          </h1>
-          <p className="mt-4 text-gray-500 max-w-2xl mx-auto">
-            Program Kerja Pengawasan Tahunan (PKPT) yang disusun berdasarkan analisis risiko untuk menjamin efektivitas pengawasan selama satu tahun anggaran.
-          </p>
-        </div>
-
-        {/* --- STATS / SUMMARY --- */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-          <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex items-center gap-5">
-            <div className="bg-blue-100 p-4 rounded-2xl text-blue-600">
-              <BarChart4 size={24} />
-            </div>
-            <div>
-              <p className="text-xs font-bold text-gray-400 uppercase">Target Audit</p>
-              <h3 className="text-xl font-black text-gray-900">24 Unit Kerja</h3>
-            </div>
-          </div>
-          <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex items-center gap-5">
-            <div className="bg-green-100 p-4 rounded-2xl text-green-600">
-              <CheckCircle2 size={24} />
-            </div>
-            <div>
-              <p className="text-xs font-bold text-gray-400 uppercase">Status PKPT</p>
-              <h3 className="text-xl font-black text-gray-900">Telah Disetujui</h3>
-            </div>
-          </div>
-          <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex items-center gap-5">
-            <div className="bg-orange-100 p-4 rounded-2xl text-orange-600">
-              <AlertCircle size={24} />
-            </div>
-            <div>
-              <p className="text-xs font-bold text-gray-400 uppercase">Fokus Risiko</p>
-              <h3 className="text-xl font-black text-gray-900">Tinggi & Sedang</h3>
-            </div>
-          </div>
-        </div>
-
-        {/* --- TIMELINE TAHAPAN --- */}
-        <div className="bg-white rounded-[3rem] p-8 md:p-12 shadow-xl border border-gray-100 overflow-hidden relative">
-          <h2 className="text-2xl font-bold text-gray-900 mb-10 flex items-center gap-3">
-            <Clock className="text-green-600" /> Siklus PKPT Berjalan
-          </h2>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {tahapanPkpt.map((step, index) => (
-              <div key={index} className="relative group">
-                <div className="bg-gray-50 rounded-3xl p-6 h-full border border-transparent hover:border-green-200 hover:bg-white transition-all duration-300">
-                  <div className="text-green-600 font-black text-4xl mb-4 opacity-20 group-hover:opacity-100 transition-opacity">
-                    {index + 1}
-                  </div>
-                  <div className="mb-4">
-                    {step.icon}
-                  </div>
-                  <h4 className="font-extrabold text-gray-900 text-lg mb-1">{step.title}</h4>
-                  <p className="text-green-600 text-xs font-bold uppercase mb-3 tracking-tighter italic">{step.time}</p>
-                  <p className="text-gray-500 text-sm leading-relaxed">
-                    {step.desc}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* --- INFO FOOTER --- */}
-        <div className="mt-12 bg-gray-900 rounded-3xl p-8 text-white flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="flex items-center gap-4 text-center md:text-left">
-            <div className="bg-white/10 p-3 rounded-xl">
-              <Calendar className="text-green-400" />
-            </div>
-            <p className="text-sm font-medium text-gray-300 max-w-md">
-              Jadwal pelaksanaan audit sewaktu-waktu dapat berubah menyesuaikan dengan kebijakan pimpinan atau adanya audit investigasi khusus.
+        <div className="flex justify-between items-end mb-12">
+          <div>
+            <h1 className="text-4xl font-black text-gray-900 uppercase tracking-tight">
+              Rencana Kerja <span className="text-green-600">Audit Tahunan</span>
+            </h1>
+            <p className="text-gray-500 mt-2 font-medium">
+              Penetapan jadwal pemeriksaan tahunan berdasarkan prioritas risiko dan ketersediaan sumber daya.
             </p>
           </div>
-          <button className="bg-green-600 hover:bg-green-500 text-white px-8 py-3 rounded-2xl font-bold text-sm transition-all whitespace-nowrap shadow-lg shadow-green-900/20">
-            Unduh Dokumen PKPT
+          <button 
+            onClick={() => setShowForm(true)}
+            className="bg-blue-600 text-white px-6 py-3 rounded-2xl font-bold flex items-center gap-2 hover:bg-blue-700 transition-all shadow-lg shadow-blue-100"
+          >
+            <Plus size={20} /> Buat PKPT Baru
           </button>
         </div>
 
+        {/* --- TABEL KOTAK HITAM SEDERHANA --- */}
+        <div className="mb-12">
+          <table className="w-full border-2 border-black text-sm bg-white">
+            <thead>
+              <tr className="bg-gray-100 text-black">
+                <th className="border-2 border-black px-4 py-2 text-left uppercase font-black">Nama Audit</th>
+                <th className="border-2 border-black px-4 py-2 text-left uppercase font-black">Unit</th>
+                <th className="border-2 border-black px-4 py-2 text-center uppercase font-black">Risiko</th>
+                <th className="border-2 border-black px-4 py-2 text-center uppercase font-black">Frekuensi</th>
+                <th className="border-2 border-black px-4 py-2 text-center uppercase font-black">Mulai</th>
+                <th className="border-2 border-black px-4 py-2 text-center uppercase font-black">Selesai</th>
+                <th className="border-2 border-black px-4 py-2 text-center uppercase font-black">Tahun</th>
+                <th className="border-2 border-black px-4 py-2 text-center uppercase font-black">Aksi</th>
+              </tr>
+            </thead>
+            <tbody>
+              {plans.map((plan) => (
+                <tr key={plan.id} className="hover:bg-gray-50">
+                  <td className="border-2 border-black px-4 py-2 font-bold uppercase">{plan.audit_universe?.name || 'N/A'}</td>
+                  <td className="border-2 border-black px-4 py-2">{plan.audit_universe?.sub_unit || '-'}</td>
+                  <td className="border-2 border-black px-4 py-2 text-center font-bold">{plan.audit_universe?.assessment_type || "-"}</td>
+                  <td className="border-2 border-black px-4 py-2 text-center italic font-bold text-blue-600">{plan.frequency}</td>
+                  <td className="border-2 border-black px-4 py-2 text-center">Mg-{plan.start_week}</td>
+                  <td className="border-2 border-black px-4 py-2 text-center">Mg-{plan.end_week}</td>
+                  <td className="border-2 border-black px-4 py-2 text-center font-bold">{plan.year}</td>
+                  <td className="border-2 border-black px-4 py-2 text-center">
+                    <button onClick={() => handleDelete(plan.id)} className="text-red-600 hover:scale-110 transition-transform">
+                      <Trash2 size={18} />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {plans.length === 0 && !loading && (
+            <div className="p-10 text-center text-gray-400 italic border-2 border-t-0 border-black bg-white">
+              Belum ada data PKPT yang dibuat.
+            </div>
+          )}
+        </div>
+
+        {/* --- MODAL FORM --- */}
+        {showForm && (
+          <div className="fixed inset-0 z-[100] bg-gray-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="bg-white rounded-[2.5rem] p-10 w-full max-w-lg shadow-2xl border-2 border-black">
+              <h2 className="text-2xl font-black mb-6 uppercase tracking-tight text-gray-800">
+                Tambah PKPT
+              </h2>
+              <form onSubmit={handleSave} className="space-y-4">
+                <div className="col-span-2">
+                  <label className="text-[10px] font-black uppercase text-gray-800 ml-1">Pilih Objek Audit</label>
+                  <select 
+                    required
+                    className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 font-semibold text-sm"
+                    value={newPlan.audit_universe_id}
+                    onChange={(e) => handleUniverseChange(e.target.value)}
+                  >
+                    <option value="">Pilih Audit Universe...</option>
+                    {universes.map(u => (
+                      <option key={u.id} value={u.id}>{u.name} ({u.corporate_risk_category})</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-[10px] font-black uppercase text-gray-800 ml-1">Risiko</label>
+                    <input readOnly className="w-full p-4 bg-gray-100 border border-gray-100 rounded-2xl outline-none text-gray-500 font-semibold" value={newPlan.risk_category} />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-black uppercase text-gray-800 ml-1">Frekuensi</label>
+                    <input readOnly className="w-full p-4 bg-gray-100 border border-gray-100 rounded-2xl outline-none text-blue-600 font-bold" value={newPlan.frequency} />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-[10px] font-black uppercase text-gray-800 ml-1">Minggu Mulai (1-52)</label>
+                    <input type="number" min="1" max="52" required className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none font-semibold" value={newPlan.start_week} onChange={(e) => setNewPlan({...newPlan, start_week: e.target.value})} />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-black uppercase text-gray-800 ml-1">Minggu Selesai (1-52)</label>
+                    <input type="number" min="1" max="52" required className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none font-semibold" value={newPlan.end_week} onChange={(e) => setNewPlan({...newPlan, end_week: e.target.value})} />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-black uppercase text-gray-800 ml-1">Tahun Pelaksanaan</label>
+                  <input type="number" required className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none font-bold" value={newPlan.year} onChange={(e) => setNewPlan({...newPlan, year: e.target.value})} />
+                </div>
+
+                <div className="flex gap-3 pt-4">
+                  <button type="button" onClick={() => setShowForm(false)} className="flex-1 py-4 bg-red-600 text-white rounded-2xl font-bold shadow-lg shadow-red-100">
+                    Batal
+                  </button>
+                  <button type="submit" className="flex-1 py-4 bg-blue-600 text-white rounded-2xl font-bold shadow-lg shadow-blue-100">
+                    Simpan Rencana
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

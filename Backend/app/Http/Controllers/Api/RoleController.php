@@ -32,10 +32,18 @@ class RoleController extends Controller
                 'permission_ids' => 'array|nullable',
             ]);
 
-            $role = Role::create(['name' => $validated['name']]);
+            // $role = Role::create(['name' => $validated['name']]);
+            $role = Role::create([
+    'name' => $validated['name'],
+    'guard_name' => 'web'
+]);
             
             if (!empty($validated['permission_ids'])) {
-                $role->syncPermissions($validated['permission_ids']);
+                // Filter out invalid permission IDs
+                $validPermissionIds = \Spatie\Permission\Models\Permission::whereIn('id', $validated['permission_ids'])->pluck('id')->toArray();
+                $role->syncPermissions($validPermissionIds);
+            } else {
+                $role->syncPermissions([]);
             }
 
             $role->load('permissions');
@@ -61,10 +69,16 @@ class RoleController extends Controller
                 'permission_ids' => 'array|nullable',
             ]);
 
-            $role->update(['name' => $validated['name']]);
-            
+            // update nama jika berubah
+            $role->name = $validated['name'];
+            $role->save();
+
+            // sinkronkan permission (array bisa kosong/null)
             if (!empty($validated['permission_ids'])) {
-                $role->syncPermissions($validated['permission_ids']);
+                $validPermissionIds = \Spatie\Permission\Models\Permission::whereIn('id', $validated['permission_ids'])->pluck('id')->toArray();
+                $role->syncPermissions($validPermissionIds);
+            } else {
+                $role->syncPermissions([]);
             }
 
             $role->load('permissions');
