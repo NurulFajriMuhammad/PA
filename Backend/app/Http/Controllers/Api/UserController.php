@@ -120,4 +120,10 @@ class UserController extends Controller
             ], 500);
         }
     }
+
+    public function getUsersForDropdown() {
+        // Ambil id, name, dan role
+        $users = User::select('id', 'name', 'roles')->get();
+        return response()->json($users);
+    }
 }

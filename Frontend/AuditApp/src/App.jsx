@@ -13,6 +13,8 @@ import FollowUp from './pages/tindaklanjut.jsx';
 import MasterDataPage from './pages/Master Data/MasterDataPage.jsx';
 import PengaturanPage from './pages/Pengaturan/PengaturanPage.jsx';
 import DocumentRepository from './pages/DocumentRepository.jsx';
+import AssuranceDetail from './pages/Internal Audit/detailassurance.jsx';
+
 
 function App() {
   
@@ -25,6 +27,7 @@ function App() {
             <Route index element={<Dashboard />} />
             <Route path="admin/users" element={<UserManagementPage />} />
             <Route path="profil/:slug" element={<ProfilSpiPage />} />
+            <Route path="/internal/assurance/:id" element={<AssuranceDetail />} />
             <Route path="/internal/:slug" element={<InternalAuditPage />} />
             <Route path="/external-audit" element={<ExternalAudit />} />
             <Route path="/audit-findings" element={<AuditFindings />} />
@@ -32,6 +35,8 @@ function App() {
             <Route path="master-data/:slug" element={<MasterDataPage />} />
             <Route path="pengaturan/:slug" element={<PengaturanPage />} />
             <Route path="/document-repository" element={<DocumentRepository />} />
+
+
             {/* Tambahkan rute lain di sini */}
           </Route>
         </Route>

@@ -12,6 +12,8 @@ use App\Http\Controllers\AuditUniverseController;
 use App\Http\Controllers\spijangkapanjangController;
 use App\Http\Controllers\pkptspicontroller;
 use App\Http\Controllers\rkaspicontroller;
+use App\Http\Controllers\surattugascontroller;
+use App\Http\Controllers\assurancecontroller;
 
 // -----------------------------------------------------------------
 // RUTE PUBLIK (Untuk Login, Register, dll)
@@ -108,7 +110,19 @@ Route::middleware('auth:sanctum')->group(function () {
      Route::post('/rka', [rkaspicontroller::class, 'store']);
      Route::delete('/rka/{id}', [rkaspicontroller::class, 'destroy']);
 
-
+     Route::apiResource('surattugas', surattugascontroller::class);
+     Route::get('/surat-tugas', [surattugascontroller::class, 'index']);
+     Route::post('/surat-tugas', [surattugascontroller::class, 'store']);
+     Route::put('/surat-tugas/{id}', [surattugascontroller::class, 'update']);
+     Route::delete('/surat-tugas/{id}', [surattugascontroller::class, 'destroy']);
+     Route::get('/users-list', [UserController::class, 'getUsersForDropdown']);
+     Route::apiResource('assurane', assurancecontroller::class);
+     Route::get('/assurance', [assurancecontroller::class, 'index']);      // Ambil semua data
+     Route::post('/assurance', [assurancecontroller::class, 'store']);     // Tambah data
+     Route::get('/assurance/{id}', [assurancecontroller::class, 'show']);  // Detail data
+     Route::put('/assurance/{id}', [assurancecontroller::class, 'update']); // Update data
+     Route::delete('/assurance/{id}', [assurancecontroller::class, 'destroy']); // Hapus data
+          
 
      // API Routes 
      // Route::apiResource('api-routes', ApiRouteController::class)->middleware('permission:manage routes');

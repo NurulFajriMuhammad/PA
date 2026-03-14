@@ -49,7 +49,7 @@ const AuditUniverseSPI = () => {
     "Kantor Pusat": "Operasional & Produksi",
     "Finance & Accounting": "Keuangan & Logistik",
     "Human Resources Development": "SDM & Hukum",
-    Legal: "SDM & Hukum",
+    "Legal": "SDM & Hukum",
     "APU-PPT": "SDM & Hukum",
     "Compliance & Internal Auditor": "SDM & Hukum",
     "Information Technology": "IT & Infrastruktur",

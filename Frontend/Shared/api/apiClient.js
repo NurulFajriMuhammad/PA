@@ -1,5 +1,4 @@
 import axios from "axios";
-import Cookies from "js-cookie";
 
 const BASE_URL = import.meta.env.VITE_BACKEND_URL;
 export const getCsrfCookie = () => {
