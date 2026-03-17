@@ -14,6 +14,11 @@ use App\Http\Controllers\pkptspicontroller;
 use App\Http\Controllers\rkaspicontroller;
 use App\Http\Controllers\surattugascontroller;
 use App\Http\Controllers\assurancecontroller;
+use App\Http\Controllers\kkacontroller;
+use App\Http\Controllers\perencanaancontroller;
+use App\Http\Controllers\KkaPelaksanaanController;
+use App\Http\Controllers\BiayaController;
+
 
 // -----------------------------------------------------------------
 // RUTE PUBLIK (Untuk Login, Register, dll)
@@ -122,6 +127,28 @@ Route::middleware('auth:sanctum')->group(function () {
      Route::get('/assurance/{id}', [assurancecontroller::class, 'show']);  // Detail data
      Route::put('/assurance/{id}', [assurancecontroller::class, 'update']); // Update data
      Route::delete('/assurance/{id}', [assurancecontroller::class, 'destroy']); // Hapus data
+
+     Route::apiResource('kka-templates', kkacontroller::class);
+     Route::get('/assurance/{assuranceId}/kka-perencanaan', [perencanaancontroller::class, 'getKka']);
+     Route::get('/assurance/{assuranceId}/documents', [perencanaancontroller::class, 'getDocs']);
+     Route::post('/assurance/{assuranceId}/documents', [perencanaancontroller::class, 'storeDoc']);
+     Route::post('/assurance/{assuranceId}/kka-perencanaan', [perencanaancontroller::class, 'storeKka']);
+     Route::get('/assurance/{assuranceId}/kka-pelaksanaan', [KkaPelaksanaanController::class, 'index']);
+     Route::post('/kka/{kkaId}/upload-lhe', [KkaPelaksanaanController::class, 'uploadLhe']);
+     Route::get('/kka/{kkaId}/temuan', [KkaPelaksanaanController::class, 'getTemuan']);
+     Route::post('/kka/{kkaId}/temuan', [KkaPelaksanaanController::class, 'storeTemuan']);
+     Route::delete('/temuan/{id}', [KkaPelaksanaanController::class, 'destroyTemuan']);
+     Route::get('/kka/{kkaId}/lhe',[KkaPelaksanaanController::class,'getLhe']);
+     Route::delete('/kka/{kkaId}/lhe',[KkaPelaksanaanController::class,'deleteLhe']);
+     // Route::get('/assurance/{assuranceId}/biaya', [BiayaController::class, 'index']);
+     // Route::post('/biaya', [BiayaController::class, 'store']);
+     // Route::put('/biaya/{id}', [BiayaController::class, 'update']);
+     // Route::delete('/biaya/{id}', [BiayaController::class, 'destroy']);
+
+     Route::get('/assurance/{id}/biaya', [BiayaController::class, 'index']);
+     Route::post('/biaya', [BiayaController::class, 'store']);
+     Route::put('/biaya/{id}', [BiayaController::class, 'update']);
+     Route::delete('/biaya/{id}', [BiayaController::class, 'destroy']);
           
 
      // API Routes 
