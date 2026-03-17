@@ -13,7 +13,7 @@ function getCookie(name) {
 }
 
 const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_BACKEND_URL || "http://192.168.1.25:8000", 
+  baseURL: import.meta.env.VITE_BACKEND_URL || "http://192.168.1.9:8000", 
   withCredentials: true, 
   headers: {
     'Accept': 'application/json',
