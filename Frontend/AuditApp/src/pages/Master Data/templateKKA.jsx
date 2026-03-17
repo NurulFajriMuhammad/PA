@@ -1,117 +1,241 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
-  BsFileEarmarkSpreadsheet, BsSearch, BsCloudUpload, 
-  BsDownload, BsTrash, BsFileEarmarkWord, 
-  BsCollection, BsCheck2Square 
+  BsPlusLg, BsSearch, BsTrash, BsPencilSquare, 
+  BsCollection, BsFileEarmarkText, BsX, BsPrinter 
 } from 'react-icons/bs';
+import apiClient from "../../../../Shared/api/apiClient";
+import { generateKKAHTML } from './generateKKAhtml';
+
 
 const TemplateKKA = () => {
-  const [templates] = useState([
-    {
-      id: "TPL-001",
-      nama: "KKA Pengujian Kas & Bank",
-      kategori: "Keuangan",
-      format: "XLSX",
-      tglUpdate: "10 Jan 2026",
-      versi: "V.2.0"
-    },
-    {
-      id: "TPL-002",
-      nama: "Checklist Kepatuhan Pengadaan",
-      kategori: "Operasional",
-      format: "DOCX",
-      tglUpdate: "15 Jan 2026",
-      versi: "V.1.4"
-    },
-    {
-      id: "TPL-003",
-      nama: "Program Audit IT General Control",
-      kategori: "IT Audit",
-      format: "XLSX",
-      tglUpdate: "05 Feb 2026",
-      versi: "V.1.0"
-    },
-    {
-      id: "TPL-004",
-      nama: "Berita Acara Hasil Audit (BAHA)",
-      kategori: "Reporting",
-      format: "DOCX",
-      tglUpdate: "20 Feb 2026",
-      versi: "V.3.1"
+  // --- STATE ---
+  const [templates, setTemplates] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+  const [isEdit, setIsEdit] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [formData, setFormData] = useState({
+    id: "",
+    nama: "",
+    keterangan: ""
+  });
+
+  // --- API ACTIONS ---
+  // 1. Fetch Data dari Database
+  const fetchData = useCallback(async () => {
+    try {
+      setLoading(true);
+      const response = await apiClient.get("/api/kka-templates");
+      // Menangani struktur response Laravel (data: [...])
+      setTemplates(response.data?.data || response.data || []);
+    } catch (err) {
+      console.error("Fetch Error:", err);
+    } finally {
+      setLoading(false);
     }
-  ]);
+  }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  // 2. Handle Save (Tambah & Update)
+  const handleSave = async (e) => {
+    e.preventDefault();
+    try {
+      setLoading(true);
+      if (isEdit) {
+        // UPDATE: /api/kka-templates/{id}
+        await apiClient.put(`/api/kka-templates/${formData.id}`, formData);
+      } else {
+        // STORE: /api/kka-templates
+        await apiClient.post("/api/kka-templates", formData);
+      }
+      setShowModal(false);
+      fetchData(); // Refresh list
+    } catch (err) {
+      console.error("Save Error:", err.response?.data);
+      alert(err.response?.data?.message || "Gagal menyimpan data");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 3. Handle Delete
+  const handleDelete = async (id) => {
+    if (window.confirm(`Hapus template ${id}?`)) {
+      try {
+        await apiClient.delete(`/api/kka-templates/${id}`);
+        setTemplates(templates.filter(t => t.id !== id));
+      } catch (err) {
+      }
+    }
+  };
+
+  // --- UI LOGIC ---
+
+  const handleOpenModal = (data = null) => {
+    if (data) {
+      setIsEdit(true);
+      setFormData(data);
+    } else {
+      setIsEdit(false);
+      setFormData({ id: "", nama: "", keterangan: "" });
+    }
+    setShowModal(true);
+  };
+
+function handlePrintDocument(item) {
+  const url = `/PrintTemplateKKA.html?id=${item.id}&nama=${item.nama}&ket=${item.keterangan}`;
+  window.open(url, "_blank");
+}
+
+  const filteredData = Array.isArray(templates) ? templates.filter(t => 
+    t.nama?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    t.id?.toLowerCase().includes(searchTerm.toLowerCase())
+  ) : [];
 
   return (
-    <div className="p-6 bg-[#f8fafc] min-h-screen">
-      {/* Header */}
+    <div className="p-6 bg-[#f8fafc] min-h-screen font-sans">
+      {/* Header Section */}
       <div className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
-            <BsCollection className="text-blue-600" /> Template KKA
+            <BsCollection className="text-blue-600" /> Master Template KKA
           </h1>
-          <p className="text-slate-500 mt-1">Standarisasi format kertas kerja dan dokumen penunjang audit.</p>
+          <p className="text-slate-500 mt-1 text-sm">Standarisasi kertas kerja untuk efisiensi audit internal.</p>
         </div>
-        <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all font-semibold shadow-md text-sm border-none cursor-pointer">
-          <BsCloudUpload /> Upload Template Baru
+        <button 
+          onClick={() => handleOpenModal()}
+          className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all font-bold shadow-lg shadow-blue-200 text-sm border-none cursor-pointer"
+        >
+          <BsPlusLg /> Tambah Template
         </button>
       </div>
 
-      {/* Filter & Search */}
-      <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 mb-6 flex flex-wrap gap-4 items-center justify-between">
-        <div className="relative flex-1 min-w-[300px]">
-          <BsSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input 
-            type="text" 
-            placeholder="Cari nama template..." 
-            className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-          />
-        </div>
-        <div className="flex gap-2">
-          <select className="px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-600 outline-none cursor-pointer">
-            <option>Semua Kategori</option>
-            <option>Keuangan</option>
-            <option>Operasional</option>
-            <option>IT Audit</option>
-          </select>
-        </div>
+      {/* Search Bar */}
+      <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 mb-6 flex items-center gap-3">
+        <BsSearch className="text-slate-400 ml-2" />
+        <input 
+          type="text" 
+          placeholder="Cari berdasarkan No. KKA atau Nama..." 
+          className="w-full bg-transparent border-none outline-none text-sm text-slate-600"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
       </div>
 
-      {/* Template Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {templates.map((item) => (
-          <div key={item.id} className="bg-white rounded-xl border border-slate-200 p-5 hover:shadow-md transition-all group relative">
-            <div className="flex justify-between items-start mb-4">
-              <div className={`p-3 rounded-lg ${item.format === 'XLSX' ? 'bg-emerald-50 text-emerald-600' : 'bg-blue-50 text-blue-600'}`}>
-                {item.format === 'XLSX' ? <BsFileEarmarkSpreadsheet size={24} /> : <BsFileEarmarkWord size={24} />}
-              </div>
-              <span className="text-[10px] font-bold px-2 py-0.5 bg-slate-100 text-slate-500 rounded">
-                {item.versi}
-              </span>
+      {/* Dynamic Table */}
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+        <table className="w-full text-left border-collapse">
+          <thead className="bg-slate-50 border-b border-slate-200">
+            <tr>
+              <th className="p-4 text-[11px] font-black text-slate-400 uppercase tracking-wider w-32">No. KKA</th>
+              <th className="p-4 text-[11px] font-black text-slate-400 uppercase tracking-wider">Nama Template KKA</th>
+              <th className="p-4 text-[11px] font-black text-slate-400 uppercase tracking-wider">Keterangan</th>
+              <th className="p-4 text-[11px] font-black text-slate-400 uppercase tracking-wider text-center w-44">Aksi</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100 text-sm">
+            {loading ? (
+               <tr><td colSpan="4" className="p-10 text-center text-slate-400 italic">Memuat data...</td></tr>
+            ) : filteredData.length > 0 ? filteredData.map((item) => (
+              <tr key={item.id} className="hover:bg-blue-50/40 transition-colors group">
+                <td className="p-4 font-bold text-blue-600 tracking-tight">{item.id}</td>
+                <td className="p-4 font-semibold text-slate-700">{item.nama}</td>
+                <td className="p-4 text-slate-500 leading-relaxed italic text-xs">{item.keterangan}</td>
+                <td className="p-4">
+                  <div className="flex justify-center gap-1">
+                    <button 
+                      onClick={() => handlePrintDocument(item)}
+                      title="Cetak Dokumen"
+                      className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-all border-none bg-transparent cursor-pointer"
+                    >
+                      <BsPrinter size={18} />
+                    </button>
+                    <button 
+                      onClick={() => handleOpenModal(item)}
+                      title="Edit Data"
+                      className="p-2 text-amber-500 hover:bg-amber-50 rounded-lg transition-all border-none bg-transparent cursor-pointer"
+                    >
+                      <BsPencilSquare size={18} />
+                    </button>
+                    <button 
+                      onClick={() => handleDelete(item.id)}
+                      title="Hapus Data"
+                      className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-all border-none bg-transparent cursor-pointer"
+                    >
+                      <BsTrash size={18} />
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            )) : (
+              <tr>
+                <td colSpan="4" className="p-10 text-center text-slate-400 italic text-sm">Data tidak ditemukan...</td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Modal Section */}
+      {showModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setShowModal(false)}></div>
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+            <div className="p-6 border-b flex justify-between items-center bg-slate-50">
+              <h3 className="font-bold text-slate-800 text-lg flex items-center gap-2">
+                <BsFileEarmarkText className="text-blue-600" />
+                {isEdit ? 'Update' : 'Tambah'} Template
+              </h3>
+              <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-red-500 border-none bg-transparent cursor-pointer">
+                <BsX size={28}/>
+              </button>
             </div>
             
-            <h3 className="font-bold text-slate-700 text-sm mb-1 leading-snug h-10 overflow-hidden">
-              {item.nama}
-            </h3>
-            <p className="text-[11px] text-slate-400 mb-4 flex items-center gap-1">
-              <BsCheck2Square className="text-blue-500" /> {item.kategori}
-            </p>
+            <form onSubmit={handleSave} className="p-6 space-y-5">
+              <div>
+                <label className="block text-[10px] font-black text-slate-400 uppercase mb-1.5 ml-1">Nomor KKA</label>
+                <input 
+                  required
+                  disabled={isEdit}
+                  className="w-full h-11 px-4 border border-slate-200 rounded-xl text-sm outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-50 transition-all disabled:bg-slate-100"
+                  value={formData.id}
+                  onChange={(e) => setFormData({...formData, id: e.target.value})}
+                  placeholder="Contoh: KKA.01"
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] font-black text-slate-400 uppercase mb-1.5 ml-1">Nama Template KKA</label>
+                <input 
+                  required
+                  className="w-full h-11 px-4 border border-slate-200 rounded-xl text-sm outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-50 transition-all"
+                  value={formData.nama}
+                  onChange={(e) => setFormData({...formData, nama: e.target.value})}
+                  placeholder="Masukkan nama template..."
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] font-black text-slate-400 uppercase mb-1.5 ml-1">Keterangan Singkat</label>
+                <textarea 
+                  className="w-full p-4 border border-slate-200 rounded-xl text-sm outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-50 transition-all h-28 resize-none"
+                  value={formData.keterangan}
+                  onChange={(e) => setFormData({...formData, keterangan: e.target.value})}
+                  placeholder="Jelaskan isi/tujuan KKA ini..."
+                />
+              </div>
 
-            <div className="pt-4 border-t border-slate-50 flex justify-between items-center">
-              <div className="text-[10px] text-slate-400">
-                Update: <span className="font-medium text-slate-600">{item.tglUpdate}</span>
-              </div>
-              <div className="flex gap-1">
-                <button className="p-2 text-slate-400 hover:text-blue-600 transition-colors bg-slate-50 rounded-lg border-none cursor-pointer">
-                  <BsDownload size={16} />
-                </button>
-                <button className="p-2 text-slate-400 hover:text-red-600 transition-colors bg-slate-50 rounded-lg border-none cursor-pointer">
-                  <BsTrash size={16} />
+              <div className="flex gap-3 pt-2">
+                <button type="button" onClick={() => setShowModal(false)} className="flex-1 py-3 bg-slate-100 text-slate-600 rounded-xl font-bold cursor-pointer border-none hover:bg-slate-200">Batal</button>
+                <button type="submit" disabled={loading} className="flex-1 py-3 bg-blue-600 text-white rounded-xl font-bold shadow-lg shadow-blue-200 cursor-pointer border-none hover:bg-blue-700 disabled:bg-slate-400">
+                  {loading ? 'Memproses...' : (isEdit ? 'Update Data' : 'Simpan Data')}
                 </button>
               </div>
-            </div>
+            </form>
           </div>
-        ))}
-      </div>
+        </div>
+      )}
     </div>
   );
 };

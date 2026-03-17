@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Cetak KKA - Kertas Kerja Audit Internal</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,wght@0,300;0,400;0,600;0,700;1,400&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+    /* ============================================================
+       SCREEN PREVIEW STYLES
+    ============================================================ */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #e8e4de;
+      font-family: 'DM Sans', Arial, sans-serif;
+      min-height: 100vh;
+    }
+
+    /* Toolbar */
+    .toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #1a1a18;
+      padding: 10px 24px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .toolbar-left { display: flex; align-items: center; gap: 12px; }
+    .toolbar-title { color: #c8c4bc; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; }
+    .toolbar-id {
+      font-family: 'DM Sans', monospace; font-size: 11px;
+      color: #7a7870; background: #2c2c28;
+      padding: 3px 8px; border-radius: 5px;
+    }
+    .toolbar-right { display: flex; gap: 8px; }
+    .btn-tool {
+      font-size: 12px; padding: 6px 14px; border-radius: 6px;
+      cursor: pointer; font-family: 'DM Sans', sans-serif;
+      border: 1px solid #3a3a36; background: #2c2c28; color: #c8c4bc;
+      transition: all 0.15s;
+    }
+    .btn-tool:hover { background: #3a3a36; color: #f0ece4; }
+    .btn-print {
+      font-size: 12px; padding: 6px 18px; border-radius: 6px;
+      cursor: pointer; font-family: 'DM Sans', sans-serif;
+      border: none; background: #4a6741; color: #d4e8cf;
+      font-weight: 600; letter-spacing: 0.02em;
+      transition: all 0.15s;
+    }
+    .btn-print:hover { background: #5a7a50; }
+
+    .page-wrap {
+      display: flex;
+      justify-content: center;
+      padding: 32px 16px 48px;
+    }
+
+    /* ============================================================
+       A4 DOCUMENT STYLES (screen + print)
+    ============================================================ */
+    .a4 {
+      width: 794px;
+      background: #fff;
+      box-shadow: 0 4px 40px rgba(0,0,0,0.18);
+      border-radius: 2px;
+      padding: 56px 64px 72px;
+      font-family: 'Source Serif 4', 'Times New Roman', serif;
+      color: #1a1a18;
+      position: relative;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    /* Watermark */
+    .watermark {
+      position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%, -50%) rotate(-35deg);
+      font-family: 'Source Serif 4', serif;
+      font-size: 90px; font-weight: 700;
+      color: rgba(74, 103, 65, 0.05);
+      letter-spacing: 0.12em; text-transform: uppercase;
+      pointer-events: none; user-select: none; white-space: nowrap;
+      display: none;
+    }
+
+    /* ---- KOP SURAT ---- */
+    .kop {
+      display: flex;
+      align-items: stretch;
+      padding-bottom: 14px;
+      margin-bottom: 18px;
+      border-bottom: 3px double #1a1a18;
+      gap: 20px;
+    }
+    .kop-logo {
+      width: 76px; height: 76px; flex-shrink: 0;
+      border: 1.5px solid #c0bbb2;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      font-family: 'DM Sans', sans-serif; font-size: 9px;
+      color: #999; text-align: center;
+      letter-spacing: 0.04em; text-transform: uppercase;
+      background: #f8f6f2;
+    }
+    .kop-logo svg { margin-bottom: 4px; opacity: 0.4; }
+    .kop-divider { width: 1.5px; background: #d4d0c8; flex-shrink: 0; }
+    .kop-text { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+    .kop-instansi {
+      font-family: 'DM Sans', sans-serif; font-size: 9px;
+      font-weight: 600; color: #7a7870;
+      letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 4px;
+    }
+    .kop-nama {
+      font-family: 'Source Serif 4', serif;
+      font-size: 18px; font-weight: 700;
+      color: #1a1a18; letter-spacing: -0.01em;
+      line-height: 1.2; margin-bottom: 6px;
+    }
+    .kop-alamat {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 10px; color: #7a7870; line-height: 1.7;
+    }
+
+    /* ---- JUDUL DOKUMEN ---- */
+    .doc-title-block {
+      text-align: center;
+      margin: 22px 0 20px;
+      padding-bottom: 18px;
+      border-bottom: 1px solid #d4d0c8;
+    }
+    .doc-badge {
+      display: inline-block;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 9px; font-weight: 500;
+      letter-spacing: 0.14em; text-transform: uppercase;
+      color: #4a6741; background: #ebf3e8;
+      border: 1px solid #c4dbbf;
+      padding: 3px 14px; border-radius: 100px; margin-bottom: 10px;
+    }
+    .doc-title-main {
+      font-size: 20px; font-weight: 700;
+      letter-spacing: 0.06em; text-transform: uppercase;
+      color: #1a1a18; margin-bottom: 4px;
+      text-decoration: underline;
+      text-underline-offset: 5px;
+      text-decoration-thickness: 1.5px;
+    }
+    .doc-subtitle {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 11px; color: #7a7870;
+    }
+    .doc-ref {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 12px; font-weight: 600;
+      color: #4a6741; margin-top: 7px;
+      letter-spacing: 0.04em;
+    }
+
+    /* ---- TABEL INFO ---- */
+    .info-table {
+      width: 100%; border-collapse: collapse;
+      margin-bottom: 24px; font-size: 12px;
+    }
+    .info-table th, .info-table td {
+      border: 1px solid #c0bbb2;
+      padding: 9px 12px; vertical-align: top;
+    }
+    .info-table th {
+      background: #f4f1ec; width: 28%;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 10px; font-weight: 600;
+      letter-spacing: 0.06em; text-transform: uppercase;
+      color: #5a5850; text-align: left;
+    }
+    .info-table td {
+      font-family: 'Source Serif 4', serif;
+      font-size: 12.5px; color: #1a1a18;
+    }
+    .info-table .row-alt td { background: #f8f6f2; }
+    .badge {
+      display: inline-block;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 9px; font-weight: 500;
+      letter-spacing: 0.06em; text-transform: uppercase;
+      padding: 2px 9px; border-radius: 4px;
+    }
+    .badge-tinggi { background: #fbeaea; color: #8b2a2a; border: 1px solid #e8b8b8; }
+    .badge-sedang { background: #faeeda; color: #854f0b; border: 1px solid #e8c87a; }
+    .badge-rendah { background: #eaf3de; color: #3b6d11; border: 1px solid #c4dbbf; }
+    .badge-disetujui { background: #e6f1fb; color: #185fa5; border: 1px solid #85b7eb; }
+
+    /* ---- SECTION LABEL ---- */
+    .section-label {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 10px; font-weight: 600;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      color: #4a6741; margin: 22px 0 9px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .section-label::after {
+      content: ''; flex: 1;
+      height: 1px; background: #d4d0c8;
+    }
+
+    /* ---- CONTENT AREA ---- */
+    .content-area {
+      border: 1px dashed #c0bbb2;
+      background: #faf8f4;
+      padding: 16px 20px;
+      margin-bottom: 22px;
+      min-height: 120px;
+    }
+    .content-area-label {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 10px; color: #aaa8a0;
+      letter-spacing: 0.06em; text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .content-text {
+      font-family: 'Source Serif 4', serif;
+      font-size: 12.5px; color: #3a3830; line-height: 1.75;
+    }
+    .content-lines div { height: 1px; background: #e8e4de; margin-bottom: 20px; }
+    .content-placeholder {
+      font-family: 'Source Serif 4', serif;
+      font-style: italic; font-size: 12px; color: #c8c4bc; margin-top: 8px;
+    }
+
+    /* ---- TABEL TEMUAN ---- */
+    .temuan-table {
+      width: 100%; border-collapse: collapse;
+      font-size: 11.5px; margin-bottom: 24px;
+    }
+    .temuan-table th {
+      background: #f4f1ec; border: 1px solid #c0bbb2;
+      padding: 7px 10px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 9px; font-weight: 600;
+      letter-spacing: 0.06em; text-transform: uppercase;
+      color: #5a5850; text-align: left;
+    }
+    .temuan-table td {
+      border: 1px solid #c0bbb2;
+      padding: 8px 10px; vertical-align: top;
+      font-family: 'Source Serif 4', serif;
+      font-size: 11.5px; color: #3a3830;
+    }
+    .temuan-table td.no { text-align: center; color: #8a8880; width: 28px; }
+    .temuan-table .row-alt td { background: #faf8f4; }
+
+    /* ---- KESIMPULAN ---- */
+    .opini-box {
+      border: 1px solid #c0bbb2;
+      background: #faf8f4;
+      padding: 14px 18px;
+      margin-bottom: 24px;
+      font-family: 'Source Serif 4', serif;
+      font-size: 12.5px; color: #3a3830; line-height: 1.75;
+    }
+
+    /* ---- TANDA TANGAN ---- */
+    .signature-grid {
+      display: grid; grid-template-columns: 1fr 1fr 1fr;
+      gap: 28px; margin-top: 32px; padding-top: 24px;
+      border-top: 1px solid #d4d0c8;
+    }
+    .sig-box { text-align: center; }
+    .sig-role {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 10px; color: #7a7870;
+      letter-spacing: 0.06em; text-transform: uppercase;
+      margin-bottom: 56px;
+    }
+    .sig-line {
+      border-top: 1px solid #1a1a18;
+      margin: 0 auto 6px; width: 160px;
+    }
+    .sig-name {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 11px; font-weight: 500; color: #3a3830;
+    }
+    .sig-nip {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 10px; color: #9a9890; margin-top: 3px;
+    }
+
+    /* ---- AUDITEE ---- */
+    .auditee-box {
+      border: 1px solid #c0bbb2; background: #f8f6f2;
+      padding: 14px 18px; margin-top: 20px;
+      display: flex; justify-content: space-between;
+      align-items: flex-end;
+    }
+    .auditee-label {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 10px; color: #7a7870;
+      text-transform: uppercase; letter-spacing: 0.06em;
+      margin-bottom: 7px;
+    }
+    .auditee-info {
+      font-family: 'Source Serif 4', serif;
+      font-size: 12px; color: #3a3830; line-height: 1.8;
+    }
+    .auditee-sig { text-align: right; }
+    .auditee-line {
+      width: 140px; border-top: 1px solid #6a6860;
+      margin-bottom: 4px; margin-left: auto;
+    }
+    .auditee-name-label {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 10px; color: #9a9890;
+    }
+
+    /* ---- FOOTER ---- */
+    .doc-footer {
+      margin-top: 32px; padding-top: 10px;
+      border-top: 1px solid #e0dcd4;
+      display: flex; justify-content: space-between;
+      align-items: center;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 9px; color: #b0aca4; letter-spacing: 0.04em;
+    }
+    .footer-dot {
+      display: inline-block;
+      width: 5px; height: 5px; border-radius: 50%;
+      background: #4a6741; margin-right: 5px;
+      vertical-align: middle;
+    }
+
+    /* ============================================================
+       PRINT MEDIA QUERY — hanya dokumen, toolbar disembunyikan
+    ============================================================ */
+    @media print {
+      @page { size: A4; margin: 20mm; }
+
+      body { background: white; }
+      .toolbar { display: none !important; }
+      .page-wrap { padding: 0; justify-content: flex-start; }
+
+      .a4 {
+        width: 100%;
+        box-shadow: none;
+        border-radius: 0;
+        padding: 0;
+        font-size: 12px;
+      }
+
+      .watermark { display: block !important; }
+
+      .content-area { background: #faf8f4 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .info-table th { background: #f4f1ec !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .info-table .row-alt td { background: #f8f6f2 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .temuan-table th { background: #f4f1ec !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .temuan-table .row-alt td { background: #faf8f4 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .opini-box { background: #faf8f4 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .auditee-box { background: #f8f6f2 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .kop-logo { background: #f8f6f2 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .badge-tinggi { background: #fbeaea !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .badge-sedang { background: #faeeda !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .badge-rendah { background: #eaf3de !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .doc-badge { background: #ebf3e8 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ============================================================
+       TOOLBAR PREVIEW (tidak ikut tercetak)
+  ============================================================ -->
+  <div class="toolbar">
+    <div class="toolbar-left">
+      <span class="toolbar-title">Preview Cetak KKA</span>
+      <span class="toolbar-id" id="tb-id"></span>
+    </div>
+    <div class="toolbar-right">
+      <button class="btn-tool" onclick="toggleWatermark()">&#9670; Watermark</button>
+      <button class="btn-print" onclick="window.print()">&#128438; Cetak / Simpan PDF</button>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       A4 DOCUMENT
+  ============================================================ -->
+  <div class="page-wrap">
+    <div class="a4" id="kka-doc">
+
+      <!-- WATERMARK -->
+      <div class="watermark" id="wm">SMART-AUDIT</div>
+
+      <!-- ========================
+           KOP SURAT
+      ======================== -->
+      <div class="kop">
+        <div class="kop-logo">
+          <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+            <rect x="4" y="4" width="20" height="20" rx="2" stroke="#888" stroke-width="1.5"/>
+            <path d="M9 14h10M14 9v10" stroke="#888" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+          Logo<br>Institusi
+        </div>
+        <div class="kop-divider"></div>
+        <div class="kop-text">
+          <div class="kop-instansi">Satuan Pengawasan Intern (SPI)</div>
+          <div class="kop-nama">Nama Institusi / Perusahaan</div>
+          <div class="kop-alamat">
+            Gedung Kantor Lt. 3, Jl. Raya No. 01 — Kota, Provinsi<br>
+            Telepon: (021) 000-0000 &nbsp;|&nbsp; Email: spi@institusi.ac.id
+          </div>
+        </div>
+      </div>
+
+      <!-- ========================
+           JUDUL DOKUMEN
+      ======================== -->
+      <div class="doc-title-block">
+        <div class="doc-badge">Dokumen Audit Internal</div>
+        <div class="doc-title-main">Kertas Kerja Audit (KKA)</div>
+        <div class="doc-subtitle">Satuan Pengawasan Intern &mdash; Sistem Manajemen Audit Terintegrasi</div>
+        <div class="doc-ref">Nomor Referensi: <span id="doc-nomor-ref"></span></div>
+      </div>
+
+      <!-- ========================
+           TABEL INFORMASI
+      ======================== -->
+      <table class="info-table">
+        <tr>
+          <th>Nomor KKA</th>
+          <td><strong id="kka-id"></strong></td>
+        </tr>
+        <tr class="row-alt">
+          <th>Program / Judul Audit</th>
+          <td id="kka-nama"></td>
+        </tr>
+        <tr>
+          <th>Unit yang Diaudit</th>
+          <td></td>
+        </tr>
+        <tr class="row-alt">
+          <th>Periode Audit</th>
+          <td></td>
+        </tr>
+        <tr>
+          <th>Jenis Audit</th>
+          <td></td>
+        </tr>
+        <tr class="row-alt">
+          <th>Tingkat Risiko</th>
+          <td><</td>
+        </tr>
+        <tr>
+          <th>Tanggal Dibuat</th>
+          <td id="tgl-dibuat"></td>
+        </tr>
+        <tr class="row-alt">
+          <th>Ketua Tim Audit</th>
+          <td></td>
+        </tr>
+        <tr>
+          <th>Anggota Tim</th>
+          <td></td>
+        </tr>
+        <tr class="row-alt">
+          <th>Supervisor / Kepala SPI</th>
+          <td></td>
+        </tr>
+      </table>
+
+      <!-- ========================
+           TUJUAN & RUANG LINGKUP
+      ======================== -->
+      <div class="section-label">Tujuan &amp; Ruang Lingkup Audit</div>
+      <div class="content-area">
+        <div class="content-area-label">Tujuan Audit:</div>
+        <p id="kka-keterangan" style="font-size:12px;line-height:1.75;"></p>
+        <div style="margin-top: 14px;" class="content-area-label">Ruang Lingkup:</div>
+        <div class="content-text">
+        </div>
+      </div>
+
+      <!-- ========================
+           KRITERIA AUDIT
+      ======================== -->
+      <div class="section-label">Kriteria &amp; Dasar Hukum Audit</div>
+      <div class="content-area" style="min-height: 80px;">
+        <div class="content-text">
+          Peraturan Direksi No. 10/2024 tentang Pengadaan Barang dan Jasa &nbsp;|&nbsp;
+          SOP Pengadaan Versi 3.1 &nbsp;|&nbsp; Kebijakan Keuangan No. KF-02/2024 &nbsp;|&nbsp;
+          ISO 9001:2015 Klausul 8.4
+        </div>
+      </div>
+
+      <!-- ========================
+           TABEL TEMUAN
+      ======================== -->
+      <div class="section-label">Ringkasan Temuan Audit</div>
+      <table class="temuan-table">
+        <thead>
+          <tr>
+            <th style="width: 30px;">No.</th>
+            <th style="width: 26%;">Kondisi / Temuan</th>
+            <th style="width: 22%;">Kriteria</th>
+            <th style="width: 22%;">Sebab</th>
+            <th style="width: 20%;">Akibat / Dampak</th>
+            <th style="width: 80px;">Signifikansi</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="no">1</td>
+            <td>-</td>
+            <td>-</td>
+            <td>-</td>
+            <td>-</td>
+            <td>-</td>
+          </tr>
+          <tr>
+            <td class="no" style="color: #c0bbb2;">2</td>
+            <td style="color: #c0bbb2; font-style: italic;">[ Tambahkan temuan berikutnya ]</td>
+            <td></td><td></td><td></td><td></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- ========================
+           CATATAN PENGUJIAN
+      ======================== -->
+      <div class="section-label">Catatan Pengujian &amp; Analisis</div>
+      <div class="content-area" style="min-height: 110px;">
+        <div class="content-area-label">Hasil pengujian dan bukti pendukung:</div>
+        <div class="content-lines">
+          <div></div><div></div><div></div><div></div><div></div>
+        </div>
+        <div class="content-placeholder">[ Uraian pengujian, analisis data, dan referensi bukti dicatat di sini ]</div>
+      </div>
+
+      <!-- ========================
+           REKOMENDASI RTL
+      ======================== -->
+      <div class="section-label">Rekomendasi &amp; Rencana Tindak Lanjut</div>
+      <table class="temuan-table">
+        <thead>
+          <tr>
+            <th style="width: 30px;">Ref.</th>
+            <th>Rekomendasi Auditor</th>
+            <th>Tindak Lanjut Auditee</th>
+            <th style="width: 110px;">Penanggung Jawab</th>
+            <th style="width: 90px;">Target Selesai</th>
+            <th style="width: 80px;">Status RTL</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="no">D1-1</td>
+            <td>-</td>
+            <td>-</td>
+            <td>-</td>
+            <td style="text-align: center;">-</td>
+            <td>-</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- ========================
+           KESIMPULAN & OPINI
+      ======================== -->
+      <div class="section-label">Kesimpulan &amp; Opini Auditor</div>
+      <div class="opini-box">
+        <strong>Opini: --</strong><br><br>
+      -    
+      </div>
+
+      <!-- ========================
+           TANDA TANGAN
+      ======================== -->
+      <div class="signature-grid">
+        <div class="sig-box">
+          <div class="sig-role">Disusun oleh (Auditor)</div>
+          <div class="sig-line"></div>
+          <div class="sig-name">( ................................................ )</div>
+          <div class="sig-nip">NIP / ID: _______________________</div>
+          <div class="sig-nip">Tanggal: ________________________</div>
+        </div>
+        <div class="sig-box">
+          <div class="sig-role">Direview oleh (Ketua Tim)</div>
+          <div class="sig-line"></div>
+          <div class="sig-name">( ................................................ )</div>
+          <div class="sig-nip">NIP / ID: _______________________</div>
+          <div class="sig-nip">Tanggal: ________________________</div>
+        </div>
+        <div class="sig-box">
+          <div class="sig-role">Disetujui (Kepala SPI)</div>
+          <div class="sig-line"></div>
+          <div class="sig-name">( ................................................ )</div>
+          <div class="sig-nip">NIP / ID: _______________________</div>
+          <div class="sig-nip">Tanggal: ________________________</div>
+        </div>
+      </div>
+
+      <!-- ========================
+           RESPONS AUDITEE
+      ======================== -->
+      <div class="auditee-box">
+        <div>
+          <div class="auditee-label">Respons &amp; Persetujuan Auditee</div>
+          <div class="auditee-info">Nama &nbsp;&nbsp;&nbsp;: ________________________________________</div>
+          <div class="auditee-info">Jabatan : ________________________________________</div>
+          <div class="auditee-info" style="font-family:'DM Sans',sans-serif;font-size:11px;color:#8a8880;margin-top:4px;">
+            Tanggal Persetujuan: _________________________________
+          </div>
+        </div>
+        <div class="auditee-sig">
+          <div style="height: 52px;"></div>
+          <div class="auditee-line"></div>
+          <div class="auditee-name-label">Tanda Tangan Auditee</div>
+        </div>
+      </div>
+
+      <!-- ========================
+           FOOTER
+      ======================== -->
+      <div class="doc-footer">
+        <div>
+          <span class="footer-dot"></span>
+          Satuan Pengawasan Intern &mdash; E-Audit System
+        </div>
+        <span>Dicetak: <span id="footer-date"></span></span>
+        <span>Halaman 1 dari 1 &nbsp;|&nbsp; Dokumen Rahasia</span>
+      </div>
+
+    </div><!-- /.a4 -->
+  </div><!-- /.page-wrap -->
+
+  <!-- ============================================================
+       JAVASCRIPT
+  ============================================================ -->
+  <script>
+    // Tanggal otomatis
+    const today = new Date().toLocaleDateString('id-ID', {
+      day: 'numeric', month: 'long', year: 'numeric'
+    });
+    document.getElementById('footer-date').textContent = today;
+    document.getElementById('tgl-dibuat').textContent = today;
+
+    // Toggle watermark DRAFT
+    function toggleWatermark() {
+      const wm = document.getElementById('wm');
+      const btn = event.target;
+      if (wm.style.display === 'block') {
+        wm.style.display = 'none';
+        btn.style.background = '#2c2c28';
+        btn.style.color = '#c8c4bc';
+      } else {
+        wm.style.display = 'block';
+        btn.style.background = '#4a6741';
+        btn.style.color = '#d4e8cf';
+        btn.style.border = 'none';
+      }
+    }
+
+    // Fungsi utama: generate KKA dari data item (dipanggil dari sistem)
+    function handlePrintDocument(item) {
+      const win = window.open('', '_blank');
+      const tanggal = new Date().toLocaleDateString('id-ID', {
+        day: 'numeric', month: 'long', year: 'numeric'
+      });
+
+      // Map tingkat risiko ke badge class
+      const risikoClass = {
+        'Tinggi': 'badge-tinggi',
+        'Sedang': 'badge-sedang',
+        'Rendah': 'badge-rendah'
+      }[item.risiko] || 'badge-sedang';
+
+      win.document.write(`<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8"/>
+  <title>KKA - ${item.id}</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:wght@400;500;600&display=swap');
+    @page { size: A4; margin: 20mm; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Source Serif 4','Times New Roman',serif; color: #1a1a18; line-height: 1.6; font-size: 12px; }
+    .kop { display:flex; align-items:stretch; padding-bottom:14px; margin-bottom:18px; border-bottom:3px double #1a1a18; gap:20px; }
+    .kop-logo { width:72px; height:72px; flex-shrink:0; border:1.5px solid #c0bbb2; display:flex; flex-direction:column; align-items:center; justify-content:center; font-family:'DM Sans',sans-serif; font-size:9px; color:#999; text-align:center; background:#f8f6f2; }
+    .kop-divider { width:1.5px; background:#d4d0c8; flex-shrink:0; }
+    .kop-text { flex:1; display:flex; flex-direction:column; justify-content:center; }
+    .kop-instansi { font-family:'DM Sans',sans-serif; font-size:9px; font-weight:600; color:#7a7870; letter-spacing:0.1em; text-transform:uppercase; margin-bottom:4px; }
+    .kop-nama { font-size:17px; font-weight:700; color:#1a1a18; margin-bottom:5px; }
+    .kop-alamat { font-family:'DM Sans',sans-serif; font-size:10px; color:#7a7870; line-height:1.7; }
+    .doc-title-block { text-align:center; margin:20px 0 18px; padding-bottom:16px; border-bottom:1px solid #d4d0c8; }
+    .doc-badge { display:inline-block; font-family:'DM Sans',sans-serif; font-size:9px; font-weight:500; letter-spacing:0.14em; text-transform:uppercase; color:#4a6741; background:#ebf3e8; border:1px solid #c4dbbf; padding:3px 14px; border-radius:100px; margin-bottom:10px; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+    .doc-title-main { font-size:19px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; text-decoration:underline; text-underline-offset:5px; margin-bottom:4px; }
+    .doc-subtitle { font-family:'DM Sans',sans-serif; font-size:11px; color:#7a7870; }
+    .doc-ref { font-family:'DM Sans',sans-serif; font-size:12px; font-weight:600; color:#4a6741; margin-top:7px; }
+    .info-table { width:100%; border-collapse:collapse; margin-bottom:22px; }
+    .info-table th, .info-table td { border:1px solid #c0bbb2; padding:8px 12px; vertical-align:top; }
+    .info-table th { background:#f4f1ec; width:28%; font-family:'DM Sans',sans-serif; font-size:10px; font-weight:600; letter-spacing:0.06em; text-transform:uppercase; color:#5a5850; text-align:left; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+    .info-table .row-alt td { background:#f8f6f2; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+    .badge { display:inline-block; font-family:'DM Sans',sans-serif; font-size:9px; font-weight:500; letter-spacing:0.06em; text-transform:uppercase; padding:2px 9px; border-radius:4px; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+    .badge-tinggi { background:#fbeaea; color:#8b2a2a; border:1px solid #e8b8b8; }
+    .badge-sedang { background:#faeeda; color:#854f0b; border:1px solid #e8c87a; }
+    .badge-rendah { background:#eaf3de; color:#3b6d11; border:1px solid #c4dbbf; }
+    .section-label { font-family:'DM Sans',sans-serif; font-size:10px; font-weight:600; letter-spacing:0.1em; text-transform:uppercase; color:#4a6741; margin:20px 0 8px; display:flex; align-items:center; gap:8px; }
+    .section-label::after { content:''; flex:1; height:1px; background:#d4d0c8; }
+    .content-area { border:1px dashed #c0bbb2; background:#faf8f4; padding:14px 18px; margin-bottom:20px; min-height:100px; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+    .content-area-label { font-family:'DM Sans',sans-serif; font-size:10px; color:#aaa8a0; letter-spacing:0.06em; text-transform:uppercase; margin-bottom:7px; }
+    .content-lines div { height:1px; background:#e8e4de; margin-bottom:20px; }
+    .content-placeholder { font-style:italic; font-size:11.5px; color:#c8c4bc; }
+    .temuan-table { width:100%; border-collapse:collapse; font-size:11px; margin-bottom:22px; }
+    .temuan-table th { background:#f4f1ec; border:1px solid #c0bbb2; padding:6px 9px; font-family:'DM Sans',sans-serif; font-size:9px; font-weight:600; letter-spacing:0.06em; text-transform:uppercase; color:#5a5850; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+    .temuan-table td { border:1px solid #c0bbb2; padding:7px 9px; vertical-align:top; }
+    .temuan-table .row-alt td { background:#faf8f4; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+    .opini-box { border:1px solid #c0bbb2; background:#faf8f4; padding:12px 16px; margin-bottom:22px; line-height:1.75; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+    .signature-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:24px; margin-top:28px; padding-top:22px; border-top:1px solid #d4d0c8; }
+    .sig-box { text-align:center; }
+    .sig-role { font-family:'DM Sans',sans-serif; font-size:10px; color:#7a7870; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:52px; }
+    .sig-line { border-top:1px solid #1a1a18; margin:0 auto 6px; width:150px; }
+    .sig-name { font-family:'DM Sans',sans-serif; font-size:11px; font-weight:500; }
+    .sig-nip { font-family:'DM Sans',sans-serif; font-size:10px; color:#9a9890; margin-top:3px; }
+    .auditee-box { border:1px solid #c0bbb2; background:#f8f6f2; padding:12px 16px; margin-top:18px; display:flex; justify-content:space-between; align-items:flex-end; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+    .auditee-label { font-family:'DM Sans',sans-serif; font-size:10px; color:#7a7870; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:7px; }
+    .auditee-info { font-size:12px; color:#3a3830; line-height:1.8; }
+    .auditee-line { width:140px; border-top:1px solid #6a6860; margin-bottom:4px; margin-left:auto; }
+    .auditee-name-label { font-family:'DM Sans',sans-serif; font-size:10px; color:#9a9890; }
+    .doc-footer { margin-top:28px; padding-top:10px; border-top:1px solid #e0dcd4; display:flex; justify-content:space-between; font-family:'DM Sans',sans-serif; font-size:9px; color:#b0aca4; }
+    .footer-dot { display:inline-block; width:5px; height:5px; border-radius:50%; background:#4a6741; margin-right:5px; vertical-align:middle; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  </style>
+</head>
+<body>
+
+  <div class="kop">
+    <div class="kop-logo">Logo<br>Institusi</div>
+    <div class="kop-divider"></div>
+    <div class="kop-text">
+      <div class="kop-instansi">Satuan Pengawasan Intern (SPI)</div>
+      <div class="kop-nama">${item.institusi || 'Nama Institusi / Perusahaan'}</div>
+      <div class="kop-alamat">
+        ${item.alamat || 'Gedung Kantor Lt. 3, Jl. Raya No. 01 — Kota, Provinsi'}<br>
+        ${item.telepon ? 'Telepon: ' + item.telepon : ''}
+      </div>
+    </div>
+  </div>
+
+  <div class="doc-title-block">
+    <div class="doc-badge">Dokumen Audit Internal</div>
+    <div class="doc-title-main">Kertas Kerja Audit (KKA)</div>
+    <div class="doc-subtitle">Satuan Pengawasan Intern &mdash; Sistem Manajemen Audit Terintegrasi</div>
+    <div class="doc-ref">Nomor Referensi: ${item.id}</div>
+  </div>
+
+  <table class="info-table">
+    <tr><th>Nomor KKA</th><td><strong>${item.id}</strong></td></tr>
+    <tr class="row-alt"><th>Program / Judul Audit</th><td>${item.nama}</td></tr>
+    <tr><th>Unit yang Diaudit</th><td>${item.unit || '-'}</td></tr>
+    <tr class="row-alt"><th>Periode Audit</th><td>${item.periode || '-'}</td></tr>
+    <tr><th>Jenis Audit</th><td>${item.jenisAudit || 'Audit Operasional'}</td></tr>
+    <tr class="row-alt"><th>Tingkat Risiko</th><td><span class="badge ${risikoClass}">${item.risiko || '-'}</span></td></tr>
+    <tr><th>Tanggal Dibuat</th><td>${tanggal}</td></tr>
+    <tr class="row-alt"><th>Ketua Tim Audit</th><td>${item.ketuaTim || '-'}</td></tr>
+    <tr><th>Anggota Tim</th><td>${item.anggotaTim || '-'}</td></tr>
+    <tr class="row-alt"><th>Supervisor / Kepala SPI</th><td>${item.supervisor || '-'}</td></tr>
+  </table>
+
+  <div class="section-label">Tujuan &amp; Ruang Lingkup Audit</div>
+  <div class="content-area">
+    <div class="content-area-label">Tujuan Audit:</div>
+    <p style="font-size:12px;line-height:1.75;">${item.tujuan || '[ Tujuan audit diisi di sini ]'}</p>
+    <div style="margin-top:12px;" class="content-area-label">Ruang Lingkup:</div>
+    <p style="font-size:12px;line-height:1.75;">${item.lingkup || '[ Ruang lingkup audit diisi di sini ]'}</p>
+  </div>
+
+  <div class="section-label">Deskripsi &amp; Keterangan</div>
+  <div class="content-area">
+    <p style="font-size:12px;line-height:1.75;">${item.keterangan || '[ Keterangan tambahan diisi di sini ]'}</p>
+  </div>
+
+  <div class="section-label">Catatan Pengujian &amp; Analisis</div>
+  <div class="content-area" style="min-height:110px;">
+    <div class="content-area-label">Hasil pengujian dan bukti pendukung:</div>
+    <div class="content-lines"><div></div><div></div><div></div><div></div><div></div></div>
+    <div class="content-placeholder">[ Uraian pengujian, analisis data, dan referensi bukti dicatat di sini ]</div>
+  </div>
+
+  <div class="section-label">Kesimpulan &amp; Opini Auditor</div>
+  <div class="opini-box">
+    <strong>Opini: ${item.opini || '[ Diisi setelah pengujian selesai ]'}</strong><br><br>
+    ${item.kesimpulan || '[ Narasi kesimpulan audit diisi di sini berdasarkan hasil pengujian yang telah dilakukan. ]'}
+  </div>
+
+  <div class="signature-grid">
+    <div class="sig-box">
+      <div class="sig-role">Disusun oleh (Auditor)</div>
+      <div class="sig-line"></div>
+      <div class="sig-name">( ............................................. )</div>
+      <div class="sig-nip">NIP / ID: _____________________</div>
+      <div class="sig-nip">Tanggal: ______________________</div>
+    </div>
+    <div class="sig-box">
+      <div class="sig-role">Direview oleh (Ketua Tim)</div>
+      <div class="sig-line"></div>
+      <div class="sig-name">( ............................................. )</div>
+      <div class="sig-nip">NIP / ID: _____________________</div>
+      <div class="sig-nip">Tanggal: ______________________</div>
+    </div>
+    <div class="sig-box">
+      <div class="sig-role">Disetujui (Kepala SPI)</div>
+      <div class="sig-line"></div>
+      <div class="sig-name">( ............................................. )</div>
+      <div class="sig-nip">NIP / ID: _____________________</div>
+      <div class="sig-nip">Tanggal: ______________________</div>
+    </div>
+  </div>
+
+  <div class="auditee-box">
+    <div>
+      <div class="auditee-label">Respons &amp; Persetujuan Auditee</div>
+      <div class="auditee-info">Nama &nbsp;&nbsp;&nbsp;: ________________________________________</div>
+      <div class="auditee-info">Jabatan : ________________________________________</div>
+      <div class="auditee-info" style="font-family:'DM Sans',sans-serif;font-size:11px;color:#8a8880;margin-top:4px;">Tanggal: _______________________________________</div>
+    </div>
+    <div>
+      <div style="height:48px;"></div>
+      <div class="auditee-line"></div>
+      <div class="auditee-name-label">Tanda Tangan Auditee</div>
+    </div>
+  </div>
+
+  <div class="doc-footer">
+    <div><span class="footer-dot"></span>Satuan Pengawasan Intern &mdash; E-Audit System v2.0</div>
+    <span>Dicetak: ${tanggal}</span>
+    <span>ID: ${item.id} &nbsp;|&nbsp; Halaman 1 dari 1 &nbsp;|&nbsp; Dokumen Rahasia</span>
+  </div>
+
+</body>
+</html>`);
+      win.document.close();
+      win.print();
+    }
+
+    // ============================================================
+    // CONTOH PENGGUNAAN — hapus bagian ini jika sudah integrasi
+    // ============================================================
+    const contohItem = {
+      id:          '',
+      nama:        'Audit Pengadaan Barang dan Jasa Tahun 2025',
+      keterangan:  'Pengujian kepatuhan dan efektivitas proses pengadaan pada Divisi Logistik.',
+      institusi:   'Universitas / Perusahaan Anda',
+      alamat:      'Gedung Kantor Lt. 3, Jl. Raya No. 01, Kota — Provinsi',
+      telepon:     '(021) 000-0000',
+      unit:        '',
+      periode:     '',
+      jenisAudit:  '',
+      risiko:      '',
+      ketuaTim:    '[Nama Ketua Tim]',
+      anggotaTim:  '[Nama Anggota 1] | [Nama Anggota 2]',
+      supervisor:  '[Nama Kepala SPI]',
+      tujuan:      'Menilai efektivitas pengendalian internal pada proses pengadaan barang dan jasa.',
+      lingkup:     'Seluruh proses pengadaan mulai dari perencanaan hingga penerimaan barang/jasa.',
+      opini:       'Perlu Perbaikan',
+      kesimpulan:  'Berdasarkan pengujian, pengendalian internal pada unit yang diaudit dinilai perlu perbaikan.'
+    };
+
+    // ambil parameter dari URL
+      const params = new URLSearchParams(window.location.search);
+
+      const id = params.get("id");
+      const nama = params.get("nama");
+      const keterangan = params.get("ket");
+
+      // isi ke template
+      document.getElementById("tb-id").textContent = id;
+      document.getElementById("doc-nomor-ref").textContent = id;
+      document.getElementById("kka-id").textContent = id;
+      document.getElementById("kka-nama").textContent = nama;
+      document.getElementById("kka-keterangan").textContent = keterangan;
+  </script>
+
+</body>
+</html>
