@@ -1,160 +1,345 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import apiClient from "../../../../Shared/api/apiClient";
+import { useNavigate } from "react-router-dom";
+
 import { 
   BsLightbulb, BsSearch, BsFolder2Open, 
   BsArrowRepeat, BsPeopleFill, BsJournalText,
-  BsFillBookmarkStarFill, BsLink45Deg
+  BsFillBookmarkStarFill, BsLink45Deg, BsX
 } from 'react-icons/bs';
 
 const Consulting = () => {
-  const [dataConsulting] = useState([
-    {
-      id: "CON-2026-004",
-      proyek: "Penyusunan Fraud Risk Management Framework",
-      klien: "Divisi Compliance",
-      tahap: "Designing",
-      deadline: "15 April 2026",
-      tim: 4,
-      prioritas: "Strategis"
-    },
-    {
-      id: "CON-2026-007",
-      proyek: "Optimasi Proses Procurement End-to-End",
-      klien: "Logistik & Purchasing",
-      tahap: "Implementation",
-      deadline: "20 Maret 2026",
-      tim: 3,
-      prioritas: "Penting"
-    },
-    {
-      id: "CON-2026-009",
-      proyek: "Fasilitasi Risk Assessment Tahunan",
-      klien: "Seluruh Unit Bisnis",
-      tahap: "Reporting",
-      deadline: "05 Maret 2026",
-      tim: 5,
-      prioritas: "Rutin"
+  const navigate = useNavigate();
+
+  const [dataConsulting, setDataConsulting] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [openModal, setOpenModal] = useState(false);
+  const [units, setUnits] = useState([]);
+  const [roles, setRoles] = useState([]);
+
+  const [form, setForm] = useState({
+    proyek: "",
+    klien: "",
+    unit_id: "",
+    role_id: "",
+    prioritas: "",
+    tahap: "",
+    deadline: "",
+  });
+
+  // ================= FETCH =================
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const res = await apiClient.get("/api/consulting");
+      setDataConsulting(res.data.data || []);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
     }
-  ]);
+  };
+
+  const fetchMaster = async () => {
+    try {
+      const unitRes = await apiClient.get("/api/units");
+      const roleRes = await apiClient.get("/api/roles");
+
+      setUnits(unitRes.data || []);
+      setRoles(roleRes.data || []);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+    fetchMaster();
+  }, []);
+
+  // ================= HANDLE =================
+  const handleChange = (e) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
+  };
+
+  const handleSave = async () => {
+    try {
+      await apiClient.post("/api/consulting", form);
+
+      fetchData();
+      setOpenModal(false);
+
+      setForm({
+        proyek: "",
+        klien: "",
+        unit_id: "",
+        role_id: "",
+        prioritas: "",
+        tahap: "",
+        deadline: "",
+      });
+
+    } catch (err) {
+      console.error(err);
+      alert("Gagal simpan");
+    }
+  };
+
+  // ================= FORMAT =================
+  const formatDate = (date) => {
+    if (!date) return "-";
+    return new Date(date).toLocaleDateString("id-ID", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric"
+    });
+  };
 
   return (
     <div className="p-6 bg-[#f8fafc] min-h-screen">
-      {/* Header Section */}
+
+      {/* HEADER */}
       <div className="flex justify-between items-center mb-10">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-3">
-            <div className="p-2 bg-violet-600 rounded-lg text-white">
+          <h1 className="text-2xl font-bold flex items-center gap-3">
+            <div className="p-2 bg-violet-600 text-white rounded-lg">
               <BsLightbulb />
             </div>
             Internal Consulting
           </h1>
-          <p className="text-slate-500 mt-2 text-sm">Proyek pendampingan strategis untuk peningkatan nilai tambah organisasi.</p>
+          <p className="text-gray-500 text-sm mt-2">
+            Proyek pendampingan strategis untuk organisasi
+          </p>
         </div>
-        <div className="flex gap-2">
-          <button className="px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg text-sm font-semibold hover:bg-slate-50 transition-all flex items-center gap-2">
-            <BsJournalText /> Log Aktivitas
-          </button>
-          <button className="px-4 py-2 bg-violet-600 text-white rounded-lg text-sm font-semibold hover:bg-violet-700 shadow-md shadow-violet-200 border-none transition-all flex items-center gap-2">
-            <BsLink45Deg size={18} /> Proyek Baru
-          </button>
-        </div>
+
+        <button
+          onClick={() => setOpenModal(true)}
+          className="bg-violet-600 text-white px-4 py-2 rounded-lg flex items-center gap-2"
+        >
+          <BsLink45Deg /> Proyek Baru
+        </button>
       </div>
 
-      {/* Grid Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-        <StatusCard label="Proyek Aktif" value="06" icon={<BsArrowRepeat className="text-violet-500" />} />
-        <StatusCard label="Total Jam Konsultasi" value="120h" icon={<BsPeopleFill className="text-blue-500" />} />
-        <StatusCard label="Proyek Strategis" value="02" icon={<BsFillBookmarkStarFill className="text-amber-500" />} />
-        <StatusCard label="Dokumen Selesai" value="15" icon={<BsFolder2Open className="text-emerald-500" />} />
+      {/* STATUS */}
+      <div className="grid md:grid-cols-4 gap-4 mb-8">
+        <StatusCard label="Proyek Aktif" value={dataConsulting.length} icon={<BsArrowRepeat />} />
+        <StatusCard label="Jam Konsultasi" value="120h" icon={<BsPeopleFill />} />
+        <StatusCard label="Strategis" value="02" icon={<BsFillBookmarkStarFill />} />
+        <StatusCard label="Dokumen" value="15" icon={<BsFolder2Open />} />
       </div>
 
-      {/* Consulting Table */}
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-        <div className="p-6 border-b border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <h2 className="font-bold text-slate-800 tracking-tight">Monitoring Penugasan Consulting</h2>
-          <div className="relative w-full md:w-72">
-            <BsSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input 
-              type="text" 
-              placeholder="Cari proyek konsultasi..." 
-              className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-violet-500 transition-all"
-            />
+      {/* TABLE */}
+      <div className="bg-white rounded-xl border overflow-hidden">
+
+        <div className="p-4 border-b flex justify-between">
+          <h2 className="font-bold">Monitoring Consulting</h2>
+
+          <div className="relative">
+            <BsSearch className="absolute left-3 top-2 text-gray-400" />
+            <input className="pl-10 border p-2 rounded text-sm" placeholder="Cari..." />
           </div>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left">
-            <thead className="bg-slate-50/50">
-              <tr className="text-slate-500 text-[11px] uppercase tracking-wider font-bold">
-                <th className="px-8 py-4">Nama Proyek & Klien</th>
-                <th className="px-6 py-4">Prioritas</th>
-                <th className="px-6 py-4">Tahapan</th>
-                <th className="px-6 py-4">Deadline</th>
-                <th className="px-6 py-4">Tim</th>
-                <th className="px-8 py-4 text-center">Aksi</th>
+        <table className="w-full text-sm">
+          <thead className="bg-slate-800 text-white">
+            <tr>
+              <th className="p-3">Proyek</th>
+              <th className="p-3">Unit</th>
+              <th className="p-3">Role</th>
+              <th className="p-3">Prioritas</th>
+              <th className="p-3">Tahap</th>
+              <th className="p-3">Deadline</th>
+              <th className="p-3">Aksi</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {loading ? (
+              <tr>
+                <td colSpan="8" className="text-center p-5">Loading...</td>
               </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {dataConsulting.map((item) => (
-                <tr key={item.id} className="hover:bg-violet-50/30 transition-colors group">
-                  <td className="px-8 py-5">
-                    <div className="font-bold text-slate-800 text-sm">{item.proyek}</div>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded font-mono uppercase">{item.id}</span>
-                      <span className="text-xs text-slate-400 font-medium">{item.klien}</span>
+            ) : dataConsulting.length > 0 ? (
+              dataConsulting.map((item) => (
+                <tr key={item.id} className="border-b">
+
+                  <td className="p-3">
+                    <div className="font-semibold">{item.proyek}</div>
+                    <div className="text-xs text-gray-400">
+                      {item.kode_consulting} • {item.klien}
                     </div>
                   </td>
-                  <td className="px-6 py-5">
-                    <span className={`text-[10px] font-bold px-2 py-1 rounded-full border ${
-                      item.prioritas === 'Strategis' ? 'text-violet-600 bg-violet-50 border-violet-100' : 
-                      item.prioritas === 'Penting' ? 'text-blue-600 bg-blue-50 border-blue-100' : 
-                      'text-slate-500 bg-slate-50 border-slate-100'
-                    }`}>
-                      {item.prioritas}
+
+                  <td className="p-3">
+                    {item.unit?.nama || "-"}
+                  </td>
+
+                  <td className="p-3">
+                    <span className="text-xs bg-gray-100 px-2 py-1 rounded">
+                      {item.role?.name || "-"}
                     </span>
                   </td>
-                  <td className="px-6 py-5">
-                    <div className="flex items-center gap-2">
-                      <div className={`w-2 h-2 rounded-full animate-pulse ${
-                        item.tahap === 'Implementation' ? 'bg-blue-500' : 
-                        item.tahap === 'Designing' ? 'bg-violet-500' : 'bg-emerald-500'
-                      }`}></div>
-                      <span className="text-sm text-slate-600 font-semibold">{item.tahap}</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-5">
-                    <div className="text-sm text-slate-600 font-medium">{item.deadline}</div>
-                  </td>
-                  <td className="px-6 py-5">
-                    <div className="flex -space-x-2">
-                      {[...Array(item.tim)].map((_, i) => (
-                        <div key={i} className="w-7 h-7 rounded-full border-2 border-white bg-slate-200 flex items-center justify-center text-[10px] font-bold text-slate-600">
-                          {String.fromCharCode(65 + i)}
-                        </div>
-                      ))}
-                    </div>
-                  </td>
-                  <td className="px-8 py-5 text-center">
-                    <button className="text-violet-600 font-bold text-xs hover:bg-violet-600 hover:text-white px-4 py-2 rounded-lg border border-violet-100 transition-all">
-                      Kelola
+
+                  <td className="p-3">{item.prioritas || "-"}</td>
+                  <td className="p-3">{item.tahap || "-"}</td>
+                  <td className="p-3">{formatDate(item.deadline)}</td>
+
+                  <td className="p-3">
+                    <button
+                      onClick={() => navigate(`/consulting/${item.id}`)}
+                      className="bg-violet-600 text-white px-2 py-1 rounded text-xs"
+                    >
+                      Chat
                     </button>
                   </td>
+
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              ))
+            ) : (
+              <tr>
+                <td colSpan="8" className="text-center p-5 text-gray-400">
+                  Belum ada data
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
       </div>
+
+      {/* MODAL */}
+      {openModal && (
+        <div className="fixed inset-0 flex items-center justify-center z-50">
+
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setOpenModal(false)} />
+
+          <div className="bg-white w-[600px] p-6 rounded-xl z-10">
+
+            <div className="flex justify-between mb-4 backdrop-blur-sm">
+              <h2 className="font-bold ">Tambah Proyek</h2>
+              <button onClick={() => setOpenModal(false)}><BsX /></button>
+            </div>
+
+<div className="grid grid-cols-2 gap-4">
+
+  {/* PROYEK */}
+  <div className="col-span-2 flex flex-col">
+    <label className="text-xs font-bold text-gray-500 mb-1">Nama Proyek</label>
+    <input
+      name="proyek"
+      placeholder="Contoh: Audit Sistem Informasi"
+      onChange={handleChange}
+      className="border p-2 rounded"
+    />
+  </div>
+
+  {/* KLIEN */}
+  <div className="flex flex-col">
+    <label className="text-xs font-bold text-gray-500 mb-1">Klien</label>
+    <input
+      name="klien"
+      placeholder="Contoh: Divisi Keuangan"
+      onChange={handleChange}
+      className="border p-2 rounded"
+    />
+  </div>
+
+  {/* UNIT */}
+  <div className="flex flex-col">
+    <label className="text-xs font-bold text-gray-500 mb-1">Unit</label>
+    <select
+      name="unit_id"
+      onChange={handleChange}
+      className="border p-2 rounded"
+    >
+      <option value="">-- Pilih Unit --</option>
+      {units.map(u => (
+        <option key={u.id} value={u.id}>{u.nama}</option>
+      ))}
+    </select>
+  </div>
+
+  {/* ROLE */}
+  <div className="flex flex-col">
+    <label className="text-xs font-bold text-gray-500 mb-1">Akses Role</label>
+    <select
+      name="role_id"
+      onChange={handleChange}
+      className="border p-2 rounded"
+    >
+      <option value="">-- Pilih Role --</option>
+      {roles.map(r => (
+        <option key={r.id} value={r.id}>{r.name}</option>
+      ))}
+    </select>
+  </div>
+
+  {/* PRIORITAS */}
+  <div className="flex flex-col">
+    <label className="text-xs font-bold text-gray-500 mb-1">Prioritas</label>
+    <select
+      name="prioritas"
+      onChange={handleChange}
+      className="border p-2 rounded"
+    >
+      <option value="">-- Pilih Prioritas --</option>
+      <option>Strategis</option>
+      <option>Penting</option>
+      <option>Rutin</option>
+    </select>
+  </div>
+
+  {/* TAHAP */}
+  <div className="flex flex-col">
+    <label className="text-xs font-bold text-gray-500 mb-1">Tahap</label>
+    <select
+      name="tahap"
+      onChange={handleChange}
+      className="border p-2 rounded"
+    >
+      <option value="">-- Pilih Tahap --</option>
+      <option>Designing</option>
+      <option>Implementation</option>
+      <option>Reporting</option>
+    </select>
+  </div>
+
+  {/* DEADLINE */}
+  <div className="flex flex-col">
+    <label className="text-xs font-bold text-gray-500 mb-1">Deadline</label>
+    <input
+      type="date"
+      name="deadline"
+      onChange={handleChange}
+      className="border p-2 rounded"
+    />
+  </div>
+
+
+</div>
+
+            <div className="flex gap-3 mt-4">
+              <button onClick={() => setOpenModal(false)} className="flex-1 bg-gray-200 py-2 rounded">
+                Batal
+              </button>
+              <button onClick={handleSave} className="flex-1 bg-violet-600 text-white py-2 rounded">
+                Simpan
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };
 
 const StatusCard = ({ label, value, icon }) => (
-  <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+  <div className="bg-white p-4 rounded border flex justify-between">
     <div>
-      <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">{label}</p>
-      <h3 className="text-2xl font-black text-slate-800 mt-1">{value}</h3>
+      <p className="text-xs text-gray-400">{label}</p>
+      <h3 className="font-bold">{value}</h3>
     </div>
-    <div className="text-2xl opacity-80">{icon}</div>
+    <div>{icon}</div>
   </div>
 );
 

@@ -82,4 +82,5 @@ class assurance extends Model
     {
         return $this->belongsTo(User::class, 'auditor_id');
     }
+    
 }

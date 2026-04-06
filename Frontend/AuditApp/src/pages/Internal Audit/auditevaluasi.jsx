@@ -1,188 +1,351 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import apiClient from "../../../../Shared/api/apiClient";
+
 import { 
   BsBarChartSteps, BsSearch, BsArrowUpRight, 
   BsCalendarCheck, BsAward, BsClipboardData,
-  BsFileEarmarkMedical, BsFunnel
+  BsFileEarmarkMedical, BsFunnel, BsX
 } from 'react-icons/bs';
 
 const AuditEvaluasi = () => {
-  const [dataEvaluasi] = useState([
-    {
-      id: "EVL-2026-01",
-      program: "Implementasi Sistem ERP Tahap 1",
-      unit: "Divisi Keuangan",
-      skor: 88.5,
-      target: 90,
-      status: "Very Good",
-      periode: "Q4 2025"
-    },
-    {
-      id: "EVL-2026-02",
-      program: "Kinerja Pengadaan Logistik Vendor",
-      unit: "Unit Logistik",
-      skor: 65.2,
-      target: 85,
-      status: "Need Improvement",
-      periode: "Januari 2026"
-    },
-    {
-      id: "EVL-2026-03",
-      program: "Efektivitas Pelatihan Karyawan Baru",
-      unit: "Human Capital",
-      skor: 78.0,
-      target: 80,
-      status: "Good",
-      periode: "Februari 2026"
-    }
-  ]);
+  const [dataEvaluasi, setDataEvaluasi] = useState([]);
+  const [openModal, setOpenModal] = useState(false);
+  const [units, setUnits] = useState([]);
+
+  const [form, setForm] = useState({
+    program: "",
+    unit_id: "",
+    periode: "",
+    tanggal_evaluasi: "",
+    target: "",
+    realisasi: "",
+    kesimpulan: "",
+    rekomendasi: "",
+    auditor: "",
+  });
+
+  // ================= FETCH =================
+  const fetchData = async () => {
+    const res = await apiClient.get("/api/audit-evaluasi");
+    setDataEvaluasi(res.data.data || []);
+  };
+
+
+  const fetchUnits = async () => {
+    const res = await apiClient.get("/api/units");
+    setUnits(res.data.data || []);
+  };
+
+  useEffect(() => {
+    fetchData();
+    fetchUnits();
+  }, []);
+
+  // ================= HANDLE =================
+  const handleChange = (e) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
+  };
+
+  const handleEdit = (item) => {
+  setForm({
+    program: item.program,
+    unit_id: item.unit_id || "",
+    periode: item.periode,
+    tanggal_evaluasi: item.tanggal_evaluasi,
+    target: item.target,
+    realisasi: item.realisasi,
+    kesimpulan: item.kesimpulan,
+    rekomendasi: item.rekomendasi,
+    auditor: item.auditor,
+  });
+
+  setOpenModal(true);
+};
+
+const handleSave = async () => {
+  try {
+    const payload = {
+      ...form,
+      unit_id: form.unit_id || null,
+      target: form.target ? Number(form.target) : null,
+      realisasi: form.realisasi ? Number(form.realisasi) : null,
+    };
+
+    await apiClient.post("/api/audit-evaluasi", payload);
+
+    fetchData();
+    setOpenModal(false);
+  } catch (err) {
+    console.error(err);
+  }
+};
+
+const getStatus = (target, realisasi) => {
+  const t = Number(target);
+  const r = Number(realisasi);
+
+  if (r >= t) return "Very Good";
+  if (r >= 75) return "Good";
+  return "Need Improvement";
+};
+
+const handleDelete = async (id) => {
+  if (!window.confirm("Yakin hapus?")) return;
+
+  await apiClient.delete(`/api/audit-evaluasi/${id}`);
+  fetchData();
+};
+
+  // ================= FORMAT =================
+  const formatPercent = (val) => {
+    return val ? Number(val).toFixed(1) : 0;
+  };
 
   return (
     <div className="p-6 bg-[#fcfcfd] min-h-screen">
-      {/* Header */}
+
+      {/* HEADER */}
       <div className="flex justify-between items-start mb-8">
         <div>
           <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
             <BsBarChartSteps className="text-emerald-600" /> Audit Evaluasi
           </h1>
-          <p className="text-slate-500 mt-1">Evaluasi pencapaian target, efektivitas program, dan penilaian kinerja unit.</p>
+          <p className="text-slate-500 mt-1">
+            Evaluasi pencapaian target dan efektivitas program
+          </p>
         </div>
-        <button className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-100 font-medium border-none cursor-pointer">
-          <BsFileEarmarkMedical /> Buat Laporan Evaluasi
+
+        <button
+          onClick={() => setOpenModal(true)}
+          className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg"
+        >
+          <BsFileEarmarkMedical /> Tambah Evaluasi
         </button>
       </div>
 
-      {/* Evaluasi Highlight Cards */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-        <SummaryCard 
-          title="Rata-rata Skor Efektivitas" 
-          value="77.2%" 
-          subtitle="+2.4% dari tahun lalu" 
-          icon={<BsAward />} 
-          color="emerald" 
-        />
-        <SummaryCard 
-          title="Program Dievaluasi" 
-          value="14" 
-          subtitle="Total pengerjaan aktif" 
-          icon={<BsClipboardData />} 
-          color="blue" 
-        />
-        <SummaryCard 
-          title="Deadline Laporan" 
-          value="03 Mar" 
-          subtitle="Laporan evaluasi Q1" 
-          icon={<BsCalendarCheck />} 
-          color="amber" 
-        />
-      </div>
+      {/* TABLE */}
+      <div className="bg-white rounded-xl border overflow-hidden">
 
-      {/* Main Content Card */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-white">
-          <h3 className="text-slate-700 font-bold">Daftar Hasil Evaluasi Kinerja</h3>
-          <div className="flex gap-3">
-            <div className="relative">
-              <BsSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input 
-                type="text" 
-                placeholder="Cari program..." 
-                className="pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 outline-none w-64"
-              />
-            </div>
-            <button className="p-2 border border-slate-200 rounded-lg text-slate-500 hover:bg-slate-50">
-              <BsFunnel />
+        <table className="w-full text-sm">
+          <thead className="bg-slate-800 text-white">
+            <tr>
+              <th className="p-3">No</th>
+              <th className="p-3">Program</th>
+              <th className="p-3">Unit</th>
+              <th className="p-3">Skor</th>
+              <th className="p-3">Status</th>
+              <th className="p-3">Aksi</th>
+            </tr>
+          </thead>
+
+          <tbody>
+{dataEvaluasi.map((item, i) => (
+  <tr key={item.id} className="border-b">
+    <td className="p-3 text-center">{i + 1}</td>
+
+    <td className="p-3">
+      <div className="font-semibold">{item.program}</div>
+      <div className="text-xs text-gray-400">
+        {item.periode}
+      </div>
+    </td>
+
+    <td className="p-3 text-center">
+      {item.unit?.nama || "-"}
+    </td>
+
+    <td className="p-3 text-center">
+      {formatPercent(item.realisasi)}%
+    </td>
+
+    <td className="p-3 text-center">
+      <RatingTag status={getStatus(item.target, item.realisasi)} />
+    </td>
+
+    {/* ✅ AKSI DI SINI */}
+        <td className="p-4 text-center">
+          <div className="flex items-center gap-2 text-sm justify-center">
+            <button 
+            onClick={() => handleEdit(item)}
+            className="text-blue-600 hover:text-blue-800 transition-colors">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+            </button>
+            <button 
+            onClick={() => handleDelete(item.id)}
+            className="text-red-500 hover:text-red-700 transition-colors">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
             </button>
           </div>
-        </div>
+        </td>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="text-slate-400 text-[11px] uppercase tracking-widest font-bold border-b border-slate-100">
-                <th className="px-6 py-4">Program & Periode</th>
-                <th className="px-6 py-4">Unit Kerja</th>
-                <th className="px-6 py-4">Pencapaian Skor</th>
-                <th className="px-6 py-4">Status Efektivitas</th>
-                <th className="px-6 py-4">Aksi</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-50">
-              {dataEvaluasi.map((item) => (
-                <tr key={item.id} className="group hover:bg-emerald-50/30 transition-all">
-                  <td className="px-6 py-5">
-                    <div className="font-bold text-slate-700 text-sm group-hover:text-emerald-700 transition-colors">{item.program}</div>
-                    <div className="text-xs text-slate-400 mt-1 flex items-center gap-1">
-                      <span className="font-mono">{item.id}</span> • <span>{item.periode}</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-5 text-sm text-slate-600 font-medium">
-                    {item.unit}
-                  </td>
-                  <td className="px-6 py-5">
-                    <div className="flex items-center gap-3">
-                      <div className="flex-1 min-w-[120px]">
-                        <div className="flex justify-between text-[10px] mb-1 font-bold">
-                          <span className="text-slate-400">Target: {item.target}%</span>
-                          <span className={item.skor >= item.target ? "text-emerald-600" : "text-amber-600"}>
-                            {item.skor}%
-                          </span>
-                        </div>
-                        <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
-                          <div 
-                            className={`h-1.5 rounded-full transition-all duration-1000 ${
-                              item.skor >= 80 ? 'bg-emerald-500' : item.skor >= 70 ? 'bg-blue-500' : 'bg-amber-500'
-                            }`}
-                            style={{ width: `${item.skor}%` }}
-                          ></div>
-                        </div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-5">
-                    <RatingTag status={item.status} />
-                  </td>
-                  <td className="px-6 py-5">
-                    <button className="flex items-center gap-1 text-emerald-600 font-bold text-xs hover:text-emerald-800 bg-emerald-50 px-3 py-1.5 rounded-lg transition-all border-none cursor-pointer">
-                      Detail <BsArrowUpRight strokeWidth={1} />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+  </tr>
+))}
+          </tbody>
+        </table>
       </div>
+
+      {/* ================= MODAL ================= */}
+      {openModal && (
+        <div className="fixed inset-0 flex items-center justify-center z-[9999]">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+
+          <div className="bg-white w-[700px] p-6 rounded-xl relative">
+
+            <div className="flex justify-between mb-4">
+              <h2 className="font-bold text-lg">Tambah Evaluasi</h2>
+              <button onClick={() => setOpenModal(false)}>
+                <BsX size={24} />
+              </button>
+            </div>
+
+<div className="grid grid-cols-2 gap-4">
+
+  {/* PROGRAM */}
+  <div className="col-span-2 flex flex-col">
+    <label className="text-xs font-bold text-slate-500 mb-1">Program</label>
+    <input
+      name="program"
+      value={form.program}
+      onChange={handleChange}
+      className="border p-2 rounded"
+    />
+  </div>
+
+  {/* PERIODE */}
+  <div className="flex flex-col">
+    <label className="text-xs font-bold text-slate-500 mb-1">Periode</label>
+    <input
+      name="periode"
+      value={form.periode}
+      onChange={handleChange}
+      className="border p-2 rounded"
+    />
+  </div>
+
+  {/* TANGGAL */}
+  <div className="flex flex-col">
+    <label className="text-xs font-bold text-slate-500 mb-1">Tanggal Evaluasi</label>
+    <input
+      type="date"
+      name="tanggal_evaluasi"
+      value={form.tanggal_evaluasi}
+      onChange={handleChange}
+      className="border p-2 rounded"
+    />
+  </div>
+
+
+  {/* TARGET */}
+  <div className="flex flex-col">
+    <label className="text-xs font-bold text-slate-500 mb-1">Target (%)</label>
+    <input
+      name="target"
+      value={form.target}
+      onChange={handleChange}
+      className="border p-2 rounded"
+    />
+  </div>
+
+  {/* REALISASI */}
+  <div className="flex flex-col">
+    <label className="text-xs font-bold text-slate-500 mb-1">Realisasi (%)</label>
+    <input
+      name="realisasi"
+      value={form.realisasi}
+      onChange={handleChange}
+      className="border p-2 rounded"
+    />
+  </div>
+
+  {/* KESIMPULAN */}
+  <div className="col-span-2 flex flex-col">
+    <label className="text-xs font-bold text-slate-500 mb-1">Kesimpulan Evaluasi</label>
+    <textarea
+      name="kesimpulan"
+      value={form.kesimpulan}
+      onChange={handleChange}
+      className="border p-2 rounded h-20"
+    />
+  </div>
+
+  {/* REKOMENDASI */}
+  <div className="col-span-2 flex flex-col">
+    <label className="text-xs font-bold text-slate-500 mb-1">Rekomendasi</label>
+    <textarea
+      name="rekomendasi"
+      value={form.rekomendasi}
+      onChange={handleChange}
+      className="border p-2 rounded h-20"
+    />
+  </div>
+
+  <div className="flex flex-col">
+  <label className="text-xs font-bold text-slate-500 mb-1">
+    Unit
+  </label>
+
+  <select
+    name="unit_id"
+    value={form.unit_id}
+    onChange={handleChange}
+    className="border p-2 rounded"
+  >
+    <option value="">Pilih Unit</option>
+
+    {units.map((u) => (
+      <option key={u.id} value={u.id}>
+        {u.nama} ({u.kode})
+      </option>
+    ))}
+  </select>
+</div>
+
+  {/* AUDITOR */}
+  <div className="flex flex-col">
+    <label className="text-xs font-bold text-slate-500 mb-1">Auditor</label>
+    <input
+      name="auditor"
+      value={form.auditor}
+      onChange={handleChange}
+      className="border p-2 rounded"
+    />
+  </div>
+
+</div>
+
+            <div className="flex gap-3 mt-4">
+              <button
+                onClick={() => setOpenModal(false)}
+                className="flex-1 bg-gray-200 py-2 rounded"
+              >
+                Batal
+              </button>
+
+              <button
+                onClick={handleSave}
+                className="flex-1 bg-emerald-600 text-white py-2 rounded"
+              >
+                Simpan
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };
 
-// Reusable Components
-const SummaryCard = ({ title, value, subtitle, icon, color }) => {
-  const themes = {
-    emerald: "text-emerald-600 bg-emerald-50",
-    blue: "text-blue-600 bg-blue-50",
-    amber: "text-amber-600 bg-amber-50"
-  };
-  return (
-    <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex items-start gap-5">
-      <div className={`p-4 rounded-xl text-2xl ${themes[color]}`}>{icon}</div>
-      <div>
-        <p className="text-sm font-medium text-slate-500">{title}</p>
-        <h3 className="text-3xl font-black text-slate-800 my-1">{value}</h3>
-        <p className="text-xs text-slate-400 font-medium">{subtitle}</p>
-      </div>
-    </div>
-  );
-};
-
+// ================= BADGE =================
 const RatingTag = ({ status }) => {
   const config = {
-    "Very Good": "bg-emerald-100 text-emerald-700 border-emerald-200",
-    "Good": "bg-blue-100 text-blue-700 border-blue-200",
-    "Need Improvement": "bg-amber-100 text-amber-700 border-amber-200"
+    "Very Good": "bg-emerald-100 text-emerald-700",
+    "Good": "bg-blue-100 text-blue-700",
+    "Need Improvement": "bg-amber-100 text-amber-700"
   };
+
   return (
-    <span className={`px-3 py-1 border rounded-md text-[10px] font-black uppercase tracking-tighter ${config[status]}`}>
+    <span className={`px-2 py-1 rounded text-xs font-bold ${config[status]}`}>
       {status}
     </span>
   );

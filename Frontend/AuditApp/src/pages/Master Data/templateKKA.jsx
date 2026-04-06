@@ -4,7 +4,7 @@ import {
   BsCollection, BsFileEarmarkText, BsX, BsPrinter 
 } from 'react-icons/bs';
 import apiClient from "../../../../Shared/api/apiClient";
-import { generateKKAHTML } from './generateKKAhtml';
+import { generateKKAHTML } from './generateKKAHTML';
 
 
 const TemplateKKA = () => {

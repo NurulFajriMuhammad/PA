@@ -29,4 +29,9 @@ class PemeriksaanTemuan extends Model
     {
         return $this->belongsTo(PerencanaanKka::class,'kka_id');
     }
+
+    public function analisis()
+    {
+        return $this->hasOne(AnalisisTemuan::class, 'temuan_id');
+    }
 }

@@ -8,7 +8,7 @@ export const getCsrfCookie = () => {
 };
 
 const apiClient = axios.create({
-  baseURL: "http://192.168.1.9:8000/",
+  baseURL: import.meta.env.VITE_BACKEND_URL, 
   withCredentials: true,
   headers: {
     Accept: "application/json",
@@ -20,7 +20,6 @@ const apiClient = axios.create({
 apiClient.interceptors.request.use((config) => {
   const token = localStorage.getItem('authToken') 
     || localStorage.getItem('token')
-
   if (token) {
     config.headers['Authorization'] = `Bearer ${token}`;
     console.log('✅ Request to:', config.baseURL + config.url);

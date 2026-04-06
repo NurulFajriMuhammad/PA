@@ -79,12 +79,6 @@ export default function Dashboard() {
           <button className="flex items-center gap-2 bg-white border border-slate-200 text-slate-600 px-4 py-2.5 rounded-xl font-bold text-sm hover:bg-slate-50 transition-all">
             <BsFilterRight size={18} /> Filter Periode
           </button>
-          <button 
-            onClick={handleCreateAudit}
-            className="flex items-center gap-2 bg-indigo-600 text-white px-5 py-2.5 rounded-xl font-bold text-sm hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100"
-          >
-            <BsPlusLg /> Audit Baru
-          </button>
         </div>
       </div>
 
@@ -143,16 +137,6 @@ export default function Dashboard() {
           <button className="w-full mt-8 py-3 text-sm font-bold text-indigo-600 bg-indigo-50 rounded-xl hover:bg-indigo-100 transition-colors flex items-center justify-center gap-1">
             Lihat Semua Log <BsArrowRightShort size={20} />
           </button>
-        </div>
-      </div>
-
-      {/* --- LOWER SECTION: AUDITEE PROGRESS --- */}
-      <div className="mt-8 glass-card p-6">
-        <h3 className="font-bold text-slate-800 mb-6">Progres Penyelesaian per Unit Kerja</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <ProgressItem label="Biro Perencanaan" value={92} color="bg-emerald-500" />
-          <ProgressItem label="Fakultas Kedokteran" value={45} color="bg-red-500" />
-          <ProgressItem label="Lembaga Penelitian" value={78} color="bg-blue-500" />
         </div>
       </div>
     </div>

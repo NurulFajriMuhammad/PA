@@ -49,3 +49,37 @@
   }
 
 }
+
+@keyframes slide-left {
+  0% {
+    opacity: 0;
+    transform: translateX(40px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slide-right {
+  0% {
+    opacity: 0;
+    transform: translateX(-40px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-slide-left {
+  animation: slide-left 0.25s ease-out;
+}
+
+.animate-slide-right {
+  animation: slide-right 0.25s ease-out;
+}
+
+button:active {
+  transform: scale(0.96);
+}

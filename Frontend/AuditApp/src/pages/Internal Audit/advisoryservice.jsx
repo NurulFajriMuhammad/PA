@@ -1,181 +1,394 @@
-import React, { useState } from 'react';
-import { 
-  BsChatLeftText, BsSearch, BsPatchCheck, 
-  BsLightningCharge, BsFileEarmarkText, 
-  BsPeople, BsCalendar3 
-} from 'react-icons/bs';
+import React, { useEffect, useState } from "react";
+import apiClient from "../../../../Shared/api/apiClient";
+import {
+  BsChatLeftText,
+  BsSearch,
+  BsLightningCharge,
+  BsPeople,
+  BsCalendar3,
+  BsX,
+} from "react-icons/bs";
 
 const AdvisoryService = () => {
-  const [dataAdvisory] = useState([
-    {
-      id: "ADV-2026-001",
-      topik: "Review Draft SOP Manajemen Aset",
-      pemohon: "Divisi GA",
-      tglMasuk: "12 Feb 2026",
-      prioritas: "High",
-      status: "On Review",
-      pic: "Andi Saputra"
-    },
-    {
-      id: "ADV-2026-002",
-      topik: "Konsultasi Mitigasi Risiko Vendor Baru",
-      pemohon: "Logistik",
-      tglMasuk: "18 Feb 2026",
-      prioritas: "Medium",
-      status: "Closed",
-      pic: "Siti Aminah"
-    },
-    {
-      id: "ADV-2026-003",
-      topik: "Pendampingan Implementasi ISO 27001",
-      pemohon: "Divisi IT",
-      tglMasuk: "25 Feb 2026",
-      prioritas: "Urgent",
-      status: "Drafting Report",
-      pic: "Budi Santoso"
+  const [dataAdvisory, setDataAdvisory] = useState([]);
+  const [openModal, setOpenModal] = useState(false);
+  const [units, setUnits] = useState([]);
+  const [isEdit, setIsEdit] = useState(false);
+  const [selectedId, setSelectedId] = useState(null);
+
+  const [form, setForm] = useState({
+    tanggal_kegiatan: "",
+    unit_id: "",
+    contact_person: "",
+    no_telepon: "",
+    waktu_mulai: "",
+    waktu_selesai: "",
+    uraian_konsultasi: "",
+    opini_spi: "",
+    pengawas: "",
+    keterangan: "",
+  });
+
+  
+
+  // ================= FETCH =================
+
+
+  useEffect(() => {
+    fetchData();
+    fetchUnits();
+  }, []);
+
+  const fetchUnits = async () => {
+    const res = await apiClient.get("/api/units");
+    setUnits(res.data.data);
+  };
+
+  const fetchData = async () => {
+    const res = await apiClient.get("/api/advisory-service");
+    setDataAdvisory(res.data.data || []);
+  };
+
+  // ================= HANDLE =================
+  const handleChange = (e) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
+  };
+
+const handleSave = async () => {
+  try {
+    const formData = new FormData();
+
+    if (isEdit) {
+      await apiClient.post(
+        `/api/advisory-service/${selectedId}?_method=PUT`,
+        formData
+      );
+    } else {
+      await apiClient.post("/api/advisory-service", formData);
     }
-  ]);
+
+    fetchData();
+    setOpenModal(false);
+    setIsEdit(false);
+    setSelectedId(null);
+
+    // reset form
+    setForm({
+      tanggal_kegiatan: "",
+      unit_id: "",
+      contact_person: "",
+      no_telepon: "",
+      waktu_mulai: "",
+      waktu_selesai: "",
+      uraian_konsultasi: "",
+      opini_spi: "",
+      pengawas: "",
+      keterangan: "",
+    });
+
+  } catch (err) {
+    console.error(err);
+    alert("Gagal simpan");
+  }
+};
+
+const handleEdit = (item) => {
+  setForm({
+    tanggal_kegiatan: item.tanggal_kegiatan || "",
+    unit_id: item.unit_id || "",
+    contact_person: item.contact_person || "",
+    no_telepon: item.no_telepon || "",
+    waktu_mulai: item.waktu_mulai || "",
+    waktu_selesai: item.waktu_selesai || "",
+    uraian_konsultasi: item.uraian_konsultasi || "",
+    opini_spi: item.opini_spi || "",
+    pengawas: item.pengawas || "",
+    keterangan: item.keterangan || "",
+  });
+
+  setSelectedId(item.id);
+  setIsEdit(true);
+  setOpenModal(true);
+};
+
+  const handleDelete = async (id) => {
+    if (!window.confirm("Yakin hapus data?")) return;
+    await apiClient.delete(`/api/advisory-service/${id}`);
+    fetchData();
+  };
 
   return (
     <div className="p-6 bg-[#f9fafb] min-h-screen">
-      {/* Header */}
+
+      {/* HEADER */}
       <div className="flex justify-between items-end mb-8">
         <div>
           <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
             <BsChatLeftText className="text-indigo-600" /> Advisory Service
           </h1>
-          <p className="text-slate-500 mt-1">Layanan konsultasi dan pemberian saran independen bagi unit kerja.</p>
+          <p className="text-slate-500 mt-1">
+            Layanan konsultasi SPI
+          </p>
         </div>
-        <button className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all shadow-sm font-medium">
-          <BsFileEarmarkText /> Buat Rekomendasi
+
+        <button
+          onClick={() => setOpenModal(true)}
+          className="bg-indigo-600 text-white px-4 py-2 rounded-lg font-bold"
+        >
+          + Tambah Advisory
         </button>
       </div>
 
-      {/* Grid Status */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg"><BsLightningCharge /></div>
-            <span className="text-sm font-medium text-slate-500">Total Request</span>
-          </div>
-          <div className="text-2xl font-bold text-slate-800 mt-2">24</div>
-        </div>
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-          <div className="flex items-center gap-3 text-orange-600">
-            <div className="p-2 bg-orange-50 rounded-lg"><BsCalendar3 /></div>
-            <span className="text-sm font-medium text-slate-500">Active Review</span>
-          </div>
-          <div className="text-2xl font-bold text-slate-800 mt-2">07</div>
-        </div>
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-          <div className="flex items-center gap-3 text-green-600">
-            <div className="p-2 bg-green-50 rounded-lg"><BsPatchCheck /></div>
-            <span className="text-sm font-medium text-slate-500">Solved</span>
-          </div>
-          <div className="text-2xl font-bold text-slate-800 mt-2">17</div>
-        </div>
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-          <div className="flex items-center gap-3 text-blue-600">
-            <div className="p-2 bg-blue-50 rounded-lg"><BsPeople /></div>
-            <span className="text-sm font-medium text-slate-500">Advisors</span>
-          </div>
-          <div className="text-2xl font-bold text-slate-800 mt-2">05</div>
-        </div>
-      </div>
-
-      {/* Main Table Card */}
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
-        <div className="p-4 border-b border-slate-100 flex flex-wrap gap-4 justify-between items-center bg-white">
+      {/* ================= TABLE ================= */}
+      <div className="bg-white rounded-xl border overflow-hidden">
+        <div className="p-4 border-b flex justify-between">
           <div className="relative">
-            <BsSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input 
-              type="text" 
-              placeholder="Cari topik atau pemohon..." 
-              className="pl-10 pr-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 w-full sm:w-80"
+            <BsSearch className="absolute left-3 top-2 text-gray-400" />
+            <input
+              placeholder="Cari..."
+              className="pl-10 border rounded p-2 text-sm"
             />
           </div>
-          <div className="flex gap-2">
-            <select className="border border-slate-200 rounded-lg text-sm p-2 outline-none">
-              <option>Semua Prioritas</option>
-              <option>Urgent</option>
-              <option>High</option>
-            </select>
-          </div>
         </div>
 
-        <table className="w-full text-left">
-          <thead>
-            <tr className="bg-slate-50 text-slate-600 text-xs font-bold uppercase tracking-wider">
-              <th className="px-6 py-4">Topik & ID</th>
-              <th className="px-6 py-4">Pemohon</th>
-              <th className="px-6 py-4">Prioritas</th>
-              <th className="px-6 py-4">PIC Advisor</th>
-              <th className="px-6 py-4">Status</th>
-              <th className="px-6 py-4 text-right">Aksi</th>
+        <table className="w-full text-sm">
+          <thead className="bg-slate-800 text-white">
+            <tr>
+              <th className="p-3">No</th>
+              <th className="p-3">Tanggal</th>
+              <th className="p-3">Unit</th>
+              <th className="p-3">Contact Person</th>
+              <th className="p-3">Pengawas</th>
+              <th className="p-3">Aksi</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
-            {dataAdvisory.map((item) => (
-              <tr key={item.id} className="hover:bg-slate-50/80 transition-all cursor-pointer">
-                <td className="px-6 py-4">
-                  <div className="text-sm font-semibold text-slate-700">{item.topik}</div>
-                  <div className="text-[11px] text-slate-400 font-mono mt-0.5">{item.id}</div>
-                </td>
-                <td className="px-6 py-4">
-                  <div className="text-sm text-slate-600">{item.pemohon}</div>
-                  <div className="text-[11px] text-slate-400 font-medium italic">{item.tglMasuk}</div>
-                </td>
-                <td className="px-6 py-4">
-                  <PriorityBadge priority={item.prioritas} />
-                </td>
-                <td className="px-6 py-4">
-                  <div className="flex items-center gap-2">
-                    <div className="w-7 h-7 rounded-full bg-indigo-100 text-indigo-700 text-[10px] flex items-center justify-center font-bold">
-                      {item.pic.split(' ').map(n => n[0]).join('')}
-                    </div>
-                    <span className="text-sm text-slate-600 font-medium">{item.pic}</span>
-                  </div>
-                </td>
-                <td className="px-6 py-4 text-sm">
-                  <StatusBadge status={item.status} />
-                </td>
-                <td className="px-6 py-4 text-right">
-                  <button className="text-indigo-600 text-xs font-bold hover:text-indigo-800 transition-colors uppercase tracking-widest">
-                    Details
-                  </button>
+
+          <tbody>
+            {dataAdvisory.length > 0 ? (
+              dataAdvisory.map((item, i) => (
+                <tr key={item.id} className="border-b">
+                  <td className="p-3 text-center">{i + 1}</td>
+                  <td className="p-3">{item.tanggal_kegiatan}</td>
+                  <td className="p-3">{item.unit}</td>
+                  <td className="p-3">{item.contact_person}</td>
+                  <td className="p-3">{item.pengawas}</td>
+                  <td className="p-3 flex gap-2">
+                    <button 
+                    onClick={() => handleEdit(item)}
+                    className="text-blue-600 text-xs font-bold">
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => handleDelete(item.id)}
+                      className="text-red-500 text-xs font-bold"
+                    >
+                      Delete
+                    </button>
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan="6" className="text-center p-6 text-gray-400">
+                  Belum ada data advisory
                 </td>
               </tr>
-            ))}
+            )}
           </tbody>
         </table>
       </div>
+
+      {/* ================= MODAL ================= */}
+      {openModal && (
+<div className="fixed inset-0 flex items-center justify-center z-[9999]">
+  <div
+    className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+    onClick={() => setOpenModal(false)}
+  ></div>
+
+  <div className="bg-white w-[750px] rounded-xl p-6 relative">
+    
+    {/* HEADER */}
+    <div className="flex justify-between mb-4">
+      <h2 className="font-bold text-lg">{isEdit ? "Edit Advisory Service" : "Tambah Advisory Service"}</h2>
+      <button onClick={() => setOpenModal(false)}>
+        <BsX size={24} />
+      </button>
     </div>
-  );
-};
 
-const PriorityBadge = ({ priority }) => {
-  const colors = {
-    Urgent: "bg-red-50 text-red-600 border-red-100",
-    High: "bg-orange-50 text-orange-600 border-orange-100",
-    Medium: "bg-blue-50 text-blue-600 border-blue-100",
-  };
-  return (
-    <span className={`px-2 py-0.5 border rounded text-[10px] font-bold uppercase ${colors[priority]}`}>
-      {priority}
-    </span>
-  );
-};
+    {/* FORM */}
+    <div className="grid grid-cols-2 gap-4">
 
-const StatusBadge = ({ status }) => {
-  const styles = {
-    "Closed": "text-green-600",
-    "On Review": "text-indigo-600",
-    "Drafting Report": "text-amber-600",
-  };
-  return (
-    <div className="flex items-center gap-1.5 font-semibold">
-      <div className={`w-1.5 h-1.5 rounded-full bg-current ${styles[status]}`}></div>
-      <span className={`text-[12px] ${styles[status]}`}>{status}</span>
+      {/* TANGGAL */}
+      <div className="flex flex-col">
+        <label className="text-xs font-bold text-slate-500 mb-1">
+          Tanggal Kegiatan
+        </label>
+        <input
+          type="date"
+          name="tanggal_kegiatan"
+          value={form.tanggal_kegiatan}
+          onChange={handleChange}
+          className="border p-2 rounded"
+        />
+      </div>
+
+            {/* WAKTU */}
+      <div className="flex flex-row gap-4">
+        
+        <div className="flex flex-col w-40">
+          <label className="text-xs font-bold text-slate-500 mb-1">
+            Waktu Mulai
+          </label>
+          <input
+            type="time"
+            name="waktu_mulai"
+            value={form.waktu_mulai}
+            onChange={handleChange}
+            className="border p-2 rounded"
+          />
+        </div>
+
+        <div className="flex flex-col w-40">
+          <label className="text-xs font-bold text-slate-500 mb-1">
+            Waktu Selesai
+          </label>
+          <input
+            type="time"
+            name="waktu_selesai"
+            value={form.waktu_selesai}
+            onChange={handleChange}
+            className="border p-2 rounded"
+          />
+        </div>
+
+      </div>
+
+      {/* UNIT */}
+      <div className="flex flex-col">
+        <label className="text-xs font-bold text-slate-500 mb-1">
+          Unit / Divisi
+        </label>
+<select
+  name="unit_id"
+  onChange={handleChange}
+  value={form.unit_id || ""}
+>
+  <option value="">Pilih Unit</option>
+  {units.map((u) => (
+    <option key={u.id} value={u.id}>
+      {u.nama}
+    </option>
+  ))}
+</select>
+      </div>
+
+      {/* CONTACT PERSON */}
+      <div className="flex flex-col">
+        <label className="text-xs font-bold text-slate-500 mb-1">
+          Contact Person
+        </label>
+        <input
+          name="contact_person"
+          placeholder="Nama PIC"
+          value={form.contact_person}
+          onChange={handleChange}
+          className="border p-2 rounded"
+        />
+      </div>
+
+      {/* TELEPON */}
+      <div className="flex flex-col">
+        <label className="text-xs font-bold text-slate-500 mb-1">
+          Nomor Telepon
+        </label>
+        <input
+          name="no_telepon"
+          placeholder="08xxxx"
+          value={form.no_telepon}
+          onChange={handleChange}
+          className="border p-2 rounded"
+        />
+      </div>
+
+
+      {/* URAIAN */}
+      <div className="col-span-2 flex flex-col">
+        <label className="text-xs font-bold text-slate-500 mb-1">
+          Uraian Layanan Konsultasi
+        </label>
+        <textarea
+          name="uraian_konsultasi"
+          placeholder="Jelaskan kebutuhan konsultasi..."
+          value={form.uraian_konsultasi}
+          onChange={handleChange}
+          className="border p-2 rounded h-20"
+        />
+      </div>
+
+      {/* OPINI */}
+      <div className="col-span-2 flex flex-col">
+        <label className="text-xs font-bold text-slate-500 mb-1">
+          Opini / Saran SPI
+        </label>
+        <textarea
+          name="opini_spi"
+          placeholder="Isi setelah proses advisory..."
+          value={form.opini_spi}
+          onChange={handleChange}
+          className="border p-2 rounded h-20"
+        />
+      </div>
+
+      {/* PENGAWAS */}
+      <div className="flex flex-col">
+        <label className="text-xs font-bold text-slate-500 mb-1">
+          Pengawas / Auditor
+        </label>
+        <input
+          name="pengawas"
+          placeholder="Nama auditor"
+          value={form.pengawas}
+          onChange={handleChange}
+          className="border p-2 rounded"
+        />
+      </div>
+
+      {/* KETERANGAN */}
+      <div className="flex flex-col">
+        <label className="text-xs font-bold text-slate-500 mb-1">
+          Keterangan Tambahan
+        </label>
+        <input
+          name="keterangan"
+          placeholder="Opsional"
+          value={form.keterangan}
+          onChange={handleChange}
+          className="border p-2 rounded"
+        />
+      </div>
+
+
+    </div>
+
+    {/* FOOTER */}
+    <div className="flex gap-3 mt-6 border-t pt-4">
+      <button
+        onClick={() => setOpenModal(false)}
+        className="flex-1 bg-gray-200 py-2 rounded font-medium"
+      >
+        Batal
+      </button>
+      <button
+        onClick={handleSave}
+        className="flex-1 bg-blue-600 text-white py-2 rounded font-bold"
+      >
+        Simpan Advisory
+      </button>
+    </div>
+  </div>
+</div>
+      )}
     </div>
   );
 };

@@ -133,7 +133,6 @@ const PerencanaanTab = ({ assurance }) => {
 
   const formatNumber = (value) => {
     const number = value.replace(/\D/g, "");
-
     return number.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
   };
 
@@ -192,7 +191,7 @@ const PerencanaanTab = ({ assurance }) => {
           <th className="p-4 border-r border-slate-700 text-center w-12">No</th>
           <th className="p-4 border-r border-slate-700 text-left">Uraian Tugas / Kegiatan</th>
           <th className="p-4 border-r border-slate-700 text-left text-blue-300">Auditor Pelaksana</th>
-          <th className="p-4 border-r border-slate-700 text-left">NO KKA</th>
+          <th className="p-4 border-r border-slate-700 text-center">NO KKA</th>
           <th className="p-4 border-r border-slate-700 text-right">Anggaran (IDR)</th>
           <th className="p-4 text-left">Keterangan</th>
         </tr>
@@ -268,7 +267,7 @@ const PerencanaanTab = ({ assurance }) => {
   <thead>
     <tr className="bg-slate-800 text-slate-200 uppercase text-[11px] tracking-widest font-bold">
       <th className="p-4 border-r border-slate-700 text-center w-12">No</th>
-      <th className="p-4 border-r border-slate-700 text-left">Judul Dokumen</th>
+      <th className="p-4 border-r border-slate-700 text-center">Judul Dokumen</th>
       <th className="p-4 border-r border-slate-700 text-center w-32">Tipe File</th>
       <th className="p-4 text-center w-32">Aksi</th>
     </tr>
@@ -285,7 +284,7 @@ const PerencanaanTab = ({ assurance }) => {
             {i + 1}
           </td>
 
-          <td className="p-4 font-semibold border-r border-slate-100 text-slate-800">
+          <td className="p-4 font-semibold border-r border-slate-100 text-slate-800 text-center">
             {doc.judul_dokumen}
           </td>
 

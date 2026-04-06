@@ -1,179 +1,271 @@
-import React, { useState } from 'react';
-import { 
-  BsGlobe, BsSearch, BsFileEarmarkText, 
-  BsClipboardData, BsPersonBadge, BsExclamationCircle,
-  BsDownload, BsArrowRight, BsFunnel
-} from 'react-icons/bs';
+import React, { useState, useEffect, useCallback } from "react";
+import {
+  BsGlobe,
+  BsPlusLg,
+  BsX,
+  BsPencilSquare,
+  BsTrash,
+  BsEye,
+  BsFileText,
+  BsCheckCircleFill,
+} from "react-icons/bs";
+import apiClient from "../../../Shared/api/apiClient";
+import { useNavigate } from "react-router-dom";
+
+const unitToCategoryMap = {
+  "Business Development": "Operasional & Produksi",
+  "Customer Service": "Operasional & Produksi",
+  "Kantor Pusat": "Operasional & Produksi",
+  "Finance & Accounting": "Keuangan & Logistik",
+  "Human Resources Development": "SDM & Hukum",
+  Legal: "SDM & Hukum",
+  "APU-PPT": "SDM & Hukum",
+  "Compliance & Internal Auditor": "SDM & Hukum",
+  "Information Technology": "IT & Infrastruktur",
+  "Data Analyst": "IT & Infrastruktur",
+};
 
 const ExternalAudit = () => {
-  const [dataEksternal] = useState([
-    {
-      id: "EXT-2026-001",
-      lembaga: "KAP Tanudiredja (PwC)",
-      perihal: "Audit Laporan Keuangan Tahunan 2025",
-      kontak: "Sarah Johnson",
-      status: "Fieldwork",
-      deadline: "30 Mar 2026",
-      prioritas: "Sangat Penting"
-    },
-    {
-      id: "EXT-2026-002",
-      lembaga: "Kantor Pajak (DJP)",
-      perihal: "Pemeriksaan Lapangan PPN 2024",
-      kontak: "Bpk. Heru",
-      status: "Request Data",
-      deadline: "15 Mar 2026",
-      prioritas: "Tinggi"
-    },
-    {
-      id: "EXT-2026-003",
-      lembaga: "ISO Certification Body",
-      perihal: "Surveillance Audit ISO 9001:2015",
-      kontak: "Rudi Ananda",
-      status: "Completed",
-      deadline: "20 Feb 2026",
-      prioritas: "Sedang"
+  const navigate = useNavigate();
+  const [data, setData] = useState([]);
+  const [showModal, setShowModal] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const initialForm = {
+    objek_pemeriksaan: "",
+    nama_kegiatan: "",
+    tujuan: "",
+    objek_audit: "",
+    ruang_lingkup: "",
+    metodologi: "",
+    tgl_mulai: "",
+    tgl_selesai: "",
+    lokasi: "",
+    status: "Planning",
+    keterangan: "",
+  };
+
+  const [form, setForm] = useState(initialForm);
+
+  const fetchData = useCallback(async () => {
+    try {
+      setLoading(true);
+      const res = await apiClient.get("/api/external-audit");
+      setData(res.data.data || []);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
     }
-  ]);
+  }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setForm((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const handleSave = async (e) => {
+    e.preventDefault();
+    try {
+      setLoading(true);
+      const payload = {
+        objek_pemeriksaan: form.objek_pemeriksaan,
+        nama_kegiatan: form.nama_kegiatan,
+        tujuan: form.tujuan,
+        objek_audit: form.objek_audit,
+        ruang_lingkup: form.ruang_lingkup,
+        metodologi: form.metodologi,
+        periode_awal: form.tgl_mulai,
+        periode_akhir: form.tgl_selesai,
+        lokasi: form.lokasi,
+        keterangan: form.keterangan,
+        status: form.status,
+      };
+
+      await apiClient.post("/api/external-audit", payload);
+      setShowModal(false);
+      setForm(initialForm); // Reset form setelah simpan
+      fetchData();
+      alert("Data Eksternal Audit berhasil disimpan!");
+    } catch (err) {
+      alert("Gagal menyimpan data");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const groupedData = (data || []).reduce((acc, item) => {
+    const key = item.objek_pemeriksaan || "Tanpa Unit";
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(item);
+    return acc;
+  }, {});
 
   return (
-    <div className="p-6 bg-[#fcfcfd] min-h-screen">
-      {/* Header Halaman */}
-      <div className="flex justify-between items-start mb-8">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-3">
-            <div className="p-2 bg-slate-800 rounded-lg text-white">
-              <BsGlobe size={20} />
-            </div>
-            Eksternal Audit
-          </h1>
-          <p className="text-slate-500 mt-2">Manajemen koordinasi dan dokumentasi pemeriksaan oleh auditor pihak ketiga.</p>
-        </div>
-        <button className="flex items-center gap-2 px-4 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-900 transition-all font-semibold shadow-lg text-sm">
-          <BsFileEarmarkText /> Register Audit Baru
+    <div className="p-6 bg-slate-50 min-h-screen">
+      {/* HEADER */}
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-3">
+          <BsGlobe className="text-blue-600" /> Monitoring & Evaluasi Eksternal Audit
+        </h1>
+        <button
+          onClick={() => setShowModal(true)}
+          className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 font-bold shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all"
+        >
+          <BsPlusLg /> Tambah Data
         </button>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-          <div className="flex justify-between items-start">
-            <div>
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Audit Aktif</p>
-              <h3 className="text-3xl font-black text-slate-800 mt-1">02</h3>
-            </div>
-            <div className="p-3 bg-blue-50 text-blue-600 rounded-xl"><BsClipboardData size={20} /></div>
-          </div>
-          <div className="mt-4 flex items-center gap-1 text-[11px] font-medium text-blue-600">
-            <span>Lihat jadwal pemeriksaan</span> <BsArrowRight />
-          </div>
-        </div>
-
-        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-          <div className="flex justify-between items-start">
-            <div>
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Permintaan Data</p>
-              <h3 className="text-3xl font-black text-slate-800 mt-1">14</h3>
-            </div>
-            <div className="p-3 bg-amber-50 text-amber-600 rounded-xl"><BsExclamationCircle size={20} /></div>
-          </div>
-          <p className="mt-4 text-[11px] text-slate-400 tracking-tight font-medium">5 permintaan melewati deadline</p>
-        </div>
-
-        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-          <div className="flex justify-between items-start">
-            <div>
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Laporan Final</p>
-              <h3 className="text-3xl font-black text-slate-800 mt-1">08</h3>
-            </div>
-            <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl"><BsDownload size={20} /></div>
-          </div>
-          <p className="mt-4 text-[11px] text-slate-400 tracking-tight font-medium">Tahun buku 2025/2026</p>
-        </div>
-      </div>
-
-      {/* Table Section */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="p-5 border-b border-slate-100 flex flex-wrap gap-4 justify-between items-center bg-white">
-          <h3 className="text-slate-800 font-bold">Log Pemeriksaan Eksternal</h3>
-          <div className="flex gap-2">
-            <div className="relative">
-              <BsSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input 
-                type="text" 
-                placeholder="Cari lembaga..." 
-                className="pl-10 pr-4 py-2 bg-slate-50 border-none rounded-lg text-sm focus:ring-2 focus:ring-slate-800 outline-none w-64"
-              />
-            </div>
-            <button className="p-2 bg-slate-50 text-slate-600 rounded-lg border border-slate-200 hover:bg-slate-100">
-              <BsFunnel />
-            </button>
-          </div>
-        </div>
-
+      {/* TABLE */}
+      <div className="border-slate-200 overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left">
-            <thead>
-              <tr className="bg-slate-50 text-slate-500 text-[11px] font-bold uppercase tracking-widest border-b border-slate-100">
-                <th className="px-6 py-4">Lembaga & Deskripsi</th>
-                <th className="px-6 py-4">Kontak / Auditor</th>
-                <th className="px-6 py-4">Prioritas</th>
-                <th className="px-6 py-4">Deadline Lap.</th>
-                <th className="px-6 py-4">Status</th>
-                <th className="px-6 py-4 text-center">Aksi</th>
+          <table className="w-full text-sm border-collapse">
+            <thead className="bg-[#1a4b84] text-white">
+              <tr>
+                <th rowSpan="2" className="p-4 text-left font-semibold border-r border-white/10 w-[35%]">
+                  Unit / Bidang / Kegiatan
+                </th>
+                <th colSpan="3" className="p-2 text-center font-semibold border-b border-r border-white/10 bg-[#153d6b]">
+                  Jumlah
+                </th>
+                <th rowSpan="2" className="p-4 text-center font-semibold border-r border-white/10">
+                  Status
+                </th>
+                <th rowSpan="2" className="p-4 text-center font-semibold">
+                  Aksi
+                </th>
+              </tr>
+              <tr className="bg-[#245a96]">
+                <th className="p-2 text-center font-medium border-r border-white/10 text-[12px]">Draft Temuan</th>
+                <th className="p-2 text-center font-medium border-r border-white/10 text-[12px]">Monev</th>
+                <th className="p-2 text-center font-medium border-r border-white/10 text-[12px]">Close</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {dataEksternal.map((item) => (
-                <tr key={item.id} className="hover:bg-slate-50 transition-all group">
-                  <td className="px-6 py-5">
-                    <div className="font-bold text-slate-800 text-sm group-hover:text-blue-600 transition-colors">{item.lembaga}</div>
-                    <div className="text-xs text-slate-400 mt-1 flex items-center gap-2 font-medium">
-                      <span className="bg-slate-100 px-1.5 py-0.5 rounded text-[10px] uppercase">{item.id}</span>
-                      <span>{item.perihal}</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-5 text-sm text-slate-600">
-                    <div className="flex items-center gap-2">
-                      <BsPersonBadge className="text-slate-400" />
-                      {item.kontak}
-                    </div>
-                  </td>
-                  <td className="px-6 py-5">
-                    <span className={`text-[10px] font-bold px-2 py-1 rounded-md border ${
-                      item.prioritas === 'Sangat Penting' ? 'bg-rose-50 text-rose-600 border-rose-100' : 
-                      item.prioritas === 'Tinggi' ? 'bg-amber-50 text-amber-600 border-amber-100' : 
-                      'bg-slate-100 text-slate-600 border-slate-200'
-                    }`}>
-                      {item.prioritas}
-                    </span>
-                  </td>
-                  <td className="px-6 py-5 text-sm text-slate-500 font-medium">
-                    {item.deadline}
-                  </td>
-                  <td className="px-6 py-5">
-                    <div className="flex items-center gap-2 font-bold text-xs uppercase tracking-tight">
-                      <div className={`w-2 h-2 rounded-full ${
-                        item.status === 'Completed' ? 'bg-emerald-500' : 
-                        item.status === 'Fieldwork' ? 'bg-blue-500 animate-pulse' : 'bg-amber-500'
-                      }`}></div>
-                      <span className={
-                        item.status === 'Completed' ? 'text-emerald-600' : 
-                        item.status === 'Fieldwork' ? 'text-blue-600' : 'text-amber-600'
-                      }>{item.status}</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-5 text-center">
-                    <button className="text-slate-400 hover:text-slate-800 transition-colors p-2 rounded-full hover:bg-slate-200">
-                      <BsDownload />
-                    </button>
-                  </td>
-                </tr>
+              {Object.keys(groupedData).map((lembaga) => (
+                <React.Fragment key={lembaga}>
+                  <tr className="bg-slate-50">
+                    <td colSpan="6" className="p-3 px-4 text-slate-900 font-bold border-l-4 border-blue-600 uppercase tracking-tight text-[11px]">
+                      {lembaga}
+                    </td>
+                  </tr>
+                  {groupedData[lembaga].map((item) => (
+                    <tr key={item.id} className="hover:bg-blue-50/30 transition-colors group">
+                      <td className="p-4 pl-6 font-medium text-blue-700 hover:underline cursor-pointer" onClick={() => navigate(`/external/audit/${item.id}`)}>
+                        {item.nama_kegiatan}
+                      </td>
+                      <td className="text-center p-3 text-slate-600 font-medium border-r border-slate-50">3</td>
+                      <td className="text-center p-3 text-slate-400 border-r border-slate-50">0</td>
+                      <td className="text-center p-3 text-slate-400 border-r border-slate-50">0</td>
+                      <td className="text-center p-3">
+                        <span className={`inline-flex items-center px-3 py-1 rounded-md text-[11px] font-bold shadow-sm border ${item.status === "Selesai" ? "bg-emerald-600 text-white border-emerald-700" : "bg-[#007bff] text-white border-blue-700"}`}>
+                          {item.status || "Planning"}
+                        </span>
+                      </td>
+                      <td className="text-center p-3">
+                        <div className="flex justify-center gap-1">
+                          <button className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"><BsEye size={18} /></button>
+                          <button className="p-2 text-amber-600 hover:bg-amber-50 rounded-lg"><BsPencilSquare size={16} /></button>
+                          <button className="p-2 text-red-600 hover:bg-red-50 rounded-lg"><BsTrash size={16} /></button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </React.Fragment>
               ))}
             </tbody>
           </table>
         </div>
       </div>
+
+      {/* MODAL */}
+      {showModal && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={() => setShowModal(false)}></div>
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="p-6 border-b flex justify-between items-center bg-slate-50">
+              <h3 className="font-bold text-slate-800 text-lg flex items-center gap-2">
+                <BsFileText className="text-blue-600" /> Input Eksternal Audit
+              </h3>
+              <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-red-500">
+                <BsX size={28} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSave} className="p-6 overflow-y-auto grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+              <div className="md:col-span-2 bg-blue-50 p-4 rounded-xl border border-blue-100">
+                <label className="block text-[10px] font-black text-blue-600 uppercase mb-1 ml-1">Objek Pemeriksaan</label>
+                <select
+                  name="objek_pemeriksaan"
+                  value={form.objek_pemeriksaan}
+                  onChange={handleChange}
+                  className="w-full h-10 px-3 border border-blue-200 rounded-lg text-sm bg-white outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">-- Pilih Sub Unit --</option>
+                  {Object.keys(unitToCategoryMap).map((unit) => (
+                    <option key={unit} value={unit}>{unit}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex flex-col">
+                <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1 ml-1">Nama Kegiatan</label>
+                <input name="nama_kegiatan" value={form.nama_kegiatan} onChange={handleChange} className="w-full h-10 px-3 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-500" placeholder="Input manual..." />
+              </div>
+
+              <div className="flex flex-col">
+                <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1 ml-1">Objek Audit</label>
+                <input name="objek_audit" value={form.objek_audit} onChange={handleChange} className="w-full h-10 px-3 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-500" />
+              </div>
+
+              <div className="flex flex-col md:col-span-2">
+                <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1 ml-1">Tujuan</label>
+                <textarea name="tujuan" value={form.tujuan} onChange={handleChange} className="w-full h-16 px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-500 resize-none" placeholder="Jelaskan tujuan..." />
+              </div>
+
+              <div className="flex flex-col">
+                <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1 ml-1">Ruang Lingkup</label>
+                <input name="ruang_lingkup" value={form.ruang_lingkup} onChange={handleChange} className="w-full h-10 px-3 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-500" />
+              </div>
+
+              <div className="flex flex-col">
+                <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1 ml-1">Metodologi Audit</label>
+                <input name="metodologi" value={form.metodologi} onChange={handleChange} className="w-full h-10 px-3 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-500" />
+              </div>
+
+              <div className="flex flex-col">
+                <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1 ml-1">Periode Pemeriksaan</label>
+                <div className="grid grid-cols-2 gap-3">
+                  <input type="date" name="tgl_mulai" value={form.tgl_mulai} onChange={handleChange} className="w-full h-10 px-3 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-500" />
+                  <input type="date" name="tgl_selesai" value={form.tgl_selesai} onChange={handleChange} className="w-full h-10 px-3 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-500" />
+                </div>
+              </div>
+
+              <div className="flex flex-col">
+                <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1 ml-1">Lokasi</label>
+                <input name="lokasi" value={form.lokasi} onChange={handleChange} className="w-full h-10 px-3 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-500" />
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1 ml-1">Keterangan</label>
+                <input name="keterangan" value={form.keterangan} onChange={handleChange} className="w-full h-10 px-3 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-500" />
+              </div>
+
+              <div className="md:col-span-2 flex gap-3 mt-4 border-t pt-6">
+                <button type="button" onClick={() => setShowModal(false)} className="flex-1 py-3 bg-slate-100 text-slate-600 rounded-xl font-bold hover:bg-slate-200">Batal</button>
+                <button type="submit" className="flex-1 py-3 bg-blue-600 text-white rounded-xl font-bold shadow-lg shadow-blue-200 hover:bg-blue-700">Simpan Eksternal Audit</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

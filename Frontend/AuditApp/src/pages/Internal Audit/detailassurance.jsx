@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import apiClient from "../../../../Shared/api/apiClient";
 import { ArrowLeft } from "lucide-react";
@@ -14,6 +14,9 @@ const AssuranceDetail = () => {
   const [openInfo, setOpenInfo] = useState(false);
   const [assurance, setAssurance] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [tabDirection, setTabDirection] = useState("right");
+  const tabRefs = useRef({});
+  const [indicatorStyle, setIndicatorStyle] = useState({});
 
   // fetch data assurance by id
   useEffect(() => {
@@ -31,6 +34,17 @@ const AssuranceDetail = () => {
     fetchDetail();
   }, [id]);
 
+  useEffect(() => {
+    const el = tabRefs.current[activeTab];
+    if (el) {
+      setIndicatorStyle({
+        width: el.offsetWidth + "px",
+        transform: `translateX(${el.offsetLeft}px)`,
+      });
+    }
+  }, [activeTab]);
+
+  // ⬇️ BARU RETURN DI SINI
   if (loading) {
     return <div className="p-6">Loading...</div>;
   }
@@ -39,6 +53,59 @@ const AssuranceDetail = () => {
     return <div className="p-6">Data tidak ditemukan</div>;
   }
 
+  const formatTanggal = (dateString) => {
+    if (!dateString) return "-";
+
+    return new Date(dateString).toLocaleDateString("id-ID", {
+      day: "2-digit",
+      month: "long",
+      year: "numeric",
+    });
+  };
+
+  const handleTabChange = (tab) => {
+    if (tab === activeTab) return;
+
+    const order = ["perencanaan", "pelaksanaan", "analisis"];
+
+    const currentIndex = order.indexOf(activeTab);
+    const nextIndex = order.indexOf(tab);
+
+    setTabDirection(nextIndex > currentIndex ? "right" : "left");
+
+    setActiveTab(tab);
+
+    const el = tabRefs.current[tab];
+    if (el) {
+      setIndicatorStyle({
+        width: el.offsetWidth + "px",
+        transform: `translateX(${el.offsetLeft}px)`,
+      });
+    }
+  };
+
+  const handlePrintKonsep = async () => {
+    try {
+      const res = await apiClient.get("/api/kka-templates");
+
+      const templates = res.data?.data || res.data || [];
+
+      if (templates.length === 0) {
+        alert("Template KKA belum ada");
+        return;
+      }
+
+      const latest = templates[0]; // 🔥 paling terbaru
+
+      const url = `/PrintTemplateKKA.html?template_id=${latest.id}&assurance_id=${id}`;
+
+      window.open(url, "_blank");
+    } catch (err) {
+      console.error(err);
+      alert("Gagal mengambil template KKA");
+    }
+  };
+
   return (
     <div className="p-2">
       {/* BACK BUTTON */}
@@ -46,12 +113,12 @@ const AssuranceDetail = () => {
         onClick={() => navigate("/internal/assurance")}
         className="flex items-center gap-2 px-4 py-2 bg-red-700 hover:bg-red-900 text-white text-sm font-bold rounded-lg shadow-md shadow-red-100 transition-all active:scale-95"
       >
-        <ArrowLeft size={18}/>
+        <ArrowLeft size={18} />
         Kembali ke daftar assurance
       </button>
 
       {/* HEADER */}
-      <div className="bg-slate-800 text-white p-6 rounded-xl mb-3 mt-1">
+      <div className="bg-slate-800 text-white p-6 rounded-xl mt-1">
         <h1
           onClick={() => setOpenInfo(!openInfo)}
           className="text-xl font-bold cursor-pointer"
@@ -84,8 +151,8 @@ const AssuranceDetail = () => {
                 <b>Nama Objek Audit :</b> {assurance.objek_pemeriksaan}
               </p>
               <p>
-                <b>Periode Audit :</b> {assurance.periode_awal} s/d{" "}
-                {assurance.periode_akhir}
+                <b>Periode Audit :</b> {formatTanggal(assurance.periode_awal)}{" "}
+                s/d {formatTanggal(assurance.periode_akhir)}
               </p>
               <p>
                 <b>Lokasi :</b> {assurance.lokasi || "-"}
@@ -121,73 +188,115 @@ const AssuranceDetail = () => {
       </div>
 
       {/* TAB MENU */}
-      <div className="flex gap-8 border-b border-slate-200 mb-6 mt-4 relative">
-        {/* Tab Perencanaan */}
-        <button
-          onClick={() => setActiveTab("perencanaan")}
-          className={`pb-3 text-sm font-bold transition-all duration-300 relative flex items-center gap-2 ${
-            activeTab === "perencanaan"
-              ? "text-blue-600"
-              : "text-slate-500 hover:text-slate-700"
-          }`}
-        >
-          <span
-            className={`p-1.5 rounded-lg ${activeTab === "perencanaan" ? "bg-blue-100" : "bg-slate-100"}`}
-          >
-            {/* Kamu bisa ganti dengan ikon dari react-icons */}
-            <div className="w-3 h-3 rounded-full bg-current" />
-          </span>
-          Perencanaan
-          {activeTab === "perencanaan" && (
-            <div className="absolute bottom-0 left-0 w-full h-0.5 bg-blue-600 rounded-full animate-in fade-in slide-in-from-left-2" />
-          )}
-        </button>
+      {/* <div className="relative flex gap-0 px-2 mt-1.5 mb-4">
+        <div className="absolute bottom-0 left-2 right-0 h-[2.5px] bg-blue-600 z-0"></div>
 
-        {/* Tab Pelaksanaan */}
-        <button
-          onClick={() => setActiveTab("pelaksanaan")}
-          className={`pb-3 text-sm font-bold transition-all duration-300 relative flex items-center gap-2 ${
-            activeTab === "pelaksanaan"
-              ? "text-blue-600"
-              : "text-slate-500 hover:text-slate-700"
-          }`}
-        >
-          <span
-            className={`p-1.5 rounded-lg ${activeTab === "pelaksanaan" ? "bg-blue-100" : "bg-slate-100"}`}
-          >
-            <div className="w-3 h-3 rounded-full bg-current" />
-          </span>
-          Pelaksanaan (KKA)
-          {activeTab === "pelaksanaan" && (
-            <div className="absolute bottom-0 left-0 w-full h-0.5 bg-blue-600 rounded-full animate-in fade-in slide-in-from-left-2" />
-          )}
-        </button>
+        {[
+          { key: "perencanaan", label: "Perencanaan" },
+          { key: "pelaksanaan", label: "Pelaksanaan Audit" },
+          { key: "analisis", label: "Analisis Penyebab" },
+        ].map((tab) => {
+          const isActive = activeTab === tab.key;
 
-        {/* Tab Analisis */}
-        <button
-          onClick={() => setActiveTab("analisis")}
-          className={`pb-3 text-sm font-bold transition-all duration-300 relative flex items-center gap-2 ${
-            activeTab === "analisis"
-              ? "text-blue-600"
-              : "text-slate-500 hover:text-slate-700"
-          }`}
-        >
-          <span
-            className={`p-1.5 rounded-lg ${activeTab === "analisis" ? "bg-blue-100" : "bg-slate-100"}`}
-          >
-            <div className="w-3 h-3 rounded-full bg-current" />
-          </span>
-          Analisis Penyebab
-          {activeTab === "analisis" && (
-            <div className="absolute bottom-0 left-0 w-full h-0.5 bg-blue-600 rounded-full animate-in fade-in slide-in-from-left-2" />
-          )}
-        </button>
+          return (
+            <button
+              key={tab.key}
+              onClick={() => handleTabChange(tab.key)}
+              className={`
+          relative px-6 py-3 text-sm font-bold tracking-wide
+          transition-all duration-200 min-w-[160px] 
+          ${
+            isActive
+              ? "text-black bg-[#f1f5f9] border-3 border-blue-600 border-b-0 z-10 " +
+                "after:content-[''] after:absolute after:left-0 after:right-0 after:-bottom-[2px] after:h-[2px] after:bg-[#f1f5f9]"
+              : "text-slate-400 hover:text-slate-600 border-2 border-transparent border-b-0"
+          }
+        `}
+            >
+              {tab.label}
+            </button>
+          );
+        })}
+      </div> */}
+
+      {/* TAB MENU */}
+      <div className="relative flex items-center justify-between px-2 mt-1.5 mb-4">
+        {/* Garis biru panjang tetap di bawah */}
+        <div className="absolute bottom-0 left-2 right-0 h-[2.5px] bg-blue-600 z-0"></div>
+
+        <div className="flex gap-0">
+          {[
+            { key: "perencanaan", label: "Perencanaan" },
+            { key: "pelaksanaan", label: "Pelaksanaan Audit" },
+            { key: "analisis", label: "Analisis Penyebab" },
+          ].map((tab) => {
+            const isActive = activeTab === tab.key;
+
+            return (
+              <button
+                key={tab.key}
+                onClick={() => handleTabChange(tab.key)}
+                className={`
+            relative px-6 py-3 text-sm font-bold tracking-wide
+            transition-all duration-200 min-w-[160px] 
+            ${
+              isActive
+                ? "text-black bg-[#f1f5f9] border-3 border-blue-600 border-b-0 z-10 " +
+                  "after:content-[''] after:absolute after:left-0 after:right-0 after:-bottom-[2px] after:h-[2px] after:bg-[#f1f5f9]"
+                : "text-slate-400 hover:text-slate-600 border-2 border-transparent border-b-0"
+            }
+          `}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* TOMBOL PRINT KONSEP LAPORAN (Kondisional) */}
+        {activeTab === "pelaksanaan" && openInfo && (
+          <div className="z-10 pr-4">
+            <button
+              onClick={handlePrintKonsep} // Ganti dengan fungsi print Anda
+              className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-lg shadow-md transition-all active:scale-95 animate-slide-left mb-1"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                <rect x="6" y="14" width="12" height="8"></rect>
+              </svg>
+              Print Konsep Laporan
+            </button>
+          </div>
+        )}
       </div>
 
-      {/* TAB CONTENT */}
-      {activeTab === "perencanaan" && <PerencanaanTab assurance={assurance} />}
-      {activeTab === "pelaksanaan" && <PelaksanaanTab assurance={assurance} />}
-      {activeTab === "analisis" && <AnalisisTab assurance={assurance} />}
+      <div className="relative overflow-hidden min-h-[300px]">
+        <div
+          key={activeTab}
+          className={`transition-all duration-500 ease-in-out
+      ${tabDirection === "right" ? "animate-slide-left" : "animate-slide-right"}
+    `}
+        >
+          {activeTab === "perencanaan" && (
+            <PerencanaanTab assurance={assurance} />
+          )}
+          {activeTab === "pelaksanaan" && (
+            <PelaksanaanTab assurance={assurance} />
+          )}
+          {activeTab === "analisis" && <AnalisisTab assurance={assurance} />}
+        </div>
+      </div>
     </div>
   );
 };

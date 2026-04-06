@@ -11,6 +11,7 @@ export default function MainLayout() {
   const { user } = useAuth(); 
   const { pathname } = useLocation(); // Mendeteksi perubahan URL
   const contentWrapperRef = useRef(null); // Ref untuk menembak element scroll
+  const isChatPage = pathname.startsWith("/consulting");
 
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
@@ -68,7 +69,6 @@ export default function MainLayout() {
             to { opacity: 1; transform: translateY(0); }
           }
 
-          /* Handle tampilan mobile */
           @media (max-width: 768px) {
             .content-wrapper {
               margin-left: 0 !important;
@@ -80,12 +80,15 @@ export default function MainLayout() {
             }
           }
 
-          /* Glassmorphism tipis untuk area konten agar terlihat modern */
           .content-card-mock {
             background: white;
             border-radius: 8px;
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
             border: 1px solid #e2e8f0;
+          }
+
+          .no-scroll {
+            overflow: hidden !important;
           }
         `}
       </style>
@@ -96,18 +99,21 @@ export default function MainLayout() {
           toggleSidebar={toggleSidebar} 
         />
         
-        <div className="content-wrapper" ref={contentWrapperRef}>
+        <div className={`content-wrapper ${isChatPage ? "no-scroll" : ""}`}  ref={contentWrapperRef}>
           <TopHeader 
             isSidebarOpen={isSidebarOpen} 
             toggleSidebar={toggleSidebar} // Berikan fungsi toggle jika ada tombol menu di header
           /> 
           
-          <main className="main-content">
-            {/* Wrapper tambahan untuk memastikan tabel audit tidak hancur saat di-scroll */}
+        <main className={isChatPage ? "h-full overflow-hidden" : "main-content"}>
+            {isChatPage ? (
+            <Outlet />
+          ) : (
             <div className="page-inner-container">
-              <Outlet /> 
+              <Outlet />
             </div>
-          </main>
+          )}
+        </main>
 
           {/* Footer Opsional di dalam konten */}
           <footer style={{ 

@@ -14,6 +14,8 @@ import MasterDataPage from './pages/Master Data/MasterDataPage.jsx';
 import PengaturanPage from './pages/Pengaturan/PengaturanPage.jsx';
 import DocumentRepository from './pages/DocumentRepository.jsx';
 import AssuranceDetail from './pages/Internal Audit/detailassurance.jsx';
+import ExternalAuditDetail from './pages/ExternalAuditDetail.jsx';
+import ConsultingDetail from './pages/Internal Audit/ConsultingDetail.jsx';
 
 
 function App() {
@@ -35,6 +37,8 @@ function App() {
             <Route path="master-data/:slug" element={<MasterDataPage />} />
             <Route path="pengaturan/:slug" element={<PengaturanPage />} />
             <Route path="/document-repository" element={<DocumentRepository />} />
+            <Route path="/external/audit/:id" element={<ExternalAuditDetail />} />
+            <Route path="/consulting/:id" element={<ConsultingDetail />} />
 
 
             {/* Tambahkan rute lain di sini */}

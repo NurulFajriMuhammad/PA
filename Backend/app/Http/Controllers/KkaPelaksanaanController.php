@@ -15,7 +15,8 @@ class KkaPelaksanaanController extends Controller
     {
         $data = PerencanaanKka::with([
             'auditor:id,name',
-            'lheFile'
+            'lheFile',
+            'temuan.analisis'
         ])
         ->withCount('temuan')
         ->where('assurance_id',$assuranceId)
@@ -58,7 +59,9 @@ class KkaPelaksanaanController extends Controller
     public function getTemuan($kkaId)
     {
         $data = PemeriksaanTemuan::where('kka_id',$kkaId)
-            ->latest()
+            // ->orderBy('id', 'desc')
+            ->orderBy('id', 'asc')
+            // ->latest()
             ->get();
 
         return response()->json([
@@ -73,10 +76,13 @@ class KkaPelaksanaanController extends Controller
 
         if($request->hasFile('lampiran')){
 
+            $file = $request->file('lampiran');
+
             $path = $request->file('lampiran')
                 ->store('temuan_lampiran','public');
 
             $data['lampiran'] = $path;
+            $data['lampiran_name'] = $file->getClientOriginalName();
         }
 
         $data['kka_id'] = $kkaId;
@@ -117,6 +123,37 @@ class KkaPelaksanaanController extends Controller
 
         return response()->json([
             'message'=>'File dihapus'
+        ]);
+    }
+    
+    public function updateTemuan(Request $request, $id)
+    {
+        $data = PemeriksaanTemuan::findOrFail($id);
+
+        $payload = $request->all();
+
+        if ($request->hasFile('lampiran')) {
+            $file = $request->file('lampiran');
+            $path = $request->file('lampiran')
+                ->store('temuan_lampiran','public');
+
+            $payload['lampiran'] = $path;
+            $payload['lampiran_name'] = $file->getClientOriginalName();
+        }
+
+        $data->update($payload);
+
+        return response()->json([
+            'message' => 'Temuan berhasil diupdate'
+        ]);
+    }
+
+    public function getTemuanById($id)
+    {
+        $data = PemeriksaanTemuan::findOrFail($id);
+
+        return response()->json([
+            'data' => $data
         ]);
     }
 }

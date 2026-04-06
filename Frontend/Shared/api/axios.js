@@ -1,6 +1,5 @@
 import axios from 'axios';
 
-// Fungsi ambil cookie manual
 function getCookie(name) {
   const cookies = document.cookie.split(';');
   for (let i = 0; i < cookies.length; i++) {
@@ -13,7 +12,7 @@ function getCookie(name) {
 }
 
 const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_BACKEND_URL || "http://192.168.1.9:8000", 
+  baseURL: import.meta.env.VITE_BACKEND_URL, 
   withCredentials: true, 
   headers: {
     'Accept': 'application/json',

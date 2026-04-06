@@ -378,7 +378,7 @@ const SuratTugas = () => {
           <div>
             {/* KOP SURAT */}
             <div style={{ textAlign: "center", marginBottom: "20px" }}>
-              <h2 style={{ margin: 0 }}>PT DUA PUTRA UTAMA MAKMUR Tbk</h2>
+              <h2 style={{ margin: 0 }}>PT. FILTRONA MANUFACTURING INDONESIA.</h2>
               <p style={{ margin: 0, fontWeight: "bold" }}>
                 SATUAN PENGAWASAN INTERN (SPI)
               </p>
@@ -404,7 +404,7 @@ const SuratTugas = () => {
 
             {/* PEMBUKA */}
             <p style={{ marginTop: "25px", textAlign: "justify" }}>
-              Manajer Senior Satuan Pengawasan Intern PT Dua Putra Utama Makmur
+              Manajer Senior Satuan Pengawasan Intern PT Filtrona Manufacturing Indonesia
               Tbk dengan ini menugaskan kepada:
             </p>
 
@@ -520,7 +520,7 @@ const SuratTugas = () => {
               </p>
 
               <p style={{ margin: "2px 0" }}>
-                1. Direktur Utama PT Dua Putra Utama Makmur Tbk
+                1. Direktur Utama PT Filtrona Manufacturing Indonesia
               </p>
 
               <p style={{ margin: "2px 0" }}>2. Arsip</p>

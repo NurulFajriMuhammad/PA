@@ -4,7 +4,7 @@ import {
   BsSearch,
   BsFilter,
   BsPlusLg,
-  BsX,
+  BsX, BsPencilSquare, BsTrash, BsEye, BsFileText, BsCheckCircleFill,
   BsClipboardCheck,
   BsClockHistory,
   BsCheck2Circle,
@@ -205,113 +205,95 @@ const Assurance = () => {
 
       {/* Tabel (Gunakan dataAssurance.map di sini seperti sebelumnya) */}
 
-      <div className="bg-white rounded-xl shadow-md border border-slate-200 overflow-hidden">
-        <table className="w-full text-sm border-collapse">
-          {/* HEADER TABEL DENGAN GRADIENT */}
-          <thead className="bg-gradient-to-r from-blue-900 to-slate-800 text-white">
-            <tr>
-              <th className="p-4 text-left font-semibold uppercase tracking-wider">
-                Unit / Kegiatan
-              </th>
-              <th className="p-4 text-center font-semibold uppercase tracking-wider">
-                Draft
-              </th>
-              <th className="p-4 text-center font-semibold uppercase tracking-wider">
-                Monev
-              </th>
-              <th className="p-4 text-center font-semibold uppercase tracking-wider">
-                Close
-              </th>
-              <th className="p-4 text-center font-semibold uppercase tracking-wider">
-                Status
-              </th>
-              <th className="p-4 text-center font-semibold uppercase tracking-wider">
-                Aksi
-              </th>
+<div className="border-slate-200 overflow-hidden">
+  <div className="overflow-x-auto">
+    <table className="w-full text-sm border-collapse">
+      {/* HEADER TABEL DENGAN MULTI-ROW (ROWSPAN/COLSPAN) */}
+      <thead className="bg-[#1a4b84] text-white">
+        <tr>
+          <th rowSpan="2" className="p-4 text-left font-semibold border-r border-white/10 w-[40%]">
+            Unit / Bidang / Kegiatan
+          </th>
+          <th colSpan="3" className="p-2 text-center font-semibold border-b border-r border-white/10 bg-[#153d6b]">
+            Jumlah
+          </th>
+          <th rowSpan="2" className="p-4 text-center font-semibold border-r border-white/10">
+            Status
+          </th>
+          <th rowSpan="2" className="p-4 text-center font-semibold">
+            Aksi
+          </th>
+        </tr>
+        <tr className="bg-[#245a96]">
+          <th className="p-2 text-center font-medium border-r border-white/10 text-[12px]">Draft Temuan</th>
+          <th className="p-2 text-center font-medium border-r border-white/10 text-[12px]">Monev</th>
+          <th className="p-2 text-center font-medium border-r border-white/10 text-[12px]">Close</th>
+        </tr>
+      </thead>
+
+      <tbody className="divide-y divide-slate-100">
+        {Object.keys(groupedData).map((unit) => (
+          <React.Fragment key={unit}>
+            {/* UNIT ROW */}
+            <tr className="bg-slate-50">
+              <td colSpan="6" className="p-3 px-4 text-slate-900 font-bold border-l-4 border-blue-600">
+                {unit}
+              </td>
             </tr>
-          </thead>
 
-          <tbody className="divide-y divide-slate-100">
-            {Object.keys(groupedData).map((unit) => (
-              <React.Fragment key={unit}>
-                {/* HEADER UNIT DENGAN STYLE LEBIH TEGAS */}
-                <tr className="bg-slate-50/80 backdrop-blur-sm">
-                  <td
-                    colSpan="6"
-                    className="p-3 px-4 text-slate-700 font-bold border-l-4 border-blue-600"
+            {/* DATA ROWS */}
+            {groupedData[unit].map((item) => (
+              <tr key={item.id} className="hover:bg-blue-50/30 transition-colors group">
+                <td className="p-4 pl-6">
+                  <div className="flex flex-col gap-1">
+                    <span 
+                      className="text-blue-700 font-medium hover:underline cursor-pointer flex items-center gap-2"
+                      onClick={() => navigate(`/internal/assurance/${item.id}`)}
+                    >
+                      {item.nama_kegiatan}
+                    </span>
+                  </div>
+                </td>
+
+                {/* KOLOM JUMLAH */}
+                <td className="text-center p-3 font-medium text-slate-700 border-x border-slate-50">3</td>
+                <td className="text-center p-3 font-medium text-slate-700 border-r border-slate-50 text-slate-400">0</td>
+                <td className="text-center p-3 font-medium text-slate-700 border-r border-slate-50 text-slate-400">0</td>
+
+                {/* STATUS BADGE */}
+                <td className="text-center p-3">
+                  <span className={`inline-flex items-center px-3 py-1 rounded-md text-[11px] font-bold shadow-sm border
+                    ${item.status === "Selesai" 
+                      ? "bg-emerald-600 text-white border-emerald-700" 
+                      : "bg-[#007bff] text-white border-blue-700"}`}
                   >
-                    <div className="flex items-center gap-2">
-                      <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-[10px] uppercase">
-                        Unit
-                      </span>
-                      {unit}
-                    </div>
-                  </td>
-                </tr>
+                    {item.status === "Selesai" && <BsCheckCircleFill className="mr-1.5" size={10} />}
+                    {item.status || "Pengisian Rencana Tindak Lanjut"}
+                  </span>
+                </td>
 
-                {/* DATA ROWS */}
-                {groupedData[unit].map((item) => (
-                  <tr
-                    key={item.id}
-                    className="hover:bg-blue-50/30 transition-colors group"
-                  >
-                    <td className="p-4 pl-8">
-                      <div className="flex flex-col">
-                        <span
-                          className="font-medium text-slate-800 group-hover:text-blue-700 transition-colors cursor-pointer hover:underline"
-                          onClick={() =>
-                            navigate(`/internal/assurance/${item.id}`)
-                          }
-                        >
-                          {item.nama_kegiatan}
-                        </span>
-                        <span className="text-[10px] text-slate-400 italic">
-                          No. ST: {item.noST || "-"}
-                        </span>
-                      </div>
-                    </td>
-
-                    {/* ANGKA STATISTIK DENGAN STYLE KOTAK HALUS */}
-                    <td className="text-center">
-                      <span className="inline-block w-8 py-1 rounded bg-slate-100 font-semibold text-slate-600">
-                        3
-                      </span>
-                    </td>
-                    <td className="text-center font-semibold text-slate-400">
-                      0
-                    </td>
-                    <td className="text-center font-semibold text-slate-400">
-                      0
-                    </td>
-
-                    {/* STATUS BADGE */}
-                    <td className="text-center">
-                      <span
-                        className={`px-3 py-1 rounded-full text-[11px] font-bold shadow-sm 
-                  ${item.status === "Planning" ? "bg-amber-100 text-amber-700 border border-amber-200" : "bg-blue-600 text-white"}`}
-                      >
-                        {item.status || "Planning"}
-                      </span>
-                    </td>
-
-                    {/* AKSI DENGAN BUTTON MODERN */}
-                    <td className="text-center p-4">
-                      <div className="flex justify-center gap-2">
-                        <button className="flex items-center gap-1 px-3 py-1.5 bg-white border border-slate-200 text-blue-600 rounded-lg hover:bg-blue-50 hover:border-blue-200 transition-all font-medium shadow-sm">
-                          Edit
-                        </button>
-                        <button className="flex items-center gap-1 px-3 py-1.5 bg-white border border-slate-200 text-red-600 rounded-lg hover:bg-red-50 hover:border-red-200 transition-all font-medium shadow-sm">
-                          Hapus
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </React.Fragment>
+                {/* AKSI BUTTONS */}
+                <td className="text-center p-3">
+                  <div className="flex justify-center gap-1">
+                    <button className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-all" title="Lihat">
+                      <BsEye size={18} />
+                    </button>
+                    <button className="p-2 text-amber-600 hover:bg-amber-100 rounded-lg transition-all" title="Edit">
+                      <BsPencilSquare size={16} />
+                    </button>
+                    <button className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-all" title="Hapus">
+                      <BsTrash size={16} />
+                    </button>
+                  </div>
+                </td>
+              </tr>
             ))}
-          </tbody>
-        </table>
-      </div>
+          </React.Fragment>
+        ))}
+      </tbody>
+    </table>
+  </div>
+</div>
 
       {/* MODAL KOMPLEKS */}
       {showModal && (
