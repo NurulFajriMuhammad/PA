@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ExternalAudit;
 use App\Models\ExternalAuditTemuan;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -63,12 +64,18 @@ class ExternalAuditTemuanController extends Controller
             }
 
             $temuan = ExternalAuditTemuan::create($validated);
+            $externalAudit = ExternalAudit::find($validated['external_audit_id']);
 
             // ================= AUTO MASUK TINDAK LANJUT =================
             if ($validated['status'] === 'monev') {
                 DB::table('tindak_lanjut')->insert([
                     'temuan_id' => $temuan->id,
-                    'status' => 'open',
+                    'jenis_audit' => 'eksternal',
+                    'masalah' => $temuan->masalah,
+                    'rekomendasi' => $temuan->rekomendasi,
+                    'target_selesai' => $temuan->target_penyelesaian,
+                    'unit' => $externalAudit?->objek_pemeriksaan ?? $externalAudit?->objek_audit ?? $externalAudit?->lokasi ?? '-',
+                    'status' => 'draft',
                     'created_at' => now(),
                     'updated_at' => now()
                 ]);
@@ -148,6 +155,7 @@ if ($request->hasFile('lampiran')) {
 }
 
             $temuan->update($validated);
+            $externalAudit = ExternalAudit::find($temuan->external_audit_id);
 
             // ================= SYNC TINDAK LANJUT =================
             if ($validated['status'] === 'monev') {
@@ -158,10 +166,26 @@ if ($request->hasFile('lampiran')) {
                 if (!$exists) {
                     DB::table('tindak_lanjut')->insert([
                         'temuan_id' => $temuan->id,
-                        'status' => 'open',
+                        'jenis_audit' => 'eksternal',
+                        'masalah' => $temuan->masalah,
+                        'rekomendasi' => $temuan->rekomendasi,
+                        'target_selesai' => $temuan->target_penyelesaian,
+                        'unit' => $externalAudit?->objek_pemeriksaan ?? $externalAudit?->objek_audit ?? $externalAudit?->lokasi ?? '-',
+                        'status' => 'draft',
                         'created_at' => now(),
                         'updated_at' => now()
                     ]);
+                } else {
+                    DB::table('tindak_lanjut')
+                        ->where('temuan_id', $temuan->id)
+                        ->update([
+                            'jenis_audit' => 'eksternal',
+                            'masalah' => $temuan->masalah,
+                            'rekomendasi' => $temuan->rekomendasi,
+                            'target_selesai' => $temuan->target_penyelesaian,
+                            'unit' => $externalAudit?->objek_pemeriksaan ?? $externalAudit?->objek_audit ?? $externalAudit?->lokasi ?? '-',
+                            'updated_at' => now(),
+                        ]);
                 }
             }
 

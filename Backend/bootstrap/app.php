@@ -17,6 +17,8 @@ return Application::configure(basePath: dirname(__DIR__))
     ])
 
     ->withMiddleware(function (Middleware $middleware) {
+
+        // Konfigurasi API Middleware (Sanctum)
         $middleware->api(prepend: [
             \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
         ]);
@@ -28,6 +30,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // ]);
 
         $middleware->alias([
+            'check.access' => \App\Http\Middleware\CheckModuleAccess::class,
             'verified' => \App\Http\Middleware\EnsureEmailIsVerified::class,
             'role' => \App\Http\Middleware\ToggleRoleMiddleware::class,
             'permission' => \App\Http\Middleware\TogglePermissionMiddleware::class,

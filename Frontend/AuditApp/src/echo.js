@@ -7,12 +7,12 @@ const echo = new Echo({
   broadcaster: "reverb",
   key: "sffqapl4lq9bfpnozlry",
 
-  wsHost: "10.253.128.12", // 🔥 sesuai IP kamu
+  wsHost: "192.168.1.8", // 🔥 sesuai IP kamu
   wsPort: 8080,
   forceTLS: false,
   enabledTransports: ["ws"],
 
-  authEndpoint: "http://10.253.128.12:8000/broadcasting/auth",
+  authEndpoint: "http://192.168.1.8:8000/broadcasting/auth",
 
   withCredentials: true, // 🔥 WAJIB kalau pakai Sanctum
 });

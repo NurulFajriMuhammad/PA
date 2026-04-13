@@ -1,12 +1,21 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { Users, Shield, KeySquare, Route } from "lucide-react";
+import { 
+  UserGroupIcon, 
+  ShieldCheckIcon, 
+  BuildingOffice2Icon, 
+  BriefcaseIcon, 
+  KeyIcon, 
+  LinkIcon 
+} from '@heroicons/react/24/outline';
 import Notification from "../components/Common/Notification";
 import UserPage from "../components/UserManager/UserPage";
 import RolePage from "../components/RoleManager/RolePage";
+import UnitPage from "../components/UnitPage";
 import ApiPage from "../components/Izin/ApiPage.jsx";
 import ApiRoutePage from "../components/RouteApi/ApiRoutePage.jsx";
 import Header from "../components/Header.jsx";
 import axios from "../../../Shared/api/apiClient.js";
+import JabatanPage from "../components/JabatanPage.jsx";
 
 // Fungsi helper untuk mengambil array data dari respons API
 // Ini menangani format { data: [...] } atau array langsung
@@ -171,32 +180,46 @@ export default function DashboardApp() {
         </header>
 
         {/* NAVIGATION */}
-        <nav className="flex flex-wrap gap-2 mb-6 p-2 bg-white rounded-lg shadow-sm border border-gray-200">
+        <nav className="flex flex-wrap gap-2 mb-6 p-2 rounded-lg shadow-sm border border-gray-200">
           <NavButton
             page="users"
             label="Pengguna"
-            icon={Users}
+            icon={UserGroupIcon}
             currentPage={currentPage}
             setCurrentPage={setCurrentPage}
           />
           <NavButton
             page="roles"
-            label="Role"
-            icon={Shield}
+            label="Role/Group"
+            icon={ShieldCheckIcon}
+            currentPage={currentPage}
+            setCurrentPage={setCurrentPage}
+          />
+          <NavButton
+            page="units"
+            label="Unit/Divisi"
+            icon={BuildingOffice2Icon}
+            currentPage={currentPage}
+            setCurrentPage={setCurrentPage}
+          />
+          <NavButton
+            page="jabatan"
+            label="Jabatan"
+            icon={BriefcaseIcon}
             currentPage={currentPage}
             setCurrentPage={setCurrentPage}
           />
           <NavButton
             page="permissions"
             label="Izin"
-            icon={KeySquare}
+            icon={KeyIcon}
             currentPage={currentPage}
             setCurrentPage={setCurrentPage}
           />
           <NavButton
             page="routes"
             label="API Routes"
-            icon={Route}
+            icon={LinkIcon}
             currentPage={currentPage}
             setCurrentPage={setCurrentPage}
           />
@@ -247,6 +270,10 @@ export default function DashboardApp() {
                   onRefresh={fetchData} // Meneruskan fetchData agar RolePage bisa refresh semua data
                 />
               )}
+
+              {currentPage === "units" && <UnitPage />}
+
+              {currentPage === "jabatan" && <JabatanPage />}
 
               {currentPage === "permissions" && (
                 <ApiPage

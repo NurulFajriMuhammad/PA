@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Shield, Eye, EyeOff, CheckCircle2 } from "lucide-react";
-import apiClient from "../../../Shared/api/axios";
+// import apiClient from "../../../Shared/api/axios";
+import apiClient from "../../../Shared/api/apiClient";
 import { useAuth } from "../../../Shared/hooks/useAuth";
 import { notifySuccess, notifyError } from '../../../Shared/utils/notifier';
 

@@ -10,6 +10,7 @@ class TindakLanjut extends Model
 
     protected $fillable = [
         'temuan_id',
+        'jenis_audit',
         'masalah',
         'rekomendasi',
         'unit',
@@ -21,7 +22,9 @@ class TindakLanjut extends Model
         'target_selesai',
         'status',
         'tahun',
-        'bulan'
+        'bulan',
+        'hasil_evaluasi',
+        'kesimpulan',
     ];
 
     protected $casts = [

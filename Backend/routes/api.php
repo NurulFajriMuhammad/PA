@@ -27,6 +27,12 @@ use App\Http\Controllers\AdvisoryServiceController;
 use App\Http\Controllers\AuditEvaluasiController;
 use App\Http\Controllers\ConsultingController;
 use App\Http\Controllers\ConsultingMessageController;
+use App\Http\Controllers\StatusPemeriksaanController;
+use App\Http\Controllers\Api\UnitController;
+use App\Http\Controllers\Api\JabatanController;
+use App\Http\Controllers\Api\PermissionMatrixController;
+
+
 
 
 
@@ -37,6 +43,8 @@ use App\Http\Controllers\ConsultingMessageController;
 require __DIR__ . '/auth.php';
 
 Route::get('/report/{id}', [ReportController::class, 'show']);
+
+
 Route::middleware('auth:sanctum')->group(function () {
      
      // Route::get('/check-auth', function () {
@@ -48,11 +56,34 @@ Route::middleware('auth:sanctum')->group(function () {
           // });
           
           
-          Route::get('/user', function (Request $request) {
-               $user = $request->user();
-               $user->load('roles', 'permissions');
-               return $user;
-               });
+          // Route::get('/user', function (Request $request) {
+          //      $user = $request->user();
+          //      $user->load('roles', 'permissions');
+          //      return $user;
+          //      });
+
+    Route::get('/user', function (Request $request) {
+        return $request->user()->load(['roles', 'jabatan.permissions.module']);
+    });
+
+    // --- MODUL SURAT TUGAS DENGAN PROTEKSI ---
+    Route::middleware('check.access:SURAT_TUGAS,can_read')->group(function () {
+        Route::get('/surat-tugas', [surattugascontroller::class, 'index']);
+    });
+
+    Route::middleware('check.access:SURAT_TUGAS,can_write')->group(function () {
+        Route::post('/surat-tugas', [surattugascontroller::class, 'store']);
+        Route::put('/surat-tugas/{id}', [surattugascontroller::class, 'update']);
+    });
+
+    Route::middleware('check.access:SURAT_TUGAS,can_delete')->group(function () {
+        Route::delete('/surat-tugas/{id}', [surattugascontroller::class, 'destroy']);
+    });
+
+     Route::apiResource('units', UnitController::class);
+     Route::apiResource('jabatans', JabatanController::class);
+     Route::get('/permission-matrix', [PermissionMatrixController::class, 'index']);
+     Route::post('/permission-matrix/update', [PermissionMatrixController::class, 'updateMatrix']);
      // Route::apiResource('/routes', 'ApiRouteController');
      // Route::apiResource('/routes', ApiRouteController::class);
 
@@ -173,6 +204,7 @@ Route::middleware('auth:sanctum')->group(function () {
      Route::get('/tindak-lanjut/{id}', [TindakLanjutController::class, 'show']);
      Route::put('/tindak-lanjut/{id}', [TindakLanjutController::class, 'update']);
      Route::post('/tindak-lanjut/{id}/detail', [TindakLanjutController::class, 'storeDetail']);
+     Route::put('/tindak-lanjut/{id}/review', [TindakLanjutController::class, 'review']);
      Route::get('/tindak-lanjut/detail/{id}', [TindakLanjutController::class, 'detail']);
 
 
@@ -230,13 +262,21 @@ Route::get('/consulting/{id}/messages', [ConsultingMessageController::class, 'me
 Route::post('/consulting/send', [ConsultingMessageController::class, 'send']);
 
 
-Route::get('/units', function () {
-    return \App\Models\Unit::select('id','nama')->get();
-});
+// Route::get('/units', function () {
+//     return \App\Models\Unit::select('id','nama')->get();
+// });
 
 Route::get('/roles', function () {
     return \Spatie\Permission\Models\Role::select('id','name')->get();
 });
+
+
+
+Route::get('/status-pemeriksaan', [StatusPemeriksaanController::class, 'index']);
+Route::post('/status-pemeriksaan', [StatusPemeriksaanController::class, 'store']);
+Route::get('/status-pemeriksaan/{id}', [StatusPemeriksaanController::class, 'show']);
+Route::put('/status-pemeriksaan/{id}', [StatusPemeriksaanController::class, 'update']);
+Route::delete('/status-pemeriksaan/{id}', [StatusPemeriksaanController::class, 'destroy']);
      // API Routes 
      // Route::apiResource('api-routes', ApiRouteController::class)->middleware('permission:manage routes');
      //     Route::apiResource('api-routes', ApiRouteController::class);

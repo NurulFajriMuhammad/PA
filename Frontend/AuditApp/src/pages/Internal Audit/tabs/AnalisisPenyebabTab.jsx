@@ -45,6 +45,13 @@ res.data.data.forEach((kka) => {
 
   const handleSave = async () => {
     try {
+      if (
+        selectedTemuan?.status_analisis === "close" ||
+        selectedTemuan?.analisis?.status === "close"
+      ) {
+        return;
+      }
+
       const formData = new FormData();
       const cleanedForm = {
         status: form.status,
@@ -144,6 +151,10 @@ res.data.data.forEach((kka) => {
   // 🔵 MODE DETAIL
   // ============================
   if (selectedTemuan) {
+    const isClosed =
+      selectedTemuan.status_analisis === "close" ||
+      selectedTemuan.analisis?.status === "close";
+
     return (
       <div className="bg-white p-6 rounded-xl shadow border space-y-4">
         <button
@@ -205,6 +216,7 @@ res.data.data.forEach((kka) => {
           <select
             className="w-full border p-2 rounded"
             value={form.status || ""}
+            disabled={isClosed}
             onChange={(e) => setForm({ ...form, status: e.target.value })}
           >
             <option value="">Pilih</option>
@@ -234,6 +246,7 @@ res.data.data.forEach((kka) => {
                 name="tanggapan"
                 value="setuju"
                 checked={form.tanggapan === "setuju"}
+                disabled={isClosed}
                 onChange={(e) =>
                   setForm({ ...form, tanggapan: e.target.value })
                 }
@@ -249,6 +262,7 @@ res.data.data.forEach((kka) => {
                 name="tanggapan"
                 value="tolak"
                 checked={form.tanggapan === "tolak"}
+                disabled={isClosed}
                 onChange={(e) =>
                   setForm({ ...form, tanggapan: e.target.value })
                 }
@@ -268,6 +282,7 @@ res.data.data.forEach((kka) => {
               placeholder="Analisa Penyebab"
               className="w-full border p-2 rounded"
               value={form.analisa || ""}
+              disabled={isClosed}
               onChange={(e) => setForm({ ...form, analisa: e.target.value })}
             />
 
@@ -278,6 +293,7 @@ res.data.data.forEach((kka) => {
               placeholder="Rencana Tindakan Koreksi"
               className="w-full border p-2 rounded"
               value={form.rencana_koreksi || ""}
+              disabled={isClosed}
               onChange={(e) =>
                 setForm({ ...form, rencana_koreksi: e.target.value })
               }
@@ -289,6 +305,7 @@ res.data.data.forEach((kka) => {
               placeholder="Rencana Tindakan Kolektif"
               className="w-full border p-2 rounded"
               value={form.rencana_kolektif || ""}
+              disabled={isClosed}
               onChange={(e) =>
                 setForm({ ...form, rencana_kolektif: e.target.value })
               }
@@ -300,6 +317,7 @@ res.data.data.forEach((kka) => {
               type="date"
               className="w-full border p-2 rounded"
               value={form.target_penyelesaian || ""}
+              disabled={isClosed}
               onChange={(e) =>
                 setForm({ ...form, target_penyelesaian: e.target.value })
               }
@@ -316,6 +334,7 @@ res.data.data.forEach((kka) => {
             <textarea
               placeholder="Tanggapan"
               className="w-full border p-2 rounded"
+              disabled={isClosed}
               onChange={(e) => setForm({ ...form, feedback: e.target.value })}
             />
             {/* <input
@@ -336,13 +355,14 @@ res.data.data.forEach((kka) => {
                   type="file"
                   id="lampiran"
                   className="hidden"
+                  disabled={isClosed}
                   onChange={handleFileChange}
                 />
 
                 {/* BUTTON PILIH FILE */}
                 <label
                   htmlFor="lampiran"
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg cursor-pointer"
+                  className={`px-4 py-2 text-white text-sm rounded-lg ${isClosed ? "bg-slate-300 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700 cursor-pointer"}`}
                 >
                   Pilih File
                 </label>
@@ -373,12 +393,18 @@ res.data.data.forEach((kka) => {
         )}
 
         <div className="flex justify-end mt-6">
-          <button
-            onClick={handleSave}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-700 hover:bg-blue-900 text-white text-sm font-bold rounded-lg shadow-md shadow-blue-100 transition-all active:scale-95"
-          >
-            Simpan
-          </button>
+          {isClosed ? (
+            <span className="rounded-lg bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-500">
+              Analisa penyebab sudah close dan terkunci
+            </span>
+          ) : (
+            <button
+              onClick={handleSave}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-700 hover:bg-blue-900 text-white text-sm font-bold rounded-lg shadow-md shadow-blue-100 transition-all active:scale-95"
+            >
+              Simpan
+            </button>
+          )}
         </div>
       </div>
     );

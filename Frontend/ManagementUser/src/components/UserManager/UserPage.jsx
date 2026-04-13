@@ -37,6 +37,7 @@ const UserPage = ({ users = [], roles = [], setNotification, onRefresh }) => {
         name: formData.name,
         email: formData.email,
         role_id: formData.roleIds || [],
+        jabatan_id: formData.jabatan_id,
       };
       
       // Hanya include password jika ada
@@ -113,6 +114,7 @@ const UserPage = ({ users = [], roles = [], setNotification, onRefresh }) => {
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nama</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Jabatan</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Role</th>
             </tr>
           </thead>
@@ -127,6 +129,13 @@ const UserPage = ({ users = [], roles = [], setNotification, onRefresh }) => {
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                     {user.email}
                   </td>
+<td className="px-6 py-4">
+        {user.jabatan ? (
+           <span className="px-3 py-1 bg-blue-50 text-blue-700 rounded-lg text-xs font-bold border border-blue-100">
+             {user.jabatan.nama}
+           </span>
+        ) : <span className="text-gray-300 italic text-xs">Staff</span>}
+      </td>
                   <td className="px-6 py-4 text-sm">
                     <div className="flex gap-1 flex-wrap">
                       {user.roles?.map((role) => (
