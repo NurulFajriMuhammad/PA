@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Line } from 'react-chartjs-2';
 import {
   Chart as ChartJS, CategoryScale, LinearScale, PointElement,
@@ -10,20 +10,48 @@ import {
   BsArrowRightShort, BsFilterRight
 } from 'react-icons/bs';
 import { notifySuccess } from '../../../Shared/utils/notifier';
+import apiClient from '../../../Shared/api/apiClient';
 
 // Registrasi ChartJS
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler);
 
 export default function Dashboard() {
-  const [loading] = useState(false);
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+
+  const fetchStats = async () => {
+    try {
+      const res = await apiClient.get(`/api/dashboard-stats?tahun=${selectedYear}`);
+      if (res.data.success) {
+        setStats(res.data.data);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    setLoading(true);
+    fetchStats();
+    
+    // Polling setiap 30 detik untuk update real-time
+    const interval = setInterval(() => {
+      fetchStats();
+    }, 30000);
+    
+    return () => clearInterval(interval);
+  }, [selectedYear]);
 
   // Data Tren Audit (12 Bulan)
   const lineChartData = {
-    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des'],
+    labels: stats?.tren?.labels || ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des'],
     datasets: [
       {
         label: 'Audit Selesai',
-        data: [8, 12, 15, 11, 18, 22, 20, 25, 28, 30, 35, 40],
+        data: stats?.tren?.audit_selesai || [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
         borderColor: '#10b981',
         backgroundColor: 'rgba(16, 185, 129, 0.1)',
         fill: true,
@@ -33,7 +61,7 @@ export default function Dashboard() {
       },
       {
         label: 'Temuan Baru',
-        data: [15, 25, 20, 30, 35, 45, 40, 50, 55, 60, 58, 65],
+        data: stats?.tren?.temuan_baru || [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
         borderColor: '#ef4444',
         fill: false,
         tension: 0.4,
@@ -56,8 +84,15 @@ export default function Dashboard() {
     },
   };
 
-  const handleCreateAudit = () => {
-    notifySuccess("Modul pembuatan audit baru sedang disiapkan.");
+  const formatTimeAgo = (dateString) => {
+    const now = new Date();
+    const date = new Date(dateString);
+    const diff = Math.floor((now - date) / 1000); // dalam detik
+
+    if (diff < 60) return `${diff} Detik Lalu`;
+    if (diff < 3600) return `${Math.floor(diff / 60)} Menit Lalu`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)} Jam Lalu`;
+    return `${Math.floor(diff / 86400)} Hari Lalu`;
   };
 
   return (
@@ -73,72 +108,76 @@ export default function Dashboard() {
       <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
         <div>
           <h1 className="text-2xl font-black text-slate-800 tracking-tight">Executive Summary</h1>
-          <p className="text-slate-500 text-sm font-medium">Sistem Informasi Pengawasan Internal • T.A 2026</p>
+          <p className="text-slate-500 text-sm font-medium">Sistem Informasi Pengawasan Internal • T.A {new Date().getFullYear()}</p>
         </div>
         <div className="flex gap-3">
-          <button className="flex items-center gap-2 bg-white border border-slate-200 text-slate-600 px-4 py-2.5 rounded-xl font-bold text-sm hover:bg-slate-50 transition-all">
-            <BsFilterRight size={18} /> Filter Periode
+          <button onClick={() => fetchStats()} className="flex items-center gap-2 bg-white border border-slate-200 text-slate-600 px-4 py-2.5 rounded-xl font-bold text-sm hover:bg-slate-50 transition-all">
+            <BsFilterRight size={18} /> Refresh Data
           </button>
         </div>
       </div>
 
-      {/* --- KPI STATS GRID --- */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <StatBox label="Total Objek Audit" value="124" trend="+4" icon={<BsBarChartFill />} color="bg-blue-50 text-blue-600" />
-        <StatBox label="Audit Berjalan" value="12" trend="On Track" icon={<BsClockHistory />} color="bg-amber-50 text-amber-600" />
-        <StatBox label="Temuan Open" value="42" trend="High Priority" icon={<BsSearch />} color="bg-red-50 text-red-600" />
-        <StatBox label="Penyelesaian" value="88%" trend="+2.4%" icon={<BsCheckCircleFill />} color="bg-emerald-50 text-emerald-600" />
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* --- MAIN CHART (2/3 Width) --- */}
-        <div className="lg:col-span-2 glass-card p-6">
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="font-bold text-slate-800">Tren Pengawasan Tahunan</h3>
-            <select className="text-xs font-bold bg-slate-100 border-none rounded-lg px-3 py-1.5 outline-none cursor-pointer">
-              <option>Tahun 2026</option>
-              <option>Tahun 2025</option>
-            </select>
-          </div>
-          <div className="h-[350px]">
-            <Line options={lineChartOptions} data={lineChartData} />
-          </div>
+      {loading ? (
+        <div className="flex items-center justify-center py-20">
+          <div className="w-12 h-12 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
         </div>
-
-        {/* --- RECENT ACTIVITY (1/3 Width) --- */}
-        <div className="glass-card p-6 overflow-hidden">
-          <h3 className="font-bold text-slate-800 mb-6 flex justify-between items-center">
-            Aktivitas Terkini
-            <span className="text-[10px] bg-indigo-50 text-indigo-600 px-2 py-1 rounded-md uppercase tracking-wider">Live</span>
-          </h3>
-          <div className="space-y-6">
-            <ActivityRow 
-              title="LHA Terbit: Biro Umum" 
-              time="12 Menit Lalu" 
-              icon={<BsCheckCircleFill />} 
-              color="text-emerald-500" 
-              desc="Audit sarana prasarana diselesaikan."
-            />
-            <ActivityRow 
-              title="Temuan Baru: IT Security" 
-              time="2 Jam Lalu" 
-              icon={<BsExclamationTriangleFill />} 
-              color="text-amber-500" 
-              desc="Kerentanan pada server database akademik."
-            />
-            <ActivityRow 
-              title="Respon Auditee: Keuangan" 
-              time="5 Jam Lalu" 
-              icon={<BsInfoCircleFill />} 
-              color="text-blue-500" 
-              desc="Mengunggah bukti tindak lanjut temuan #42."
-            />
+      ) : (
+        <>
+          {/* --- KPI STATS GRID --- */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <StatBox label="Total Objek Audit" value={stats?.kpi?.total_objek_audit || 0} trend="Total" icon={<BsBarChartFill />} color="bg-blue-50 text-blue-600" />
+            <StatBox label="Audit Berjalan" value={stats?.kpi?.audit_berjalan || 0} trend="On Track" icon={<BsClockHistory />} color="bg-amber-50 text-amber-600" />
+            <StatBox label="Temuan Open" value={stats?.kpi?.temuan_open || 0} trend="High Priority" icon={<BsSearch />} color="bg-red-50 text-red-600" />
+            <StatBox label="Penyelesaian" value={`${stats?.kpi?.penyelesaian || 0}%`} trend="Overall" icon={<BsCheckCircleFill />} color="bg-emerald-50 text-emerald-600" />
           </div>
-          <button className="w-full mt-8 py-3 text-sm font-bold text-indigo-600 bg-indigo-50 rounded-xl hover:bg-indigo-100 transition-colors flex items-center justify-center gap-1">
-            Lihat Semua Log <BsArrowRightShort size={20} />
-          </button>
-        </div>
-      </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* --- MAIN CHART (2/3 Width) --- */}
+            <div className="lg:col-span-2 glass-card p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="font-bold text-slate-800">Tren Pengawasan Tahunan</h3>
+                <select 
+                  className="text-xs font-bold bg-slate-100 border-none rounded-lg px-3 py-1.5 outline-none cursor-pointer"
+                  value={selectedYear}
+                  onChange={(e) => setSelectedYear(e.target.value)}
+                >
+                  <option value={new Date().getFullYear()}>Tahun {new Date().getFullYear()}</option>
+                  <option value={new Date().getFullYear() - 1}>Tahun {new Date().getFullYear() - 1}</option>
+                </select>
+              </div>
+              <div className="h-[350px]">
+                <Line options={lineChartOptions} data={lineChartData} />
+              </div>
+            </div>
+
+            {/* --- RECENT ACTIVITY (1/3 Width) --- */}
+            <div className="glass-card p-6 overflow-hidden">
+              <h3 className="font-bold text-slate-800 mb-6 flex justify-between items-center">
+                Aktivitas Terkini
+                <span className="text-[10px] bg-indigo-50 text-indigo-600 px-2 py-1 rounded-md uppercase tracking-wider animate-pulse flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 bg-indigo-600 rounded-full"></span> Live
+                </span>
+              </h3>
+              <div className="space-y-6">
+                {stats?.aktivitas?.length > 0 ? (
+                  stats.aktivitas.map((act) => (
+                    <ActivityRow 
+                      key={act.id}
+                      title={act.title} 
+                      time={formatTimeAgo(act.time)} 
+                      icon={act.type === 'audit' ? <BsClockHistory /> : <BsExclamationTriangleFill />} 
+                      color={act.type === 'audit' ? 'text-blue-500' : 'text-amber-500'} 
+                      desc={act.desc}
+                    />
+                  ))
+                ) : (
+                  <p className="text-sm text-slate-400 text-center py-10">Belum ada aktivitas terkini.</p>
+                )}
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -164,21 +203,9 @@ const ActivityRow = ({ title, time, icon, color, desc }) => (
     <div className="flex-1 border-b border-slate-50 pb-4">
       <div className="flex justify-between items-start mb-1">
         <h4 className="text-sm font-bold text-slate-700 group-hover:text-indigo-600 transition-colors">{title}</h4>
-        <span className="text-[10px] text-slate-400 font-medium">{time}</span>
+        <span className="text-[10px] text-slate-400 font-medium whitespace-nowrap ml-2">{time}</span>
       </div>
       <p className="text-xs text-slate-500 leading-relaxed">{desc}</p>
     </div>
   </div>
-);
-
-const ProgressItem = ({ label, value, color }) => (
-  <div>
-    <div className="flex justify-between text-xs font-bold mb-2">
-      <span className="text-slate-600">{label}</span>
-      <span className="text-slate-800">{value}%</span>
-    </div>
-    <div className="progress-bar">
-      <div className={`progress-inner ${color}`} style={{ width: `${value}%` }}></div>
-    </div>
-  </div>
-);
+);

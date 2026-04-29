@@ -14,7 +14,7 @@ class ExternalAuditTemuanController extends Controller
     public function index($externalAuditId)
     {
         $data = ExternalAuditTemuan::where('external_audit_id', $externalAuditId)
-            ->latest()
+            ->orderBy('id', 'asc')
             ->get();
 
         return response()->json([

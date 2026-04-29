@@ -20,6 +20,7 @@ class ExternalAuditTemuan extends Model
         'keterangan',
         'target_penyelesaian',
         'nilai_kerugian',
+        'status',
         'lampiran'
     ];
 

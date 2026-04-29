@@ -10,7 +10,7 @@ class ExternalAuditController extends Controller
     // GET DATA
     public function index()
     {
-        $data = ExternalAudit::latest()->get();
+        $data = ExternalAudit::with('temuan')->latest()->get();
 
         return response()->json([
             'success' => true,
@@ -96,6 +96,22 @@ class ExternalAuditController extends Controller
     public function destroy($id)
     {
         $data = ExternalAudit::findOrFail($id);
+
+        $temuanIds = \Illuminate\Support\Facades\DB::table('external_audit_temuan')
+            ->where('external_audit_id', $id)
+            ->pluck('id');
+            
+        if ($temuanIds->isNotEmpty()) {
+            \Illuminate\Support\Facades\DB::table('tindak_lanjut')
+                ->whereIn('temuan_id', $temuanIds)
+                ->where('jenis_audit', 'eksternal')
+                ->delete();
+                
+            \Illuminate\Support\Facades\DB::table('external_audit_temuan')
+                ->where('external_audit_id', $id)
+                ->delete();
+        }
+
         $data->delete();
 
         return response()->json([

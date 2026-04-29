@@ -79,6 +79,13 @@ class TindakLanjutController extends Controller
                 DB::table('tindak_lanjut')->insert($insertData);
             }
 
+            foreach ($request->temuan_ids as $tid) {
+                \App\Models\AnalisisTemuan::updateOrCreate(
+                    ['temuan_id' => $tid],
+                    ['status' => 'monev']
+                );
+            }
+
             return response()->json([
                 'message' => 'Berhasil generate tindak lanjut 🚀'
             ]);
@@ -167,6 +174,8 @@ class TindakLanjutController extends Controller
     // =========================
     public function detail($temuanId)
     {
+        $jenis = request()->query('jenis', 'internal');
+        
         $hasReviewColumns =
             Schema::hasColumn('tindak_lanjut', 'hasil_evaluasi') &&
             Schema::hasColumn('tindak_lanjut', 'kesimpulan');
@@ -180,11 +189,6 @@ class TindakLanjutController extends Controller
             't.akibat',
             't.lampiran',
             't.rekomendasi',
-            'at.analisa',
-            'at.rencana_koreksi',
-            'at.rencana_kolektif',
-            'at.target_penyelesaian',
-            'at.status as status_temuan',
             'tl.id as tl_id',
             'tl.tahun',
             'tl.bulan',
@@ -203,14 +207,43 @@ class TindakLanjutController extends Controller
             $selectColumns[] = DB::raw('NULL as kesimpulan');
         }
 
-        $data = DB::table('pemeriksaan_temuan as t')
+        if (strtolower($jenis) === 'eksternal') {
+            $selectColumns[] = DB::raw('NULL as lampiran_name');
+            $selectColumns[] = 't.keterangan as analisa';
+            $selectColumns[] = 't.rencana as rencana_koreksi';
+            $selectColumns[] = DB::raw('NULL as rencana_kolektif');
+            $selectColumns[] = 't.target_penyelesaian';
+            $selectColumns[] = 't.status as status_temuan';
 
-            ->leftJoin('analisis_temuan as at', 't.id', '=', 'at.temuan_id')
-            ->leftJoin('tindak_lanjut as tl', 't.id', '=', 'tl.temuan_id')
+            $data = DB::table('external_audit_temuan as t')
+                ->leftJoin('tindak_lanjut as tl', function($join) {
+                    $join->on('t.id', '=', 'tl.temuan_id')
+                         ->where('tl.jenis_audit', '=', 'eksternal');
+                })
+                ->select($selectColumns)
+                ->where('t.id', $temuanId)
+                ->get();
+        } else {
+            $selectColumns[] = 't.lampiran_name';
+            $selectColumns[] = 'at.analisa';
+            $selectColumns[] = 'at.rencana_koreksi';
+            $selectColumns[] = 'at.rencana_kolektif';
+            $selectColumns[] = 'at.target_penyelesaian';
+            $selectColumns[] = 'at.status as status_temuan';
 
-            ->select($selectColumns)
-            ->where('t.id', $temuanId)
-            ->get();
+            $data = DB::table('pemeriksaan_temuan as t')
+                ->leftJoin('analisis_temuan as at', 't.id', '=', 'at.temuan_id')
+                ->leftJoin('tindak_lanjut as tl', function($join) {
+                    $join->on('t.id', '=', 'tl.temuan_id')
+                         ->where(function($q) {
+                             $q->where('tl.jenis_audit', '=', 'internal')
+                               ->orWhereNull('tl.jenis_audit');
+                         });
+                })
+                ->select($selectColumns)
+                ->where('t.id', $temuanId)
+                ->get();
+        }
 
         if ($data->isEmpty()) {
             return response()->json([
@@ -227,6 +260,7 @@ class TindakLanjutController extends Controller
             'sebab' => $data[0]->sebab,
             'akibat' => $data[0]->akibat,
             'lampiran' => $data[0]->lampiran,
+            'lampiran_name' => $data[0]->lampiran_name,
             'rekomendasi' => $data[0]->rekomendasi,
             'analisa' => $data[0]->analisa,
             'rencana_koreksi' => $data[0]->rencana_koreksi,
@@ -326,20 +360,38 @@ class TindakLanjutController extends Controller
 
     public function storeDetail(Request $request, $temuanId)
     {
-        $analisis = AnalisisTemuan::where('temuan_id', $temuanId)->first();
+        $analisis = null;
 
-        if ($analisis && $analisis->status === 'close') {
-            return response()->json([
-                'message' => 'Tindak lanjut sudah ditutup dan tidak dapat diubah'
-            ], 422);
+        // Coba cari di external audit dulu
+        $context = DB::table('external_audit_temuan as t')
+            ->leftJoin('external_audits as ea', 't.external_audit_id', '=', 'ea.id')
+            ->select(
+                't.id',
+                't.masalah',
+                't.rekomendasi',
+                't.target_penyelesaian',
+                DB::raw("'eksternal' as jenis_audit"),
+                DB::raw("COALESCE(ea.objek_pemeriksaan, ea.lokasi, ea.objek_audit, '-') as unit")
+            )
+            ->where('t.id', $temuanId)
+            ->first();
+
+        // Jika tidak ketemu, cari di internal audit
+        if (!$context) {
+            $analisis = AnalisisTemuan::where('temuan_id', $temuanId)->first();
+            $context = $this->getTemuanContext($temuanId);
         }
-
-        $context = $this->getTemuanContext($temuanId);
 
         if (!$context) {
             return response()->json([
                 'message' => 'Data temuan tidak ditemukan'
             ], 404);
+        }
+
+        if ($analisis && $analisis->status === 'close') {
+            return response()->json([
+                'message' => 'Tindak lanjut sudah ditutup dan tidak dapat diubah'
+            ], 422);
         }
 
         $validated = $request->validate([

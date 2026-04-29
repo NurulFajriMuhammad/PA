@@ -16,7 +16,8 @@ class KkaPelaksanaanController extends Controller
         $data = PerencanaanKka::with([
             'auditor:id,name',
             'lheFile',
-            'temuan.analisis'
+            'temuan.analisis',
+            'temuan.tindakLanjut'
         ])
         ->withCount('temuan')
         ->where('assurance_id',$assuranceId)

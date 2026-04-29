@@ -31,7 +31,12 @@ use App\Http\Controllers\StatusPemeriksaanController;
 use App\Http\Controllers\Api\UnitController;
 use App\Http\Controllers\Api\JabatanController;
 use App\Http\Controllers\Api\PermissionMatrixController;
-
+use App\Http\Controllers\DocumentRepositoryController;
+use App\Http\Controllers\SemuaTemuanController;
+use App\Http\Controllers\PengajuanTransitionController;
+use App\Http\Controllers\StatusPemeriksaanAksesController;
+use App\Http\Controllers\StatusTemuanController;
+use App\Http\Controllers\PeriodeAuditController;
 
 
 
@@ -56,11 +61,11 @@ Route::middleware('auth:sanctum')->group(function () {
           // });
           
           
-          // Route::get('/user', function (Request $request) {
-          //      $user = $request->user();
-          //      $user->load('roles', 'permissions');
-          //      return $user;
-          //      });
+        //   Route::get('/user', function (Request $request) {
+        //        $user = $request->user();
+        //        $user->load('roles', 'permissions');
+        //        return $user;
+        //        });
 
     Route::get('/user', function (Request $request) {
         return $request->user()->load(['roles', 'jabatan.permissions.module']);
@@ -231,7 +236,6 @@ Route::get('/advisory-service', [AdvisoryServiceController::class, 'index']);
 Route::post('/advisory-service', [AdvisoryServiceController::class, 'store']);
 Route::put('/advisory-service/{id}', [AdvisoryServiceController::class, 'update']); // pakai _method PUT
 Route::delete('/advisory-service/{id}', [AdvisoryServiceController::class, 'destroy']);
-Route::get('/units', [AdvisoryServiceController::class, 'getUnits']);
 
 Route::get('/audit-evaluasi', [AuditEvaluasiController::class, 'index']);
 Route::post('/audit-evaluasi', [AuditEvaluasiController::class, 'store']);
@@ -277,6 +281,12 @@ Route::post('/status-pemeriksaan', [StatusPemeriksaanController::class, 'store']
 Route::get('/status-pemeriksaan/{id}', [StatusPemeriksaanController::class, 'show']);
 Route::put('/status-pemeriksaan/{id}', [StatusPemeriksaanController::class, 'update']);
 Route::delete('/status-pemeriksaan/{id}', [StatusPemeriksaanController::class, 'destroy']);
+
+// Status Temuan (Draft / Monev / Close)
+Route::get('/status-temuan', [StatusTemuanController::class, 'index']);
+Route::post('/status-temuan', [StatusTemuanController::class, 'store']);
+Route::put('/status-temuan/{id}', [StatusTemuanController::class, 'update']);
+Route::delete('/status-temuan/{id}', [StatusTemuanController::class, 'destroy']);
      // API Routes 
      // Route::apiResource('api-routes', ApiRouteController::class)->middleware('permission:manage routes');
      //     Route::apiResource('api-routes', ApiRouteController::class);
@@ -288,4 +298,43 @@ Route::delete('/status-pemeriksaan/{id}', [StatusPemeriksaanController::class, '
      // Route::post('/api-routes', [ApiRouteController::class, 'store']);
      // Route::put('/api-routes/{apiRoute}', [ApiRouteController::class, 'update']);
      // Route::delete('/api-routes/{apiRoute}', [ApiRouteController::class, 'destroy']);
+
+/*
+|--------------------------------------------------------------------------
+| DOCUMENT REPOSITORY
+|--------------------------------------------------------------------------
+*/
+Route::get('/document-repository', [DocumentRepositoryController::class, 'index']);
+Route::post('/document-repository/sync', [DocumentRepositoryController::class, 'sync']);
+Route::get('/document-repository/statistics', [DocumentRepositoryController::class, 'statistics']);
+Route::get('/document-repository/download/{id}', [DocumentRepositoryController::class, 'download']);
+
+// Rute untuk mendapatkan gabungan internal & external audit temuan
+Route::get('/semua-temuan', [SemuaTemuanController::class, 'index']);
+
+// =========================
+// SETTING PENGAJUAN (ALUR TRANSISI)
+// =========================
+Route::get('/pengajuan-transitions', [PengajuanTransitionController::class, 'index']);
+Route::post('/pengajuan-transitions', [PengajuanTransitionController::class, 'store']);
+Route::put('/pengajuan-transitions/{id}', [PengajuanTransitionController::class, 'update']);
+Route::delete('/pengajuan-transitions/{id}', [PengajuanTransitionController::class, 'destroy']);
+
+// =========================
+// HAK AKSES URL PER ROLE PER STATUS
+// =========================
+Route::get('/status-pemeriksaan-akses', [StatusPemeriksaanAksesController::class, 'index']);
+Route::post('/status-pemeriksaan-akses', [StatusPemeriksaanAksesController::class, 'store']);
+Route::post('/status-pemeriksaan-akses/bulk', [StatusPemeriksaanAksesController::class, 'bulkStore']);
+Route::delete('/status-pemeriksaan-akses/{id}', [StatusPemeriksaanAksesController::class, 'destroy']);
+
+// =========================
+// PERIODE AUDIT
+// =========================
+Route::get('/periode-audit', [PeriodeAuditController::class, 'index']);
+Route::post('/periode-audit', [PeriodeAuditController::class, 'store']);
+Route::put('/periode-audit/{id}', [PeriodeAuditController::class, 'update']);
+Route::delete('/periode-audit/{id}', [PeriodeAuditController::class, 'destroy']);
+
+
 });

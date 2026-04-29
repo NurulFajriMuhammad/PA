@@ -23,6 +23,9 @@ const AuditUniverseSPI = () => {
   const [showModal, setShowModal] = useState(false);
   const [loading, setLoading] = useState(true);
   const [auditData, setAuditData] = useState([]);
+  const [units, setUnits] = useState([]);
+  const [unitQuery, setUnitQuery] = useState("");
+  const [showUnitSuggestions, setShowUnitSuggestions] = useState(false);
   const [selectedAudit, setSelectedAudit] = useState(null); // State untuk Detail View
   const [filters, setFilters] = useState({
     sub_unit: "Semua Unit",
@@ -56,6 +59,13 @@ const AuditUniverseSPI = () => {
     "Data Analyst": "IT & Infrastruktur",
   };
 
+  const filteredUnits = units
+    .map((unit) => unit.nama)
+    .filter((value, index, self) => self.indexOf(value) === index)
+    .filter((unitName) =>
+      unitName.toLowerCase().includes(unitQuery.toLowerCase())
+    );
+
   const fetchData = async () => {
     try {
       setLoading(true);
@@ -68,8 +78,20 @@ const AuditUniverseSPI = () => {
     }
   };
 
+  const fetchUnits = async () => {
+    try {
+      const response = await apiClient.get("/api/units");
+      const responseData = response.data?.data || response.data || [];
+      setUnits(responseData);
+    } catch (error) {
+      console.error("Gagal mengambil daftar unit:", error);
+      setUnits([]);
+    }
+  };
+
   useEffect(() => {
     fetchData();
+    fetchUnits();
   }, []);
 
   const categoriesConfig = [
@@ -406,29 +428,58 @@ const AuditUniverseSPI = () => {
                     }
                   />
                 </div>
-                <div className="space-y-1">
+                <div className="space-y-1 relative">
                   <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">
                     Unit Kerja (Auto-Mapping)
                   </label>
-                  <select
+                  <input
                     required
-                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+                    type="text"
+                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-indigo-500"
+                    placeholder="Ketik untuk mencari unit kerja..."
+                    value={unitQuery}
                     onChange={(e) => {
-                      const val = e.target.value;
+                      const query = e.target.value;
+                      setUnitQuery(query);
+                      setShowUnitSuggestions(true);
                       setNewEntry({
                         ...newEntry,
-                        sub_unit: val,
-                        category: unitToCategoryMap[val] || "",
+                        sub_unit: query,
+                        category: unitToCategoryMap[query] || "Operasional & Produksi",
                       });
                     }}
-                  >
-                    <option value="">Pilih Unit Kerja</option>
-                    {Object.keys(unitToCategoryMap).map((unit) => (
-                      <option key={unit} value={unit}>
-                        {unit}
-                      </option>
-                    ))}
-                  </select>
+                    onFocus={() => setShowUnitSuggestions(true)}
+                    onBlur={() => setTimeout(() => setShowUnitSuggestions(false), 120)}
+                  />
+
+                  {showUnitSuggestions && filteredUnits.length > 0 && (
+                    <div className="absolute left-0 right-0 z-20 max-h-52 overflow-auto border border-slate-200 bg-white rounded-2xl shadow-xl mt-1">
+                      {filteredUnits.map((unitName, index) => (
+                        <button
+                          key={`${unitName}-${index}`}
+                          type="button"
+                          onMouseDown={() => {
+                            setUnitQuery(unitName);
+                            setNewEntry({
+                              ...newEntry,
+                              sub_unit: unitName,
+                              category: unitToCategoryMap[unitName] || "Operasional & Produksi",
+                            });
+                            setShowUnitSuggestions(false);
+                          }}
+                          className="w-full text-left px-4 py-3 hover:bg-indigo-50 transition-colors text-sm text-slate-700"
+                        >
+                          {unitName}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {units.length === 0 && (
+                    <p className="mt-2 text-[10px] text-slate-400">
+                      Memuat unit dari database...
+                    </p>
+                  )}
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1">

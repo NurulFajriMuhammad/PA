@@ -9,7 +9,7 @@ class rkaspicontroller extends Controller
 {
     // Ambil Semua Data
     public function index() {
-        return response()->json(rkaspi::orderBy('id', 'desc')->get());
+        return response()->json(rkaspi::orderBy('id', 'asc')->get());
     }
 
     // Simpan Data Baru (Input Bebas)

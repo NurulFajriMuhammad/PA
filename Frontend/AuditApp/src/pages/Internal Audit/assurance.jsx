@@ -4,10 +4,16 @@ import {
   BsSearch,
   BsFilter,
   BsPlusLg,
-  BsX, BsPencilSquare, BsTrash, BsEye, BsFileText, BsCheckCircleFill,
+  BsX, 
+  BsPencilSquare, 
+  BsTrash, 
+  BsEye, 
+  BsFileText, 
+  BsCheckCircleFill,
   BsClipboardCheck,
   BsClockHistory,
   BsCheck2Circle,
+  BsFolder2Open
 } from "react-icons/bs";
 import apiClient from "../../../../Shared/api/apiClient";
 import { useNavigate } from "react-router-dom";
@@ -24,6 +30,7 @@ const unitToCategoryMap = {
   "Information Technology": "IT & Infrastruktur",
   "Data Analyst": "IT & Infrastruktur",
 };
+
 const Assurance = () => {
   const navigate = useNavigate();
 
@@ -32,10 +39,11 @@ const Assurance = () => {
   const [usersList, setUsersList] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
 
   const [formData, setFormData] = useState({
     noST: "",
-    objek_pemeriksaan: "", // Dropdown
+    objek_pemeriksaan: "",
     nama_kegiatan: "",
     tujuan: "",
     sasaran: "",
@@ -45,9 +53,9 @@ const Assurance = () => {
     tgl_mulai: "",
     tgl_selesai: "",
     lokasi: "",
-    ketua: "", // Dropdown
-    pengendali_teknis: "", // Dropdown
-    koordinator: "", // Dropdown
+    ketua: "",
+    pengendali_teknis: "",
+    koordinator: "",
     auditor: [""],
     keterangan: "",
     status: "Planning",
@@ -80,7 +88,6 @@ const Assurance = () => {
     fetchData();
   }, [fetchData]);
 
-  // Handle ketika No ST dipilih (Auto-fill)
   const handleSTChange = (val) => {
     const st = suratTugasList.find((item) => item.nomor_surat === val);
     if (st) {
@@ -102,10 +109,7 @@ const Assurance = () => {
   const handleSave = async (e) => {
     e.preventDefault();
 
-    const st = suratTugasList.find(
-      (item) => item.nomor_surat === formData.noST,
-    );
-
+    const st = suratTugasList.find((item) => item.nomor_surat === formData.noST);
     const koordinator = usersList.find((u) => u.name === formData.koordinator);
     const pt = usersList.find((u) => u.name === formData.pengendali_teknis);
     const ketua = usersList.find((u) => u.name === formData.ketua);
@@ -137,482 +141,501 @@ const Assurance = () => {
       await apiClient.post("/api/assurance", payload);
       setShowModal(false);
       fetchData();
-      alert("Data berhasil disimpan!");
+      resetForm();
     } catch (err) {
       console.log(err.response?.data);
-      alert("Gagal simpan");
+      alert("Gagal simpan data assurance.");
     } finally {
       setLoading(false);
     }
   };
 
-  const getUserRole = (name) => {
-    if (!name) return "-";
-    const user = usersList.find((u) => u.name === name);
-    // Mengambil nama role pertama dari array roles
-    return user?.roles?.[0]?.name || "User";
-  };
+  const resetForm = () => {
+    setFormData({
+      noST: "", objek_pemeriksaan: "", nama_kegiatan: "", tujuan: "", sasaran: "",
+      objek_audit: "", ruang_lingkup: "", metodologi: "", tgl_mulai: "", tgl_selesai: "",
+      lokasi: "", ketua: "", pengendali_teknis: "", koordinator: "", auditor: [""],
+      keterangan: "", status: "Planning",
+    });
+  }
 
   const addAuditor = () => {
-    setFormData((prev) => ({
-      ...prev,
-      auditor: [...prev.auditor, ""],
-    }));
+    setFormData((prev) => ({ ...prev, auditor: [...prev.auditor, ""] }));
   };
 
   const removeAuditor = (index) => {
     const updated = [...formData.auditor];
     updated.splice(index, 1);
-
-    setFormData((prev) => ({
-      ...prev,
-      auditor: updated,
-    }));
+    setFormData((prev) => ({ ...prev, auditor: updated }));
   };
 
   const handleAuditorChange = (index, value) => {
     const updated = [...formData.auditor];
     updated[index] = value;
-
-    setFormData((prev) => ({
-      ...prev,
-      auditor: updated,
-    }));
+    setFormData((prev) => ({ ...prev, auditor: updated }));
   };
 
-  const groupedData = dataAssurance.reduce((acc, item) => {
-    const unit = item.objek_pemeriksaan || "Tanpa Unit";
+  // Logika Filter & Search
+  const filteredData = dataAssurance.filter(item => 
+    item.nama_kegiatan?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    item.objek_pemeriksaan?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
+  const groupedData = filteredData.reduce((acc, item) => {
+    const unit = item.objek_pemeriksaan || "Unit Lainnya / Eksternal";
     if (!acc[unit]) acc[unit] = [];
-
     acc[unit].push(item);
     return acc;
   }, {});
 
   return (
-    <div className="p-6 bg-slate-50 min-h-screen">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-3">
-          <BsShieldCheck className="text-blue-600" /> Audit Assurance
-        </h1>
-        <button
-          onClick={() => setShowModal(true)}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 font-bold shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all"
-        >
-          <BsPlusLg /> Tambah Data
-        </button>
-      </div>
-
-      {/* Tabel (Gunakan dataAssurance.map di sini seperti sebelumnya) */}
-
-<div className="border-slate-200 overflow-hidden">
-  <div className="overflow-x-auto">
-    <table className="w-full text-sm border-collapse">
-      {/* HEADER TABEL DENGAN MULTI-ROW (ROWSPAN/COLSPAN) */}
-      <thead className="bg-[#1a4b84] text-white">
-        <tr>
-          <th rowSpan="2" className="p-4 text-left font-semibold border-r border-white/10 w-[40%]">
-            Unit / Bidang / Kegiatan
-          </th>
-          <th colSpan="3" className="p-2 text-center font-semibold border-b border-r border-white/10 bg-[#153d6b]">
-            Jumlah
-          </th>
-          <th rowSpan="2" className="p-4 text-center font-semibold border-r border-white/10">
-            Status
-          </th>
-          <th rowSpan="2" className="p-4 text-center font-semibold">
-            Aksi
-          </th>
-        </tr>
-        <tr className="bg-[#245a96]">
-          <th className="p-2 text-center font-medium border-r border-white/10 text-[12px]">Draft Temuan</th>
-          <th className="p-2 text-center font-medium border-r border-white/10 text-[12px]">Monev</th>
-          <th className="p-2 text-center font-medium border-r border-white/10 text-[12px]">Close</th>
-        </tr>
-      </thead>
-
-      <tbody className="divide-y divide-slate-100">
-        {Object.keys(groupedData).map((unit) => (
-          <React.Fragment key={unit}>
-            {/* UNIT ROW */}
-            <tr className="bg-slate-50">
-              <td colSpan="6" className="p-3 px-4 text-slate-900 font-bold border-l-4 border-blue-600">
-                {unit}
-              </td>
-            </tr>
-
-            {/* DATA ROWS */}
-            {groupedData[unit].map((item) => (
-              <tr key={item.id} className="hover:bg-blue-50/30 transition-colors group">
-                <td className="p-4 pl-6">
-                  <div className="flex flex-col gap-1">
-                    <span 
-                      className="text-blue-700 font-medium hover:underline cursor-pointer flex items-center gap-2"
-                      onClick={() => navigate(`/internal/assurance/${item.id}`)}
-                    >
-                      {item.nama_kegiatan}
-                    </span>
-                  </div>
-                </td>
-
-                {/* KOLOM JUMLAH */}
-                <td className="text-center p-3 font-medium text-slate-700 border-x border-slate-50">3</td>
-                <td className="text-center p-3 font-medium text-slate-700 border-r border-slate-50 text-slate-400">0</td>
-                <td className="text-center p-3 font-medium text-slate-700 border-r border-slate-50 text-slate-400">0</td>
-
-                {/* STATUS BADGE */}
-                <td className="text-center p-3">
-                  <span className={`inline-flex items-center px-3 py-1 rounded-md text-[11px] font-bold shadow-sm border
-                    ${item.status === "Selesai" 
-                      ? "bg-emerald-600 text-white border-emerald-700" 
-                      : "bg-[#007bff] text-white border-blue-700"}`}
-                  >
-                    {item.status === "Selesai" && <BsCheckCircleFill className="mr-1.5" size={10} />}
-                    {item.status || "Pengisian Rencana Tindak Lanjut"}
-                  </span>
-                </td>
-
-                {/* AKSI BUTTONS */}
-                <td className="text-center p-3">
-                  <div className="flex justify-center gap-1">
-                    <button className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-all" title="Lihat">
-                      <BsEye size={18} />
-                    </button>
-                    <button className="p-2 text-amber-600 hover:bg-amber-100 rounded-lg transition-all" title="Edit">
-                      <BsPencilSquare size={16} />
-                    </button>
-                    <button className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-all" title="Hapus">
-                      <BsTrash size={16} />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </React.Fragment>
-        ))}
-      </tbody>
-    </table>
-  </div>
-</div>
-
-      {/* MODAL KOMPLEKS */}
-      {showModal && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
-          <div
-            className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm"
-            onClick={() => setShowModal(false)}
-          ></div>
-          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col transition-all">
-            <div className="p-6 border-b flex justify-between items-center bg-slate-50">
-              <h3 className="font-bold text-slate-800 text-lg">
-                Input Pengujian Assurance
-              </h3>
-              <button
-                onClick={() => setShowModal(false)}
-                className="text-slate-400 hover:text-red-500"
-              >
-                <BsX size={28} />
-              </button>
+    <div className="min-h-screen bg-slate-50 py-12 px-6 font-sans">
+      <div className="max-w-7xl mx-auto">
+        
+        {/* --- HEADER --- */}
+        <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-6">
+          <div>
+            <div className="inline-flex items-center gap-2 bg-blue-50 text-blue-600 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider mb-3 border border-blue-100">
+              <BsShieldCheck size={12} /> Primary Audit Process
             </div>
+            <h1 className="text-4xl font-black text-slate-900 uppercase tracking-tight">
+              Audit <span className="text-blue-600">Assurance</span>
+            </h1>
+            <p className="text-slate-500 mt-2 font-medium">
+              Manajemen pelaksanaan audit, kertas kerja, dan monitoring tindak lanjut.
+            </p>
+          </div>
 
-            <form
-              onSubmit={handleSave}
-              className="p-6 overflow-y-auto grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4"
-            >
-              {/* Kolom Dropdown Surat Tugas - Full Width */}
-              <div className="md:col-span-2 bg-blue-50 p-4 rounded-xl border border-blue-100 mb-2">
-                <label className="block text-[10px] font-black text-blue-600 uppercase mb-1">
-                  Surat Tugas
-                </label>
-                <select
-                  required
-                  className="w-full h-10 px-3 border border-blue-200 rounded-lg text-sm bg-white outline-none focus:ring-2 focus:ring-blue-500"
-                  value={formData.noST}
-                  onChange={(e) => handleSTChange(e.target.value)}
-                >
-                  <option value="">-- Pilih Nomor Surat Tugas --</option>
-                  {suratTugasList.map((st) => (
-                    <option key={st.id} value={st.nomor_surat}>
-                      {st.nomor_surat}
-                    </option>
-                  ))}
-                </select>
-              </div>
+          <button
+            onClick={() => {
+              resetForm();
+              setShowModal(true);
+            }}
+            className="bg-blue-600 text-white px-6 py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 active:scale-95"
+          >
+            <BsPlusLg size={18} /> Buat Registrasi Audit
+          </button>
+        </div>
 
-              {/* Objek Pemeriksaan & Nama Kegiatan - Row 1 */}
-              <div className="flex flex-col">
-                <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1 ml-1">
-                  Objek Pemeriksaan
-                </label>
+        {/* --- SEARCH BAR --- */}
+        {/* <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 mb-8">
+          <div className="relative w-full md:w-96">
+            <BsSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Cari berdasarkan nama kegiatan atau unit..."
+              className="w-full bg-slate-50 border-none rounded-xl py-3 pl-12 pr-4 text-sm font-medium text-slate-700 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+        </div> */}
 
-                <select
-                  className="w-full h-10 px-3 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-500"
-                  value={formData.objek_pemeriksaan}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      objek_pemeriksaan: e.target.value,
-                    })
-                  }
-                >
-                  <option value="">-- Pilih Sub Unit --</option>
+        {/* --- TABLE / GROUPED VIEW --- */}
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-12 transition-all">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead className="bg-[#1e293b] text-white">
+                <tr>
+                  <th rowSpan="2" className="p-5 text-sm font-bold border-r border-slate-700 w-[35%] uppercase tracking-wider">
+                    Unit & Kegiatan Audit
+                  </th>
+                  <th colSpan="3" className="p-3 text-center text-xs font-bold border-b border-r border-slate-700 bg-[#0f172a] uppercase tracking-widest">
+                    Status Temuan
+                  </th>
+                  <th rowSpan="2" className="p-5 text-center text-sm font-bold border-r border-slate-700 uppercase tracking-wider w-[20%]">
+                    Status Progress
+                  </th>
+                  <th rowSpan="2" className="p-5 text-center text-sm font-bold uppercase tracking-wider w-[15%]">
+                    Aksi
+                  </th>
+                </tr>
+                <tr className="bg-[#334155]">
+                  <th className="p-2 text-center font-semibold border-r border-slate-600 text-[10px] uppercase tracking-widest text-slate-300">Draft</th>
+                  <th className="p-2 text-center font-semibold border-r border-slate-600 text-[10px] uppercase tracking-widest text-slate-300">Monev</th>
+                  <th className="p-2 text-center font-semibold border-slate-600 text-[10px] uppercase tracking-widest text-emerald-400">Close</th>
+                </tr>
+              </thead>
 
-                  {Object.keys(unitToCategoryMap).map((unit) => (
-                    <option key={unit} value={unit}>
-                      {unit}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="flex flex-col">
-                <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1 ml-1">
-                  Nama Kegiatan
-                </label>
-                <input
-                  className="w-full h-10 px-3 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-500"
-                  value={formData.nama_kegiatan}
-                  onChange={(e) =>
-                    setFormData({ ...formData, nama_kegiatan: e.target.value })
-                  }
-                  placeholder="Input manual..."
-                />
-              </div>
+              <tbody className="divide-y divide-slate-100">
+                {loading ? (
+                  <tr>
+                    <td colSpan="6" className="py-20 text-center text-slate-400 font-medium tracking-widest animate-pulse text-xs uppercase">
+                      Memuat Data Assurance...
+                    </td>
+                  </tr>
+                ) : Object.keys(groupedData).length > 0 ? (
+                  Object.keys(groupedData).map((unit) => (
+                    <React.Fragment key={unit}>
+                      {/* UNIT HEADER ROW */}
+                      <tr className="bg-slate-50/80 border-b-2 border-slate-200">
+                        <td colSpan="6" className="p-3 px-5 border-l-4 border-blue-600">
+                          <span className="text-xs font-black text-slate-700 uppercase tracking-widest flex items-center gap-2">
+                             <BsFolder2Open className="text-blue-500" size={16} /> {unit}
+                          </span>
+                        </td>
+                      </tr>
 
-              {/* Tujuan & Sasaran - Row 2 (Textarea disamakan tingginya) */}
-              <div className="flex flex-col">
-                <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1 ml-1">
-                  Tujuan
-                </label>
-                <textarea
-                  className="w-full h-12 px-3 py-3 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-500 resize-y leading-tight"
-                  placeholder="Jelaskan tujuan..."
-                  value={formData.tujuan}
-                  onChange={(e) =>
-                    setFormData({ ...formData, tujuan: e.target.value })
-                  }
-                />
-              </div>
-              <div className="flex flex-col">
-                <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1 ml-1">
-                  Sasaran
-                </label>
-                <textarea
-                  className="w-full h-12 px-3 py-3 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-500 resize-y leading-tight"
-                  value={formData.sasaran}
-                  onChange={(e) =>
-                    setFormData({ ...formData, sasaran: e.target.value })
-                  }
-                  placeholder="Jelaskan sasaran..."
-                />
-              </div>
+                      {/* DATA ROWS */}
+                      {groupedData[unit].map((item) => {
+                        let totalDraft = 0;
+                        let totalMonev = 0;
+                        let totalClose = 0;
 
-              {/* Objek Audit & Ruang Lingkup - Row 3 */}
-              <div className="flex flex-col">
-                <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1 ml-1">
-                  Objek Audit
-                </label>
-                <input
-                  className="w-full h-10 px-3 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-500"
-                  value={formData.objek_audit}
-                  onChange={(e) =>
-                    setFormData({ ...formData, objek_audit: e.target.value })
-                  }
-                />
-              </div>
-              <div className="flex flex-col">
-                <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1 ml-1">
-                  Ruang Lingkup
-                </label>
-                <input
-                  className="w-full h-10 px-3 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-500"
-                  value={formData.ruang_lingkup}
-                  onChange={(e) =>
-                    setFormData({ ...formData, ruang_lingkup: e.target.value })
-                  }
-                />
-              </div>
+                        if (item.kka) {
+                          item.kka.forEach(k => {
+                            if (k.temuan) {
+                              k.temuan.forEach(t => {
+                                const st = t.analisis?.status || 'draft';
+                                if (st === 'close') totalClose++;
+                                else if (st === 'monev') totalMonev++;
+                                else totalDraft++;
+                              });
+                            }
+                          });
+                        }
 
-              <div className="flex flex-col">
-                <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1 ml-1">
-                  Metodologi Audit
-                </label>
-                <input
-                  className="w-full h-10 px-3 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-500"
-                  value={formData.metodologi}
-                  onChange={(e) =>
-                    setFormData({ ...formData, metodologi: e.target.value })
-                  }
-                />
-              </div>
-              <div className="flex flex-col">
-                <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1 ml-1">
-                  Periode Pemeriksaan
-                </label>
+                        return (
+                        <tr key={item.id} className="hover:bg-blue-50/40 transition-colors group">
+                          <td className="p-4 pl-8">
+                            <button 
+                              onClick={() => navigate(`/internal/assurance/${item.id}`)}
+                              className="text-left font-bold text-slate-800 text-sm hover:text-blue-700 transition-colors line-clamp-2 leading-snug group-hover:underline decoration-blue-300 underline-offset-4"
+                              title="Buka Ruang Kerja Audit"
+                            >
+                              {item.nama_kegiatan}
+                            </button>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase mt-1">
+                              ST: {item.surat_tugas?.nomor_surat || "Belum Terikat"}
+                            </p>
+                          </td>
 
-                <div className="grid grid-cols-2 gap-3">
-                  <input
-                    type="date"
-                    className="w-full h-10 px-3 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-500"
-                    value={formData.tgl_mulai}
-                    onChange={(e) =>
-                      setFormData({ ...formData, tgl_mulai: e.target.value })
-                    }
-                  />
+                          {/* REALT-TIME DOKUMEN COUNT */}
+                          <td className="text-center p-4 text-sm font-black text-rose-600 border-x border-slate-50 bg-slate-50/30">{totalDraft > 0 ? totalDraft : 0}</td>
+                          <td className="text-center p-4 text-sm font-bold text-amber-500 border-r border-slate-50">{totalMonev > 0 ? totalMonev : 0}</td>
+                          <td className="text-center p-4 text-sm font-bold text-emerald-500 border-r border-slate-50">{totalClose > 0 ? totalClose : 0}</td>
 
-                  <input
-                    type="date"
-                    className="w-full h-10 px-3 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-500"
-                    value={formData.tgl_selesai}
-                    onChange={(e) =>
-                      setFormData({ ...formData, tgl_selesai: e.target.value })
-                    }
-                  />
-                </div>
-              </div>
-              <div className="flex flex-col">
-                <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1 ml-1">
-                  lokasi
-                </label>
-                <input
-                  className="w-full h-10 px-3 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-500"
-                  value={formData.lokasi}
-                  onChange={(e) =>
-                    setFormData({ ...formData, lokasi: e.target.value })
-                  }
-                />
-              </div>
+                          {/* STATUS BADGE */}
+                          <td className="text-center p-4">
+                            <span className={`inline-flex items-center justify-center px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest border
+                              ${item.status === "Selesai" || item.status === "Closed"
+                                ? "bg-emerald-50 text-emerald-700 border-emerald-200" 
+                                : "bg-blue-50 text-blue-700 border-blue-200 shadow-sm"}`}
+                            >
+                              {(item.status === "Selesai" || item.status === "Closed") && <BsCheckCircleFill className="mr-1.5 text-emerald-500" size={12} />}
+                              {item.status || "Planning"}
+                            </span>
+                          </td>
 
-              {/* ================= PERSONIL ================= */}
-              <div className="md:col-span-2 bg-slate-50 p-4 rounded-xl border border-slate-100 mt-2">
-                {/* Personil utama */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                  <PersonilDropdown
-                    label="Koordinator"
-                    value={formData.koordinator}
-                    list={usersList}
-                    onChange={(val) =>
-                      setFormData({ ...formData, koordinator: val })
-                    }
-                  />
-
-                  <PersonilDropdown
-                    label="Pengendali Teknis"
-                    value={formData.pengendali_teknis}
-                    list={usersList}
-                    onChange={(val) =>
-                      setFormData({ ...formData, pengendali_teknis: val })
-                    }
-                  />
-
-                  <PersonilDropdown
-                    label="Ketua Tim"
-                    value={formData.ketua}
-                    list={usersList}
-                    onChange={(val) => setFormData({ ...formData, ketua: val })}
-                  />
-                </div>
-
-                {/* ================= AUDITOR ================= */}
-                <label className="block text-[10px] font-bold text-slate-500 uppercase mb-2">
-                  Auditor
-                </label>
-
-                {formData.auditor.map((aud, index) => (
-                  <div
-                    key={index}
-                    className="relative flex items-center gap-2 mb-3"
-                  >
-                    {/* Nomor */}
-                    <span className="text-xs font-semibold text-slate-500 w-4">
-                      {index + 1}
-                    </span>
-
-                    {/* Dropdown */}
-                    <select
-                      className="flex-1 h-9 px-2 border border-slate-200 rounded-md text-sm focus:ring-2 focus:ring-blue-500"
-                      value={aud}
-                      onChange={(e) =>
-                        handleAuditorChange(index, e.target.value)
-                      }
-                    >
-                      <option value="">Pilih...</option>
-
-                      {usersList.map((user) => (
-                        <option key={user.id} value={user.name}>
-                          {user.name} ({user.roles?.[0]?.name || "User"})
-                        </option>
-                      ))}
-                    </select>
-
-                    {/* Tombol Hapus */}
-                    <button
-                      type="button"
-                      onClick={() => removeAuditor(index)}
-                      className="absolute -top-2 -right-2 w-5 h-5 text-[10px] bg-red-500 hover:bg-red-600 text-white rounded flex items-center justify-center"
-                    >
-                      −
-                    </button>
-                  </div>
-                ))}
-
-                {/* Tombol Tambah Auditor */}
-                <div className="flex justify-end mt-2">
-                  <button
-                    type="button"
-                    onClick={addAuditor}
-                    className="w-5 h-5 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded flex items-center justify-center"
-                  >
-                    +
-                  </button>
-                </div>
-              </div>
-
-              {/* Keterangan - Full Width */}
-              <div className="md:col-span-2">
-                <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1 ml-1">
-                  Keterangan
-                </label>
-                <input
-                  className="w-full h-10 px-3 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-500"
-                  value={formData.keterangan}
-                  onChange={(e) =>
-                    setFormData({ ...formData, keterangan: e.target.value })
-                  }
-                />
-              </div>
-
-              {/* Footer Buttons */}
-              <div className="md:col-span-2 flex gap-3 mt-4 border-t pt-6">
-                <button
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  className="flex-1 py-3 bg-slate-100 text-slate-600 rounded-xl font-bold hover:bg-slate-200 transition-colors"
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 py-3 bg-blue-600 text-white rounded-xl font-bold shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all"
-                >
-                  Simpan Data Assurance
-                </button>
-              </div>
-            </form>
+                          {/* AKSI */}
+                          <td className="text-center p-4">
+                            <div className="flex justify-center gap-2">
+                              <button 
+                                onClick={() => navigate(`/internal/assurance/${item.id}`)}
+                                className="p-2.5 bg-slate-100 text-slate-500 hover:bg-blue-500 hover:text-white rounded-xl transition-all shadow-sm" title="Buka Workspace"
+                              >
+                                <BsEye size={16} />
+                              </button>
+                              <button className="p-2.5 bg-slate-100 text-slate-500 hover:bg-amber-500 hover:text-white rounded-xl transition-all shadow-sm" title="Edit Data">
+                                <BsPencilSquare size={16} />
+                              </button>
+                              <button className="p-2.5 bg-slate-100 text-slate-500 hover:bg-red-500 hover:text-white rounded-xl transition-all shadow-sm" title="Hapus Data">
+                                <BsTrash size={16} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                        );
+                      })}
+                    </React.Fragment>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="6" className="py-16 text-center text-slate-400 font-medium text-sm">
+                       Belum ada data audit assurance.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
-      )}
+
+        {/* ================= MODAL FORM ================= */}
+        {showModal && (
+          <div className="fixed inset-0 z-[9999] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
+            <div className="bg-white rounded-[2rem] p-8 w-full max-w-4xl shadow-2xl overflow-y-auto max-h-[90vh] animate-in zoom-in-95 duration-200 flex flex-col relative">
+              
+              <div className="flex justify-between items-center mb-6 pb-4 border-b border-slate-100 shrink-0">
+                <div>
+                  <h2 className="text-xl font-black uppercase tracking-tight text-slate-800 flex items-center gap-2">
+                    <BsFileText className="text-blue-500" size={24} /> Registrasi Audit
+                  </h2>
+                  <p className="text-[10px] text-slate-400 font-medium uppercase tracking-widest mt-1">
+                    Parameter pelaksanaan pengawasan
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowModal(false)}
+                  className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-colors"
+                >
+                  <BsX size={28} />
+                </button>
+              </div>
+
+              <form onSubmit={handleSave} className="flex-1 overflow-y-auto pr-2 space-y-6">
+                
+                {/* --- SUMBER SURAT TUGAS --- */}
+                <div className="bg-blue-50/50 p-5 rounded-2xl border border-blue-100">
+                  <label className="block text-[10px] font-black text-blue-600 uppercase tracking-widest mb-2 flex items-center gap-1.5">
+                    <BsClipboardCheck size={14} /> Dasar Pelaksanaan (Surat Tugas)
+                  </label>
+                  <select
+                    required
+                    className="w-full p-4 bg-white border border-blue-200 rounded-xl font-bold text-sm text-slate-700 outline-none focus:ring-2 focus:ring-blue-500 transition-all cursor-pointer shadow-sm"
+                    value={formData.noST}
+                    onChange={(e) => handleSTChange(e.target.value)}
+                  >
+                    <option value="">-- Pilih Nomor Surat Tugas (Auto-Fill Data) --</option>
+                    {suratTugasList.map((st) => (
+                      <option key={st.id} value={st.nomor_surat}>
+                        {st.nomor_surat} - {st.deskripsi?.substring(0, 50)}...
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* --- OBJEK & KEGIATAN --- */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Kategori / Divisi Terperiksa</label>
+                    <select
+                      className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 font-semibold text-sm transition-all cursor-pointer"
+                      value={formData.objek_pemeriksaan}
+                      onChange={(e) => setFormData({ ...formData, objek_pemeriksaan: e.target.value })}
+                    >
+                      <option value="">-- Pilih --</option>
+                      {Object.keys(unitToCategoryMap).map((unit) => (
+                        <option key={unit} value={unit}>{unit}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Nama Kegiatan Audit</label>
+                    <input
+                      required
+                      className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 font-bold text-sm text-slate-800 transition-all"
+                      value={formData.nama_kegiatan}
+                      onChange={(e) => setFormData({ ...formData, nama_kegiatan: e.target.value })}
+                      placeholder="Contoh: Audit Keuangan Q1..."
+                    />
+                  </div>
+                </div>
+
+                {/* --- TUJUAN & SASARAN --- */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Tujuan</label>
+                    <textarea
+                      required
+                      className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 font-medium text-sm h-28 resize-none transition-all leading-relaxed"
+                      value={formData.tujuan}
+                      onChange={(e) => setFormData({ ...formData, tujuan: e.target.value })}
+                      placeholder="Tujuan spesifik pemeriksaan..."
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Sasaran (Target)</label>
+                    <textarea
+                      required
+                      className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 font-medium text-sm h-28 resize-none transition-all leading-relaxed"
+                      value={formData.sasaran}
+                      onChange={(e) => setFormData({ ...formData, sasaran: e.target.value })}
+                      placeholder="Target yang ingin dicapai..."
+                    />
+                  </div>
+                </div>
+
+                {/* --- LINGKUP & METODOLOGI --- */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Objek Audit</label>
+                    <input
+                      className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 font-semibold text-sm transition-all"
+                      value={formData.objek_audit}
+                      onChange={(e) => setFormData({ ...formData, objek_audit: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Ruang Lingkup</label>
+                    <input
+                      className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 font-semibold text-sm transition-all"
+                      value={formData.ruang_lingkup}
+                      onChange={(e) => setFormData({ ...formData, ruang_lingkup: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Metodologi</label>
+                    <input
+                      className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 font-semibold text-sm transition-all"
+                      value={formData.metodologi}
+                      onChange={(e) => setFormData({ ...formData, metodologi: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                {/* --- WAKTU & LOKASI --- */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5 bg-slate-50 p-5 rounded-2xl border border-slate-100">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1.5"><BsClockHistory size={12}/> Periode Pelaksanaan</label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="date"
+                        required
+                        className="flex-1 p-3.5 bg-white border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 font-semibold text-sm transition-all cursor-text"
+                        value={formData.tgl_mulai}
+                        onChange={(e) => setFormData({ ...formData, tgl_mulai: e.target.value })}
+                      />
+                      <span className="text-slate-400 font-bold text-xs uppercase">s/d</span>
+                      <input
+                        type="date"
+                        required
+                        className="flex-1 p-3.5 bg-white border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 font-semibold text-sm transition-all cursor-text"
+                        value={formData.tgl_selesai}
+                        onChange={(e) => setFormData({ ...formData, tgl_selesai: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Lokasi Pelaksanaan</label>
+                    <input
+                      className="w-full p-3.5 bg-white border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 font-semibold text-sm transition-all"
+                      value={formData.lokasi}
+                      onChange={(e) => setFormData({ ...formData, lokasi: e.target.value })}
+                      placeholder="Contoh: Kantor Pusat Lt. 3"
+                    />
+                  </div>
+                </div>
+
+                {/* --- STRUKTUR TIM --- */}
+                <div className="border-t border-slate-100 pt-6">
+                  <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest mb-4 flex items-center gap-2">
+                     <BsCheck2Circle className="text-emerald-500" size={18}/> Struktur Personil
+                  </h3>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-5">
+                    <PersonilDropdown
+                      label="Koordinator"
+                      value={formData.koordinator}
+                      list={usersList}
+                      onChange={(val) => setFormData({ ...formData, koordinator: val })}
+                    />
+                    <PersonilDropdown
+                      label="Pengendali Teknis"
+                      value={formData.pengendali_teknis}
+                      list={usersList}
+                      onChange={(val) => setFormData({ ...formData, pengendali_teknis: val })}
+                    />
+                    <PersonilDropdown
+                      label="Ketua Tim"
+                      value={formData.ketua}
+                      list={usersList}
+                      onChange={(val) => setFormData({ ...formData, ketua: val })}
+                    />
+                  </div>
+
+                  <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                    <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3 ml-1">
+                      Anggota Tim / Auditor
+                    </label>
+                    
+                    <div className="space-y-3">
+                      {formData.auditor.map((aud, index) => (
+                        <div key={index} className="flex items-center gap-3">
+                          <div className="w-8 h-10 bg-white border border-slate-200 rounded-lg flex items-center justify-center text-xs font-black text-slate-400 shrink-0 shadow-sm">
+                            {index + 1}
+                          </div>
+                          <select
+                            className="flex-1 p-3 bg-white border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 font-semibold text-sm transition-all shadow-sm"
+                            value={aud}
+                            onChange={(e) => handleAuditorChange(index, e.target.value)}
+                          >
+                            <option value="">-- Pilih Auditor --</option>
+                            {usersList.map((user) => (
+                              <option key={user.id} value={user.name}>
+                                {user.name} ({user.roles?.[0]?.name || "N/A"})
+                              </option>
+                            ))}
+                          </select>
+                          <button
+                            type="button"
+                            onClick={() => removeAuditor(index)}
+                            className="w-10 h-10 bg-red-50 hover:bg-red-500 text-red-500 hover:text-white rounded-lg flex items-center justify-center transition-colors shrink-0 border border-red-100 shadow-sm"
+                            title="Hapus Auditor"
+                          >
+                            <BsTrash size={16} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={addAuditor}
+                      className="mt-4 px-4 py-2 bg-white border border-blue-200 text-blue-600 rounded-lg text-xs font-bold uppercase tracking-wider hover:bg-blue-50 transition-colors shadow-sm flex items-center gap-1.5"
+                    >
+                      <BsPlusLg size={12}/> Tambah Auditor Baru
+                    </button>
+                  </div>
+                </div>
+
+                {/* --- KETERANGAN --- */}
+                <div className="space-y-1.5 pt-2">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Keterangan Tambahan</label>
+                  <input
+                    className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 font-semibold text-sm transition-all"
+                    value={formData.keterangan}
+                    onChange={(e) => setFormData({ ...formData, keterangan: e.target.value })}
+                    placeholder="Opsional..."
+                  />
+                </div>
+
+                {/* FOOTER BUTTONS */}
+                <div className="flex gap-3 pt-6 mt-4 border-t border-slate-100 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setShowModal(false)}
+                    className="flex-1 py-4 text-slate-500 bg-slate-100 hover:bg-slate-200 rounded-xl font-bold transition-all text-sm uppercase tracking-wider"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-2 w-[60%] py-4 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition-all shadow-xl active:scale-[0.98] uppercase text-xs tracking-widest flex items-center justify-center gap-2"
+                  >
+                    <BsCheckCircleFill size={18} /> Simpan Data Assurance
+                  </button>
+                </div>
+              </form>
+
+            </div>
+          </div>
+        )}
+
+      </div>
     </div>
   );
 };
 
-// Helper Dropdown Personil
+// ================= HELPER COMPONENT =================
 const PersonilDropdown = ({ label, value, list, onChange }) => (
-  <div className="flex flex-col">
-    <label className="block text-[9px] font-black text-slate-400 uppercase mb-1 ml-1">
+  <div className="space-y-1.5">
+    <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">
       {label}
     </label>
     <select
-      className="w-full h-10 px-2 border border-slate-200 rounded-lg text-xs outline-none focus:border-blue-500 bg-white"
+      required
+      className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 font-semibold text-sm transition-all cursor-pointer"
       value={value}
       onChange={(e) => onChange(e.target.value)}
     >
@@ -625,22 +648,5 @@ const PersonilDropdown = ({ label, value, list, onChange }) => (
     </select>
   </div>
 );
-
-const StatCard = ({ title, value, icon, color }) => {
-  const colors = {
-    blue: "bg-blue-50 text-blue-600",
-    orange: "bg-orange-50 text-orange-600",
-    green: "bg-green-50 text-green-600",
-  };
-  return (
-    <div className="bg-white p-5 rounded-xl border border-slate-100 shadow-sm flex items-center gap-4">
-      <div className={`p-3 rounded-lg text-xl ${colors[color]}`}>{icon}</div>
-      <div>
-        <div className="text-sm text-slate-500 font-medium">{title}</div>
-        <div className="text-2xl font-bold text-slate-800">{value}</div>
-      </div>
-    </div>
-  );
-};
 
 export default Assurance;

@@ -10,7 +10,7 @@ class kkacontroller extends Controller
     // Mengambil semua data KKA
     public function index()
     {
-        $data = kka::orderBy('created_at', 'desc')->get();
+        $data = kka::orderBy('created_at', 'asc')->get();
         return response()->json($data);
     }
 

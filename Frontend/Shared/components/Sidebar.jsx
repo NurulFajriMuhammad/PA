@@ -319,7 +319,7 @@ export default function Sidebar({ isSidebarOpen, toggleSidebar }) {
             </button>
             <div className={`submenu-list ${openDropdown === 'master' ? 'is-open' : ''}`} style={!isSidebarOpen ? { top: `${floatingPos}px` } : {}}>
               <Link to="/master-data/template-kka" className={`submenu-item ${isActive('/master-data/template-kka') ? 'active-sub' : ''}`} onClick={closeFloatingOnNav}>Template KKA</Link>
-              <Link to="/master-data/checklist-pemeriksaan" className={`submenu-item ${isActive('/master-data/checklist-pemeriksaan') ? 'active-sub' : ''}`} onClick={closeFloatingOnNav}>Checklist</Link>
+              {/* <Link to="/master-data/checklist-pemeriksaan" className={`submenu-item ${isActive('/master-data/checklist-pemeriksaan') ? 'active-sub' : ''}`} onClick={closeFloatingOnNav}>Checklist</Link> */}
             </div>
           </div>
 

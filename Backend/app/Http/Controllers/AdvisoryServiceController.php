@@ -12,7 +12,7 @@ class AdvisoryServiceController extends Controller
     public function index()
     {
         return response()->json([
-            'data' => AdvisoryService::latest()->get()
+            'data' => AdvisoryService::orderBy('id', 'asc')->get()
         ]);
     }
 

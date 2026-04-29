@@ -22,7 +22,8 @@ class PemeriksaanTemuan extends Model
         'nilai_kerugian',
         'rekomendasi',
         'keterangan',
-        'lampiran'
+        'lampiran',
+        'lampiran_name'
     ];
 
     public function kka()
@@ -33,5 +34,10 @@ class PemeriksaanTemuan extends Model
     public function analisis()
     {
         return $this->hasOne(AnalisisTemuan::class, 'temuan_id');
+    }
+
+    public function tindakLanjut()
+    {
+        return $this->hasOne(TindakLanjut::class, 'temuan_id');
     }
 }

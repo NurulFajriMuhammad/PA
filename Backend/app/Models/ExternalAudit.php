@@ -21,4 +21,9 @@ class ExternalAudit extends Model
         'status',
         'keterangan',
     ];
+
+    public function temuan()
+    {
+        return $this->hasMany(ExternalAuditTemuan::class, 'external_audit_id');
+    }
 }

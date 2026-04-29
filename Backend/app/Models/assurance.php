@@ -48,6 +48,11 @@ class assurance extends Model
         return $this->belongsTo(SuratTugas::class, 'surat_tugas_id');
     }
 
+    public function kka()
+    {
+        return $this->hasMany(PerencanaanKka::class, 'assurance_id');
+    }
+
     // Relasi ke Audit Universe (untuk mengambil Sub-Unit)
     public function auditUniverse()
     {

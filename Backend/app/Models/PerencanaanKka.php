@@ -21,7 +21,7 @@ class PerencanaanKka extends Model
 
     public function temuan()
     {
-        return $this->hasMany(PemeriksaanTemuan::class,'kka_id');
+        return $this->hasMany(PemeriksaanTemuan::class,'kka_id')->orderBy('id', 'desc');
     }
 
     public function biaya()

@@ -672,7 +672,7 @@
   // =========================
   async function loadData() {
     try {
-      const res = await fetch(`http://10.253.130.66:8000/api/report/${assuranceId}`);
+      const res = await fetch(`http://192.168.1.8:8000/api/report/${assuranceId}`);
       const result = await res.json();
       const data = result.data || result;
 

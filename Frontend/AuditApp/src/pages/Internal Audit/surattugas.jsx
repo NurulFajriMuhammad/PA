@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import {
   BsPlusLg,
   BsSearch,
-  BsFileEarmarkPdf,
   BsPencilSquare,
   BsTrash,
   BsX,
@@ -11,13 +10,39 @@ import {
 import {
   Hash,
   Calendar,
-  Briefcase,
   FileText,
   UserCheck,
   UserCircle,
   Users,
 } from "lucide-react";
 import apiClient from "../../../../Shared/api/axios";
+
+// --- CSS KHUSUS UNTUK PRINTING (Sembunyikan Web, Tampilkan Kertas) ---
+const printStyles = `
+  @media screen {
+    #print-area {
+      display: none;
+    }
+  }
+  @media print {
+    body {
+      background-color: white !important;
+    }
+    .no-print {
+      display: none !important;
+    }
+    #print-area {
+      display: block !important;
+      width: 100% !important;
+      margin: 0 !important;
+      padding: 0 !important;
+    }
+    @page {
+      size: A4 portrait;
+      margin: 2cm;
+    }
+  }
+`;
 
 const SuratTugas = () => {
   const [users, setUsers] = useState([]);
@@ -26,7 +51,6 @@ const SuratTugas = () => {
   const [showModal, setShowModal] = useState(false);
   const [editId, setEditId] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [showPrintModal, setShowPrintModal] = useState(false);
   const [selectedSurat, setSelectedSurat] = useState(null);
 
   const [formData, setFormData] = useState({
@@ -42,7 +66,7 @@ const SuratTugas = () => {
   });
 
   const handleSelectAuditor = (name) => {
-    if (!formData.auditor.includes(name)) {
+    if (!formData.auditor.includes(name) && name !== "") {
       setFormData({
         ...formData,
         auditor: [...formData.auditor, name],
@@ -65,6 +89,7 @@ const SuratTugas = () => {
       console.error("Gagal ambil users:", err);
     }
   };
+
   const renderUserOptions = () => {
     return users.map((user) => (
       <option key={user.id} value={user.name}>
@@ -85,10 +110,19 @@ const SuratTugas = () => {
     }
   };
 
-  // useEffect(() => { fetchData(); }, []);
   useEffect(() => {
     fetchData();
     fetchUsers();
+    
+    // Inject CSS Print ke dalam Head
+    const styleSheet = document.createElement("style");
+    styleSheet.type = "text/css";
+    styleSheet.innerText = printStyles;
+    document.head.appendChild(styleSheet);
+    
+    return () => {
+      document.head.removeChild(styleSheet);
+    };
   }, []);
 
   const handleSave = async (e) => {
@@ -123,54 +157,43 @@ const SuratTugas = () => {
       koordinator: "",
       pengendali_teknis: "",
       ketua: "",
-      auditor: [], // HARUS ARRAY
+      auditor: [], 
     });
     setEditId(null);
   };
 
   const hitungHariKerja = (range) => {
     if (!range) return 0;
-
     const [start, end] = range.split(" s/d ");
-
     const startDate = new Date(start);
     const endDate = new Date(end);
-
     let count = 0;
-
     const current = new Date(startDate);
 
     while (current <= endDate) {
       const day = current.getDay();
-
       if (day !== 0 && day !== 6) {
-        // tidak termasuk sabtu minggu
         count++;
       }
-
       current.setDate(current.getDate() + 1);
     }
-
     return count;
   };
 
   const handleEdit = (item) => {
     const tgl = item.periode_pemeriksaan?.split(" s/d ") || ["", ""];
-
     setEditId(item.id);
-
     setFormData({
       ...item,
       tgl_mulai: tgl[0],
       tgl_selesai: tgl[1],
       auditor: item.auditor ? item.auditor.split(", ") : [],
     });
-
     setShowModal(true);
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm("Hapus data ini?")) {
+    if (window.confirm("Hapus data surat tugas ini?")) {
       try {
         await apiClient.delete(`/api/surat-tugas/${id}`);
         fetchData();
@@ -182,18 +205,14 @@ const SuratTugas = () => {
 
   const handlePrint = (item) => {
     setSelectedSurat(item);
-
     setTimeout(() => {
       window.print();
-    }, 200);
+    }, 300);
   };
+
   const getUserRole = (name) => {
     const user = users.find((u) => u.name === name);
     return user?.roles?.[0]?.name || "-";
-  };
-
-  const handlePrintDocument = () => {
-    window.print();
   };
 
   const filteredData = dataSurat.filter(
@@ -201,188 +220,361 @@ const SuratTugas = () => {
       item.nomor_surat?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       item.deskripsi?.toLowerCase().includes(searchTerm.toLowerCase()),
   );
+
   const formatAuditors = () => {
     if (!selectedSurat?.auditor) return [];
-
     return selectedSurat.auditor.split(", ");
   };
 
   const formatTanggalIndo = (tanggal) => {
     if (!tanggal) return "";
-
     const bulan = [
-      "Januari",
-      "Februari",
-      "Maret",
-      "April",
-      "Mei",
-      "Juni",
-      "Juli",
-      "Agustus",
-      "September",
-      "Oktober",
-      "November",
-      "Desember",
+      "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+      "Juli", "Agustus", "September", "Oktober", "November", "Desember",
     ];
-
     const tgl = new Date(tanggal);
-    const hari = tgl.getDate();
-    const bln = bulan[tgl.getMonth()];
-    const thn = tgl.getFullYear();
-
-    return `${hari} ${bln} ${thn}`;
+    return `${tgl.getDate()} ${bulan[tgl.getMonth()]} ${tgl.getFullYear()}`;
   };
 
   const formatTanggalTable = (tanggal) => {
-  if (!tanggal) return "";
-
-  const tgl = new Date(tanggal);
-
-  const day = String(tgl.getDate()).padStart(2, "0");
-  const month = String(tgl.getMonth() + 1).padStart(2, "0");
-  const year = tgl.getFullYear();
-
-  return `${day}-${month}-${year}`;
-};
+    if (!tanggal) return "";
+    const tgl = new Date(tanggal);
+    const day = String(tgl.getDate()).padStart(2, "0");
+    const month = String(tgl.getMonth() + 1).padStart(2, "0");
+    return `${day}-${month}-${tgl.getFullYear()}`;
+  };
 
   return (
-    <div
-      style={{
-        padding: "25px",
-        backgroundColor: "#f8fafc",
-        minHeight: "100vh",
-      }}
-    >
-      {/* Header */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: "25px",
-        }}
-      >
-        <div>
-          <h2
-            style={{
-              margin: 0,
-              color: "#0f172a",
-              fontWeight: 800,
-              fontSize: "1.8rem",
-            }}
-          >
-            Data Surat Tugas
-          </h2>
-          <p style={{ margin: "5px 0 0", color: "#64748b" }}>
-            Daftar penugasan audit internal.
-          </p>
-        </div>
-        <button
-          onClick={() => {
-            resetForm();
-            setShowModal(true);
-          }}
-          style={btnPrimaryStyle}
-        >
-          <BsPlusLg /> Tambah Surat Tugas
-        </button>
-      </div>
+    <>
+      {/* ========================================= */}
+      {/* TAMPILAN WEB UI (AKAN HILANG SAAT PRINT)  */}
+      {/* ========================================= */}
+      <div className="no-print min-h-screen bg-slate-50 py-12 px-6 font-sans">
+        <div className="max-w-7xl mx-auto">
+          
+          <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-6">
+            <div>
+              <div className="inline-flex items-center gap-2 bg-indigo-50 text-indigo-600 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider mb-3 border border-indigo-100">
+                <FileText size={12} /> Legal & Compliance
+              </div>
+              <h1 className="text-4xl font-black text-slate-900 uppercase tracking-tight">
+                Surat <span className="text-indigo-600">Tugas</span>
+              </h1>
+              <p className="text-slate-500 mt-2 font-medium">
+                Manajemen penerbitan dan pencetakan surat tugas untuk tim auditor.
+              </p>
+            </div>
+            
+            <button
+              onClick={() => {
+                resetForm();
+                setShowModal(true);
+              }}
+              className="bg-indigo-600 text-white px-6 py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200 active:scale-95"
+            >
+              <BsPlusLg size={18} /> Buat Surat Tugas Baru
+            </button>
+          </div>
 
-      {/* Filter Bar */}
-      <div style={filterBarStyle}>
-        <div style={{ position: "relative", flex: 1 }}>
-          <BsSearch
-            style={{
-              position: "absolute",
-              left: "15px",
-              top: "12px",
-              color: "#94a3b8",
-            }}
-          />
-          <input
-            type="text"
-            placeholder="Cari nomor atau deskripsi..."
-            style={inputSearchStyle}
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-      </div>
+          <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 mb-8">
+            <div className="relative w-full md:w-96">
+              <BsSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Cari berdasarkan nomor atau deskripsi surat..."
+                className="w-full bg-slate-50 border-none rounded-xl py-3 pl-12 pr-4 text-sm font-medium text-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+          </div>
 
-      {/* Tabel Ringkas */}
-      <div style={tableContainerStyle}>
-        <table
-          style={{
-            width: "100%",
-            borderCollapse: "collapse",
-            textAlign: "left",
-          }}
-        >
-          <thead style={theadStyle}>
-            <tr>
-              <th style={{ ...thStyle, width: "50px" }}>No</th>
-              <th style={thStyle}>Nomor Surat</th>
-              <th style={thStyle}>Tanggal</th>
-              <th style={thStyle}>Deskripsi</th>
-              <th style={{ ...thStyle, textAlign: "center" }}>Aksi</th>
-            </tr>
-          </thead>
-          <tbody style={{ fontSize: "0.9rem" }}>
-            {filteredData.map((item, index) => (
-              <tr key={index} style={trStyle}>
-                <td style={tdStyle}>{index + 1}</td>
-                <td style={tdStyle}>
-                  <b>{item.nomor_surat}</b>
-                </td>
-                <td style={tdStyle}>{formatTanggalTable(item.tanggal_surat)}</td>
-                <td style={tdStyle}>{item.deskripsi}</td>
-                <td style={tdStyle}>
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "center",
-                      gap: "12px",
-                    }}
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-12">
+            {loading ? (
+              <div className="text-center py-20 text-slate-400 font-medium tracking-widest animate-pulse text-xs uppercase">
+                Memuat Data Surat Tugas...
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-slate-50 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">
+                      <th className="px-6 py-4 text-center w-16">No</th>
+                      <th className="px-6 py-4">Nomor Surat</th>
+                      <th className="px-6 py-4">Tanggal Dibuat</th>
+                      <th className="px-6 py-4">Deskripsi / Penugasan</th>
+                      <th className="px-6 py-4 text-right">Aksi & Dokumen</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-50">
+                    {filteredData.map((item, index) => (
+                      <tr key={item.id} className="hover:bg-indigo-50/30 transition-colors group">
+                        <td className="px-6 py-4 text-center text-slate-400 font-mono text-xs">
+                          {index + 1}
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className="inline-block px-3 py-1 bg-indigo-50 border border-indigo-100 text-indigo-700 font-black text-xs uppercase tracking-wider rounded-lg">
+                            {item.nomor_surat}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-2 text-xs font-bold text-slate-600">
+                            <Calendar size={14} className="text-slate-400" />
+                            {formatTanggalTable(item.tanggal_surat)}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <p className="text-sm font-bold text-slate-700 max-w-md line-clamp-2">
+                            {item.deskripsi}
+                          </p>
+                          <p className="text-[10px] text-slate-400 uppercase font-bold mt-1">
+                            Ketua Tim: {item.ketua}
+                          </p>
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            <button
+                              onClick={() => handlePrint(item)}
+                              className="inline-flex items-center justify-center p-2.5 bg-slate-100 text-slate-600 hover:bg-emerald-500 hover:text-white rounded-xl transition-all shadow-sm"
+                              title="Cetak Surat Tugas"
+                            >
+                              <BsPrinter size={16} />
+                            </button>
+                            <button
+                              onClick={() => handleEdit(item)}
+                              className="inline-flex items-center justify-center p-2.5 bg-slate-100 text-slate-600 hover:bg-amber-500 hover:text-white rounded-xl transition-all shadow-sm"
+                              title="Edit"
+                            >
+                              <BsPencilSquare size={16} />
+                            </button>
+                            <button
+                              onClick={() => handleDelete(item.id)}
+                              className="inline-flex items-center justify-center p-2.5 bg-slate-100 text-slate-600 hover:bg-red-500 hover:text-white rounded-xl transition-all shadow-sm"
+                              title="Hapus"
+                            >
+                              <BsTrash size={16} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                    {filteredData.length === 0 && (
+                      <tr>
+                        <td colSpan="5" className="py-16 text-center text-slate-400 font-medium text-sm">
+                          Belum ada surat tugas yang diterbitkan.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
+          {/* MODAL FORM WEB */}
+          {showModal && (
+            <div className="fixed inset-0 z-[150] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
+              <div className="bg-white rounded-[2rem] p-8 w-full max-w-2xl shadow-2xl overflow-y-auto max-h-[90vh] animate-in zoom-in-95 duration-200">
+                <div className="flex justify-between items-center mb-6 pb-4 border-b border-slate-100">
+                  <div>
+                    <h2 className="text-xl font-black uppercase tracking-tight text-slate-800 flex items-center gap-2">
+                      <FileText className="text-indigo-500" size={24} /> {editId ? "Edit" : "Tambah"} Surat Tugas
+                    </h2>
+                    <p className="text-[10px] text-slate-400 font-medium uppercase tracking-widest mt-1">
+                      Isi detail penugasan dan personil tim
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setShowModal(false)}
+                    className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-colors"
                   >
+                    <BsX size={28} />
+                  </button>
+                </div>
+
+                <form onSubmit={handleSave} className="space-y-6">
+                  {/* Info Surat */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1">
+                        <Hash size={12} /> Nomor Surat
+                      </label>
+                      <input
+                        required
+                        className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-sm text-indigo-700 uppercase"
+                        value={formData.nomor_surat}
+                        onChange={(e) => setFormData({ ...formData, nomor_surat: e.target.value })}
+                        placeholder="ST-001/SPI/2026"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1">
+                        <Calendar size={12} /> Tanggal Dikeluarkan
+                      </label>
+                      <input
+                        type="date"
+                        required
+                        className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 font-semibold text-sm text-slate-700"
+                        value={formData.tanggal_surat}
+                        onChange={(e) => setFormData({ ...formData, tanggal_surat: e.target.value })}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Deskripsi */}
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1">
+                      <FileText size={12} /> Deskripsi Penugasan
+                    </label>
+                    <textarea
+                      required
+                      rows="3"
+                      className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 font-medium text-sm text-slate-700"
+                      value={formData.deskripsi}
+                      onChange={(e) => setFormData({ ...formData, deskripsi: e.target.value })}
+                      placeholder="Contoh: Audit operasional bagian gudang bahan baku..."
+                    />
+                  </div>
+
+                  {/* Periode */}
+                  <div className="bg-indigo-50/50 p-4 rounded-xl border border-indigo-100">
+                    <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-3 flex items-center gap-1">
+                      <Calendar size={12} /> PERIODE PEMERIKSAAN
+                    </p>
+                    <div className="grid grid-cols-2 gap-4">
+                      <input
+                        type="date"
+                        required
+                        className="w-full p-3 bg-white border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500 font-semibold text-sm"
+                        value={formData.tgl_mulai}
+                        onChange={(e) => setFormData({ ...formData, tgl_mulai: e.target.value })}
+                      />
+                      <input
+                        type="date"
+                        required
+                        className="w-full p-3 bg-white border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500 font-semibold text-sm"
+                        value={formData.tgl_selesai}
+                        onChange={(e) => setFormData({ ...formData, tgl_selesai: e.target.value })}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="border-t border-slate-100 pt-4 pb-2">
+                    <p className="text-xs font-black text-slate-800 uppercase tracking-widest">PERSONIL TIM AUDIT</p>
+                  </div>
+
+                  {/* Tim Inti */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1">
+                        <UserCheck size={12} /> Koordinator
+                      </label>
+                      <select
+                        required
+                        className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 font-semibold text-sm"
+                        value={formData.koordinator}
+                        onChange={(e) => setFormData({ ...formData, koordinator: e.target.value })}
+                      >
+                        <option value="">Pilih Koordinator...</option>
+                        {renderUserOptions()}
+                      </select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1">
+                        <UserCircle size={12} /> Pengendali Teknis
+                      </label>
+                      <select
+                        required
+                        className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 font-semibold text-sm"
+                        value={formData.pengendali_teknis}
+                        onChange={(e) => setFormData({ ...formData, pengendali_teknis: e.target.value })}
+                      >
+                        <option value="">Pilih Pengendali Teknis...</option>
+                        {renderUserOptions()}
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Tim Pelaksana */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1">
+                        <Users size={12} /> Ketua Tim
+                      </label>
+                      <select
+                        required
+                        className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 font-semibold text-sm"
+                        value={formData.ketua}
+                        onChange={(e) => setFormData({ ...formData, ketua: e.target.value })}
+                      >
+                        <option value="">Pilih Ketua Tim...</option>
+                        {renderUserOptions()}
+                      </select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">
+                        Anggota Tim / Auditor
+                      </label>
+                      <select
+                        className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 font-semibold text-sm mb-2"
+                        onChange={(e) => {
+                          handleSelectAuditor(e.target.value);
+                          e.target.value = "";
+                        }}
+                      >
+                        <option value="">+ Tambah Auditor...</option>
+                        {renderUserOptions()}
+                      </select>
+
+                      <div className="flex flex-wrap gap-2">
+                        {formData.auditor.map((a, i) => (
+                          <div key={i} className="flex items-center gap-1.5 bg-indigo-100 text-indigo-800 px-2.5 py-1 rounded-md text-[11px] font-bold border border-indigo-200">
+                            {a}
+                            <button type="button" onClick={() => removeAuditor(a)} className="hover:text-red-500 ml-1">
+                              <BsX size={14} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="pt-4 flex gap-3 mt-6 border-t border-slate-100">
                     <button
-                      onClick={() => handlePrint(item)}
-                      title="Print"
-                      style={{ ...actionBtnStyle, color: "#3b82f6" }}
+                      type="button"
+                      onClick={() => setShowModal(false)}
+                      className="flex-1 py-4 text-slate-500 bg-slate-100 hover:bg-slate-200 rounded-xl font-bold transition-all text-sm uppercase tracking-wider"
                     >
-                      <BsPrinter />
+                      Batal
                     </button>
                     <button
-                      onClick={() => handleEdit(item)}
-                      title="Edit"
-                      style={{ ...actionBtnStyle, color: "#f59e0b" }}
+                      type="submit"
+                      className="flex-2 w-[60%] py-4 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition-all shadow-xl active:scale-[0.98] uppercase text-xs tracking-widest"
                     >
-                      <BsPencilSquare />
-                    </button>
-                    <button
-                      onClick={() => handleDelete(item.id)}
-                      title="Hapus"
-                      style={{ ...actionBtnStyle, color: "#ef4444" }}
-                    >
-                      <BsTrash />
+                      Simpan Surat Tugas
                     </button>
                   </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                </form>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
-      <div id="print-area" style={{ display: "none" }}>
+      {/* ============================================================ */}
+      {/* TAMPILAN PRINT (KERTAS A4) - DIKEMBALIKAN KE KODE ASLI FAJRI */}
+      {/* ============================================================ */}
+      <div id="print-area">
         {selectedSurat && (
-          <div>
+          <div style={{ fontFamily: '"Times New Roman", Times, serif', color: "black", width: "100%", maxWidth: "21cm", margin: "0 auto" }}>
+            
             {/* KOP SURAT */}
             <div style={{ textAlign: "center", marginBottom: "20px" }}>
-              <h2 style={{ margin: 0 }}>PT. FILTRONA MANUFACTURING INDONESIA.</h2>
-              <p style={{ margin: 0, fontWeight: "bold" }}>
+              <h2 style={{ margin: 0, fontSize: "18px", fontWeight: "bold" }}>PT. FILTRONA MANUFACTURING INDONESIA.</h2>
+              <p style={{ margin: 0, fontWeight: "bold", fontSize: "16px" }}>
                 SATUAN PENGAWASAN INTERN (SPI)
               </p>
-              <hr style={{ marginTop: "10px" }} />
+              <hr style={{ marginTop: "10px", border: "1px solid black" }} />
             </div>
 
             {/* JUDUL */}
@@ -390,574 +582,112 @@ const SuratTugas = () => {
               style={{
                 textAlign: "center",
                 fontWeight: "bold",
-                fontSize: "24px",
+                fontSize: "20px",
                 letterSpacing: "1px",
                 marginBottom: "5px",
+                textDecoration: "underline"
               }}
             >
               SURAT TUGAS
             </h1>
 
-            <p style={{ textAlign: "center", fontSize: "16px" }}>
+            <p style={{ textAlign: "center", fontSize: "14px", marginBottom: "25px" }}>
               <b>NOMOR : {selectedSurat.nomor_surat}</b>
             </p>
 
             {/* PEMBUKA */}
-            <p style={{ marginTop: "25px", textAlign: "justify" }}>
+            <p style={{ marginTop: "25px", textAlign: "justify", fontSize: "14px", lineHeight: "1.5" }}>
               Manajer Senior Satuan Pengawasan Intern PT Filtrona Manufacturing Indonesia
               Tbk dengan ini menugaskan kepada:
             </p>
 
-            <p
-              style={{
-                marginTop: "10px",
-                textAlign: "center",
-                fontWeight: "bold",
-                letterSpacing: "1px",
-              }}
-            >
-              MENUGASKAN
-            </p>
-
             {/* TABEL TIM */}
-            <table>
+            <table style={{ width: "100%", borderCollapse: "collapse", marginTop: "15px", marginBottom: "20px", fontSize: "14px" }}>
               <thead>
                 <tr>
-                  <th style={{ width: "50px" }}>No</th>
-                  <th>Nama</th>
-                  <th>Jabatan / Peran</th>
+                  <th style={{ border: "1px solid black", padding: "8px", width: "50px" }}>No</th>
+                  <th style={{ border: "1px solid black", padding: "8px" }}>Nama</th>
+                  <th style={{ border: "1px solid black", padding: "8px" }}>Jabatan / Peran</th>
                 </tr>
               </thead>
-
               <tbody>
                 <tr>
-                  <td align="center">1</td>
-                  <td>{selectedSurat.koordinator}</td>
-                  <td>
+                  <td style={{ border: "1px solid black", padding: "8px", textAlign: "center" }}>1</td>
+                  <td style={{ border: "1px solid black", padding: "8px" }}>{selectedSurat.koordinator}</td>
+                  <td style={{ border: "1px solid black", padding: "8px", textAlign: "center" }}>
                     {getUserRole(selectedSurat.koordinator)} / Koordinator
                   </td>
                 </tr>
-
                 <tr>
-                  <td align="center">2</td>
-                  <td>{selectedSurat.pengendali_teknis}</td>
-                  <td>
-                    {getUserRole(selectedSurat.pengendali_teknis)} / Pengendali
-                    Teknis
+                  <td style={{ border: "1px solid black", padding: "8px", textAlign: "center" }}>2</td>
+                  <td style={{ border: "1px solid black", padding: "8px" }}>{selectedSurat.pengendali_teknis}</td>
+                  <td style={{ border: "1px solid black", padding: "8px", textAlign: "center" }}>
+                    {getUserRole(selectedSurat.pengendali_teknis)} / Pengendali Teknis
                   </td>
                 </tr>
-
                 <tr>
-                  <td align="center">3</td>
-                  <td>{selectedSurat.ketua}</td>
-                  <td>{getUserRole(selectedSurat.ketua)} / Ketua Tim</td>
+                  <td style={{ border: "1px solid black", padding: "8px", textAlign: "center" }}>3</td>
+                  <td style={{ border: "1px solid black", padding: "8px" }}>{selectedSurat.ketua}</td>
+                  <td style={{ border: "1px solid black", padding: "8px", textAlign: "center" }}>
+                    {getUserRole(selectedSurat.ketua)} / Ketua Tim
+                  </td>
                 </tr>
-
                 {formatAuditors().map((auditor, index) => (
                   <tr key={index}>
-                    <td align="center">{index + 4}</td>
-                    <td>{auditor}</td>
-                    <td>{getUserRole(auditor)} / Auditor</td>
+                    <td style={{ border: "1px solid black", padding: "8px", textAlign: "center" }}>{index + 4}</td>
+                    <td style={{ border: "1px solid black", padding: "8px" }}>{auditor}</td>
+                    <td style={{ border: "1px solid black", padding: "8px", textAlign: "center" }}>
+                      {getUserRole(auditor)} / Auditor
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
 
             {/* ISI SURAT */}
-            <p style={{ marginTop: "20px", textAlign: "justify" }}>
+            <p style={{ marginTop: "20px", textAlign: "justify", fontSize: "14px", lineHeight: "1.5" }}>
               Untuk melaksanakan pemeriksaan <b>{selectedSurat.deskripsi}</b>.
               Penugasan ini dilaksanakan selama
               <b> {hitungHariKerja(selectedSurat.periode_pemeriksaan)} </b> hari
               kerja terhitung mulai tanggal
-              <b>
-                {" "}
-                {formatTanggalIndo(
-                  selectedSurat.periode_pemeriksaan.split(" s/d ")[0],
-                )}
-              </b>{" "}
+              <b> {formatTanggalIndo(selectedSurat.periode_pemeriksaan?.split(" s/d ")[0])} </b>
               sampai dengan
-              <b>
-                {" "}
-                {formatTanggalIndo(
-                  selectedSurat.periode_pemeriksaan.split(" s/d ")[1],
-                )}
-              </b>
-              .
+              <b> {formatTanggalIndo(selectedSurat.periode_pemeriksaan?.split(" s/d ")[1])}</b>.
             </p>
 
-            <p style={{ textAlign: "justify" }}>
+            <p style={{ textAlign: "justify", fontSize: "14px", lineHeight: "1.5", marginTop: "10px" }}>
               Segala pengeluaran akibat dikeluarkannya Surat Tugas ini
               dibebankan kepada anggaran operasional perusahaan.
             </p>
 
             {/* TANDA TANGAN */}
-            <div style={{ marginTop: "40px", textAlign: "right" }}>
-              <p>Lamongan, {formatTanggalIndo(selectedSurat.tanggal_surat)}</p>
-
-              <p>
-                <b>KEPALA SPI</b>
-              </p>
-
-              <br />
-              <br />
-
-              <p>
-                <b>(........................................)</b>
-              </p>
+            <div style={{ marginTop: "40px", display: "flex", justifyContent: "flex-end" }}>
+              <div style={{ textAlign: "center", width: "250px" }}>
+                <p style={{ fontSize: "14px", margin: "0 0 5px 0" }}>Lamongan, {formatTanggalIndo(selectedSurat.tanggal_surat)}</p>
+                <p style={{ fontSize: "14px", margin: "0 0 60px 0" }}><b>KEPALA SPI</b></p>
+                <p style={{ fontSize: "14px", margin: 0 }}><b>(........................................)</b></p>
+              </div>
             </div>
 
             {/* TEMBUSAN */}
-            <div
-              style={{
-                marginTop: "30px",
-                marginLeft: "10px",
-                fontSize: "12px",
-                lineHeight: "1.5",
-              }}
-            >
-              <p style={{ marginBottom: "5px" }}>
-                <b>Tembusan:</b>
-              </p>
-
-              <p style={{ margin: "2px 0" }}>
-                1. Direktur Utama PT Filtrona Manufacturing Indonesia
-              </p>
-
+            <div style={{ marginTop: "30px", fontSize: "12px", lineHeight: "1.5" }}>
+              <p style={{ marginBottom: "5px" }}><b>Tembusan:</b></p>
+              <p style={{ margin: "2px 0" }}>1. Direktur Utama PT Filtrona Manufacturing Indonesia</p>
               <p style={{ margin: "2px 0" }}>2. Arsip</p>
-
               <br />
-
-              <p style={{ marginBottom: "5px" }}>
-                <b>Layanan Pengaduan / Hotline:</b>
-              </p>
-
-              <p style={{ margin: "0" }}>
+              <p style={{ marginBottom: "5px" }}><b>Layanan Pengaduan / Hotline:</b></p>
+              <p style={{ margin: "0", fontStyle: "italic" }}>
                 Apabila Pengawas Unit Kerja SPI menerima atau meminta
                 gratifikasi / suap, dapat dilaporkan melalui mekanisme
                 penyampaian pengaduan.
               </p>
             </div>
+            
           </div>
         )}
       </div>
-
-      {/* Modal Pop-up (Tetap Lengkap) */}
-      {showModal && (
-        <div style={modalOverlayStyle}>
-          <div style={backdropStyle} onClick={() => setShowModal(false)}></div>
-          <div style={modalContentStyle}>
-            <div style={modalHeaderStyle}>
-              <h3 style={{ margin: 0, fontWeight: 700 }}>
-                {editId ? "Edit" : "Tambah"} Surat Tugas
-              </h3>
-              <button onClick={() => setShowModal(false)} style={closeBtnStyle}>
-                <BsX size={24} />
-              </button>
-            </div>
-
-            <form onSubmit={handleSave}>
-              <div style={modalBodyStyle}>
-                <div style={grid2Style}>
-                  <div>
-                    <label style={labelStyle}>
-                      <Hash size={12} /> No. Surat
-                    </label>
-                    <input
-                      required
-                      style={inputStyle}
-                      value={formData.nomor_surat}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          nomor_surat: e.target.value,
-                        })
-                      }
-                    />
-                  </div>
-                  <div>
-                    <label style={labelStyle}>
-                      <Calendar size={12} /> Tanggal Surat
-                    </label>
-                    <input
-                      type="date"
-                      required
-                      style={inputStyle}
-                      value={formData.tanggal_surat}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          tanggal_surat: e.target.value,
-                        })
-                      }
-                    />
-                  </div>
-                </div>
-
-                <div style={periodeBoxStyle}>
-                  <div
-                    style={{
-                      fontSize: "0.7rem",
-                      fontWeight: 800,
-                      color: "#3b82f6",
-                      marginBottom: "10px",
-                    }}
-                  >
-                    PERIODE PEMERIKSAAN
-                  </div>
-                  <div style={grid2Style}>
-                    <input
-                      type="date"
-                      required
-                      style={inputStyle}
-                      value={formData.tgl_mulai}
-                      onChange={(e) =>
-                        setFormData({ ...formData, tgl_mulai: e.target.value })
-                      }
-                    />
-                    <input
-                      type="date"
-                      required
-                      style={inputStyle}
-                      value={formData.tgl_selesai}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          tgl_selesai: e.target.value,
-                        })
-                      }
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label style={labelStyle}>
-                    <FileText size={12} /> Deskripsi
-                  </label>
-                  <textarea
-                    required
-                    style={{ ...inputStyle, height: "60px" }}
-                    value={formData.deskripsi}
-                    onChange={(e) =>
-                      setFormData({ ...formData, deskripsi: e.target.value })
-                    }
-                  />
-                </div>
-
-                <div style={dividerStyle}>PERSONIL TIM</div>
-
-                <div style={grid2Style}>
-                  <div>
-                    <label style={labelStyle}>
-                      <UserCheck size={12} /> Koordinator
-                    </label>
-                    <select
-                      required
-                      style={inputStyle}
-                      value={formData.koordinator}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          koordinator: e.target.value,
-                        })
-                      }
-                    >
-                      <option value="">Pilih Koordinator</option>
-                      {renderUserOptions()}
-                    </select>{" "}
-                  </div>
-                  <div>
-                    <label style={labelStyle}>
-                      <UserCircle size={12} /> Pengendali Teknis
-                    </label>
-                    <select
-                      required
-                      style={inputStyle}
-                      value={formData.pengendali_teknis}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          pengendali_teknis: e.target.value,
-                        })
-                      }
-                    >
-                      <option value="">Pilih Pengendali Teknis</option>
-                      {renderUserOptions()}
-                    </select>{" "}
-                  </div>
-                </div>
-
-                <div style={grid2Style}>
-                  <div>
-                    <label style={labelStyle}>
-                      <Users size={12} /> Ketua Tim
-                    </label>
-                    <select
-                      required
-                      style={inputStyle}
-                      value={formData.ketua}
-                      onChange={(e) =>
-                        setFormData({ ...formData, ketua: e.target.value })
-                      }
-                    >
-                      <option value="">Pilih Ketua Tim</option>
-                      {renderUserOptions()}
-                    </select>{" "}
-                  </div>
-                  {/* <div>
-                    <label style={labelStyle}><Users size={12}/> Auditor</label>
-                  </div> */}
-                  <div>
-                    <label style={labelStyle}>Auditor</label>
-
-                    {/* TAG AUDITOR TERPILIH */}
-                    <div
-                      style={{
-                        display: "flex",
-                        flexWrap: "wrap",
-                        gap: "6px",
-                        marginBottom: "6px",
-                      }}
-                    >
-                      {formData.auditor.map((a, i) => (
-                        <div
-                          key={i}
-                          style={{
-                            background: "#e0f2fe",
-                            padding: "4px 8px",
-                            borderRadius: "6px",
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "5px",
-                            fontSize: "12px",
-                          }}
-                        >
-                          {a}
-                          <span
-                            style={{ cursor: "pointer", fontWeight: "bold" }}
-                            onClick={() => removeAuditor(a)}
-                          >
-                            ✕
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* DROPDOWN */}
-                    <select
-                      style={inputStyle}
-                      onChange={(e) => handleSelectAuditor(e.target.value)}
-                    >
-                      <option value="">Pilih Auditor</option>
-
-                      {users.map((user) => (
-                        <option key={user.id} value={user.name}>
-                          {user.name} ({user.roles?.[0]?.name})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-              </div>
-
-              <div style={modalFooterStyle}>
-                <button
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  style={btnCancelStyle}
-                >
-                  Batal
-                </button>
-                <button type="submit" style={btnSubmitStyle}>
-                  Simpan
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-    </div>
+    </>
   );
-};
-
-// --- STYLES ---
-const tableHeader = {
-  border: "1px solid black",
-  padding: "8px",
-  textAlign: "center",
-  fontWeight: "bold",
-};
-
-const tableCell = {
-  border: "1px solid black",
-  padding: "8px",
-};
-const btnPrimaryStyle = {
-  backgroundColor: "#3b82f6",
-  color: "white",
-  border: "none",
-  padding: "10px 20px",
-  borderRadius: "8px",
-  cursor: "pointer",
-  fontWeight: 600,
-  display: "flex",
-  alignItems: "center",
-  gap: "8px",
-};
-const filterBarStyle = {
-  backgroundColor: "white",
-  padding: "15px",
-  borderRadius: "12px",
-  marginBottom: "20px",
-  boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
-};
-const inputSearchStyle = {
-  width: "100%",
-  padding: "12px 12px 12px 45px",
-  borderRadius: "10px",
-  border: "1px solid #e2e8f0",
-  outline: "none",
-};
-const tableContainerStyle = {
-  backgroundColor: "white",
-  borderRadius: "12px",
-  overflow: "hidden",
-  boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
-};
-const theadStyle = {
-  backgroundColor: "#f8fafc",
-  borderBottom: "2px solid #f1f5f9",
-};
-const thStyle = {
-  padding: "15px",
-  fontWeight: 700,
-  color: "#64748b",
-  fontSize: "0.8rem",
-};
-const tdStyle = { padding: "15px", borderBottom: "1px solid #f1f5f9" };
-const trStyle = { transition: "0.2s" };
-
-const modalOverlayStyle = {
-  position: "fixed",
-  inset: 0,
-  zIndex: 1000,
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  overflowY: "auto",
-  padding: "30px",
-};
-const printContainerStyle = {
-  position: "relative",
-  width: "850px",
-  maxHeight: "90vh",
-  overflowY: "auto",
-  background: "white",
-  borderRadius: "12px",
-  padding: "40px",
-  fontFamily: "Times New Roman",
-  boxShadow: "0 10px 40px rgba(0,0,0,0.2)",
-  scrollbarWidth: "thin",
-};
-const backdropStyle = {
-  position: "absolute",
-  inset: 0,
-  backgroundColor: "rgba(0,0,0,0.4)",
-  backdropFilter: "blur(3px)",
-};
-const modalContentStyle = {
-  position: "relative",
-  width: "90%",
-  maxWidth: "550px",
-  backgroundColor: "white",
-  borderRadius: "16px",
-  overflow: "hidden",
-};
-const modalHeaderStyle = {
-  padding: "20px",
-  borderBottom: "1px solid #f1f5f9",
-  display: "flex",
-  justifyContent: "space-between",
-};
-const modalBodyStyle = {
-  padding: "20px",
-  display: "flex",
-  flexDirection: "column",
-  gap: "15px",
-};
-const modalFooterStyle = {
-  padding: "15px 20px",
-  borderTop: "1px solid #f1f5f9",
-  display: "flex",
-  gap: "10px",
-};
-
-const grid2Style = {
-  display: "grid",
-  gridTemplateColumns: "1fr 1fr",
-  gap: "12px",
-};
-const labelStyle = {
-  display: "flex",
-  alignItems: "center",
-  gap: "5px",
-  fontSize: "0.65rem",
-  fontWeight: 800,
-  color: "#94a3b8",
-  marginBottom: "5px",
-};
-const inputStyle = {
-  width: "100%",
-  padding: "10px",
-  borderRadius: "8px",
-  border: "1px solid #e2e8f0",
-  outline: "none",
-  fontSize: "0.9rem",
-};
-const periodeBoxStyle = {
-  backgroundColor: "#f0f7ff",
-  padding: "12px",
-  borderRadius: "10px",
-  border: "1px solid #dbeafe",
-};
-const dividerStyle = {
-  fontSize: "0.65rem",
-  fontWeight: 800,
-  color: "#3b82f6",
-  borderBottom: "1px solid #eff6ff",
-  paddingBottom: "3px",
-};
-
-const btnSubmitStyle = {
-  flex: 1,
-  backgroundColor: "#3b82f6",
-  color: "white",
-  border: "none",
-  padding: "12px",
-  borderRadius: "10px",
-  fontWeight: 700,
-  cursor: "pointer",
-};
-const btnCancelStyle = {
-  flex: 1,
-  backgroundColor: "#f1f5f9",
-  color: "#64748b",
-  border: "none",
-  padding: "12px",
-  borderRadius: "10px",
-  fontWeight: 700,
-  cursor: "pointer",
-};
-const actionBtnStyle = {
-  background: "none",
-  border: "none",
-  cursor: "pointer",
-  fontSize: "1.2rem",
-};
-const closeBtnStyle = {
-  background: "none",
-  border: "none",
-  color: "#94a3b8",
-  cursor: "pointer",
 };
 
 export default SuratTugas;

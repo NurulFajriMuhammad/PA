@@ -61,7 +61,7 @@ const handleAddMember = async (e) => {
     const formData = new FormData();
 
     formData.append("name", newMember.name);
-    formData.append("jabatan", newMember.jabatan);
+    formData.append("role", newMember.role);
     formData.append("specialty", newMember.specialty || "");
     formData.append("education", newMember.education || "");
     formData.append("email", newMember.email || "");

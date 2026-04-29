@@ -21,8 +21,9 @@ class assurancecontroller extends Controller
             'koordinator',
             'pengendaliTeknis',
             'ketuaTim',
-            'auditor'
-        ])->latest()->get();
+            'auditor',
+            'kka.temuan.analisis',
+        ])->orderBy('id', 'asc')->get();
 
         return response()->json($data);
     }
@@ -98,6 +99,25 @@ class assurancecontroller extends Controller
         
         if (!$assurance) {
             return response()->json(['message' => 'Data tidak ditemukan'], 404);
+        }
+
+        // Hapus KKA, Temuan, dan Tindak Lanjut yang terkait
+        $kkaIds = \Illuminate\Support\Facades\DB::table('perencanaan_kkas')->where('assurance_id', $id)->pluck('id');
+        if ($kkaIds->isNotEmpty()) {
+            $temuanIds = \Illuminate\Support\Facades\DB::table('pemeriksaan_temuan')->whereIn('kka_id', $kkaIds)->pluck('id');
+            if ($temuanIds->isNotEmpty()) {
+                \Illuminate\Support\Facades\DB::table('tindak_lanjut')
+                    ->whereIn('temuan_id', $temuanIds)
+                    ->where('jenis_audit', 'internal')
+                    ->delete();
+                \Illuminate\Support\Facades\DB::table('analisis_temuan')
+                    ->whereIn('temuan_id', $temuanIds)
+                    ->delete();
+                \Illuminate\Support\Facades\DB::table('pemeriksaan_temuan')
+                    ->whereIn('kka_id', $kkaIds)
+                    ->delete();
+            }
+            \Illuminate\Support\Facades\DB::table('perencanaan_kkas')->where('assurance_id', $id)->delete();
         }
 
         $assurance->delete();

@@ -1,33 +1,28 @@
-﻿import React, { useEffect, useState } from "react";
-import { BsArrowRepeat, BsBoxArrowInRight, BsClock, BsSearch } from "react-icons/bs";
-import { notifySuccess } from "../../../Shared/utils/notifier";
+import React, { useEffect, useState } from "react";
+import { 
+  BsArrowRepeat, 
+  BsBoxArrowInRight, 
+  BsClock, 
+  BsSearch, 
+  BsFilter, 
+  BsArrowLeft, 
+  BsPlusLg, 
+  BsFileEarmarkArrowDown,
+  BsFileEarmarkText,
+  BsExclamationCircle,
+  BsX
+} from "react-icons/bs";
+import { notifySuccess, notifyError } from "../../../Shared/utils/notifier";
 import apiClient from "../../../Shared/api/apiClient";
 
-const EMPTY_CREATE_FORM = {
-  tahun: "",
-  bulan: "",
-  keterangan: "",
-  bukti: null,
-};
-
-const EMPTY_REVIEW_FORM = {
-  hasil_evaluasi: "",
-  kesimpulan: "",
-};
+const EMPTY_CREATE_FORM = { tahun: "", bulan: "", keterangan: "", bukti: null };
+const EMPTY_REVIEW_FORM = { hasil_evaluasi: "", kesimpulan: "" };
 
 const MONTH_OPTIONS = [
-  { value: 1, label: "Bulan Januari" },
-  { value: 2, label: "Bulan Februari" },
-  { value: 3, label: "Bulan Maret" },
-  { value: 4, label: "Bulan April" },
-  { value: 5, label: "Bulan Mei" },
-  { value: 6, label: "Bulan Juni" },
-  { value: 7, label: "Bulan Juli" },
-  { value: 8, label: "Bulan Agustus" },
-  { value: 9, label: "Bulan September" },
-  { value: 10, label: "Bulan Oktober" },
-  { value: 11, label: "Bulan November" },
-  { value: 12, label: "Bulan Desember" },
+  { value: 1, label: "Januari" }, { value: 2, label: "Februari" }, { value: 3, label: "Maret" },
+  { value: 4, label: "April" }, { value: 5, label: "Mei" }, { value: 6, label: "Juni" },
+  { value: 7, label: "Juli" }, { value: 8, label: "Agustus" }, { value: 9, label: "September" },
+  { value: 10, label: "Oktober" }, { value: 11, label: "November" }, { value: 12, label: "Desember" },
 ];
 
 const EVALUATION_OPTIONS = [
@@ -36,10 +31,11 @@ const EVALUATION_OPTIONS = [
   { value: "belum sesuai", label: "Belum Sesuai" },
 ];
 
+// Komponen Reusable untuk Field Detail agar rapi
 const Field = ({ label, value }) => (
-  <div>
-    <b>{label}</b>
-    <div>{value ?? "-"}</div>
+  <div className="flex flex-col p-3 bg-slate-50 rounded-lg border border-slate-100">
+    <span className="text-[10px] font-bold uppercase text-slate-400 tracking-wider mb-1">{label}</span>
+    <div className="text-sm font-medium text-slate-700">{value ?? "-"}</div>
   </div>
 );
 
@@ -55,20 +51,17 @@ const FollowUp = () => {
   const [reviewItem, setReviewItem] = useState(null);
   const [createForm, setCreateForm] = useState(EMPTY_CREATE_FORM);
   const [reviewForm, setReviewForm] = useState(EMPTY_REVIEW_FORM);
+  const [previewFile, setPreviewFile] = useState(null);
 
   const fetchFollowUp = async () => {
     try {
       const res = await apiClient.get("/api/tindak-lanjut");
       const sorted = (res.data.data || []).sort((a, b) => a.id - b.id);
       setDataFollowUp(sorted);
-    } catch (err) {
-      console.error(err);
-    }
+    } catch (err) { console.error(err); }
   };
 
-  useEffect(() => {
-    fetchFollowUp();
-  }, []);
+  useEffect(() => { fetchFollowUp(); }, []);
 
   const filteredData = dataFollowUp.filter(
     (item) =>
@@ -82,21 +75,15 @@ const FollowUp = () => {
 
   const formatDate = (date) => {
     if (!date) return "-";
-    return new Date(date).toLocaleDateString("id-ID", {
-      weekday: "long",
-      day: "numeric",
-      month: "long",
-      year: "numeric",
-    });
+    return new Date(date).toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
   };
 
-  const getMonthLabel = (month) => {
-    return MONTH_OPTIONS.find((item) => item.value === Number(month))?.label || "-";
-  };
+  const getMonthLabel = (month) => MONTH_OPTIONS.find((item) => item.value === Number(month))?.label || "-";
 
   const getStatusBadgeClass = (status) => {
-    if (status === "close") return "bg-green-100 text-green-700";
-    return "bg-yellow-100 text-yellow-700";
+    if (status === "close") return "bg-emerald-100 text-emerald-700 border-emerald-200";
+    if (status === "monev") return "bg-amber-100 text-amber-700 border-amber-200";
+    return "bg-blue-100 text-blue-700 border-blue-200";
   };
 
   const getStatusLabel = (status) => {
@@ -105,41 +92,26 @@ const FollowUp = () => {
     return "Draft Temuan";
   };
 
-  const getUniqueJenisAudit = () => {
-    const unique = [...new Set(dataFollowUp.map((item) => item.jenis_audit).filter(Boolean))];
-    return unique.sort();
-  };
-
-  const getUniqueUnit = () => {
-    const unique = [...new Set(dataFollowUp.map((item) => item.unit).filter(Boolean))];
-    return unique.sort();
-  };
-
-  const getUniqueStatus = () => {
-    return ["draft", "monev", "close"];
-  };
+  const getUniqueJenisAudit = () => [...new Set(dataFollowUp.map((item) => item.jenis_audit).filter(Boolean))].sort();
+  const getUniqueUnit = () => [...new Set(dataFollowUp.map((item) => item.unit).filter(Boolean))].sort();
+  const getUniqueStatus = () => ["draft", "monev", "close"];
 
   const handleDetail = async (item) => {
     try {
-      const res = await apiClient.get(`/api/tindak-lanjut/detail/${item.temuan_id}`);
-
+      const res = await apiClient.get(`/api/tindak-lanjut/detail/${item.temuan_id}?jenis=${item.jenis_audit}`);
       setSelectedItem({
         ...res.data.temuan,
         temuan_id: item.temuan_id,
-        tindak_lanjut: Array.isArray(res.data.tindak_lanjut)
-          ? res.data.tindak_lanjut
-          : [],
+        jenis_audit: item.jenis_audit,
+        tindak_lanjut: Array.isArray(res.data.tindak_lanjut) ? res.data.tindak_lanjut : [],
       });
-
       setMode("detail");
-    } catch (err) {
-      console.error(err);
-    }
+    } catch (err) { console.error(err); }
   };
 
   const refreshDetail = async () => {
     if (!selectedItem?.temuan_id) return;
-    await handleDetail({ temuan_id: selectedItem.temuan_id });
+    await handleDetail({ temuan_id: selectedItem.temuan_id, jenis_audit: selectedItem.jenis_audit });
     await fetchFollowUp();
   };
 
@@ -149,455 +121,318 @@ const FollowUp = () => {
       formData.append("tahun", createForm.tahun);
       formData.append("bulan", createForm.bulan);
       formData.append("keterangan", createForm.keterangan);
-      if (createForm.bukti) {
-        formData.append("bukti", createForm.bukti);
-      }
-
-      await apiClient.post(
-        `/api/tindak-lanjut/${selectedItem.temuan_id}/detail`,
-        formData,
-      );
-
+      if (createForm.bukti) formData.append("bukti", createForm.bukti);
+      await apiClient.post(`/api/tindak-lanjut/${selectedItem.temuan_id}/detail?jenis=${selectedItem.jenis_audit}`, formData);
       notifySuccess("Tindak lanjut berhasil ditambahkan");
       setShowCreateModal(false);
       setCreateForm(EMPTY_CREATE_FORM);
       await refreshDetail();
-    } catch (err) {
-      console.error(err);
-    }
+    } catch (err) { notifyError("Gagal menyimpan data"); }
   };
 
   const openReviewModal = (item) => {
     setReviewItem(item);
-    setReviewForm({
-      hasil_evaluasi: item.hasil_evaluasi || "",
-      kesimpulan: item.kesimpulan || "",
-    });
+    setReviewForm({ hasil_evaluasi: item.hasil_evaluasi || "", kesimpulan: item.kesimpulan || "" });
   };
 
   const handleSubmitReview = async () => {
     try {
       await apiClient.put(`/api/tindak-lanjut/${reviewItem.id}/review`, reviewForm);
-
-      notifySuccess("Review tindak lanjut berhasil disimpan");
+      notifySuccess("Review disimpan");
       setReviewItem(null);
-      setReviewForm(EMPTY_REVIEW_FORM);
       await refreshDetail();
-    } catch (err) {
-      console.error(err);
-    }
+    } catch (err) { console.error(err); }
   };
 
-  if (mode === "detail" && selectedItem) {
-    const isLocked = selectedItem.is_locked || selectedItem.status === "close";
+  const renderPreviewModal = () => {
+    if (!previewFile) return null;
+    return (
+      <div className="fixed inset-0 z-[9999] flex items-center justify-center p-6 animate-in fade-in duration-200">
+        <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-sm" onClick={() => setPreviewFile(null)}></div>
+        <div className="relative bg-white w-full max-w-6xl h-[95vh] rounded-[2rem] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+          <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/80">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-blue-100 text-blue-600 rounded-xl ring-4 ring-blue-50">
+                <BsFileEarmarkText size={24} />
+              </div>
+              <div>
+                  <h3 className="font-black text-slate-800 text-lg uppercase tracking-tight line-clamp-1 max-w-[250px] md:max-w-md">{previewFile.judul_dokumen || 'Preview Dokumen'}</h3>
+                  <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-0.5">Tipe: Dokumen Pendukung | Fitur Preview</p>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <a 
+                href={`${import.meta.env.VITE_BACKEND_URL}/storage/${previewFile.file_path}`} 
+                target="_blank" 
+                rel="noreferrer" 
+                className="px-6 py-2.5 bg-slate-800 text-white rounded-xl font-bold text-[11px] uppercase tracking-wider hover:bg-slate-900 active:scale-95 transition-all shadow-md shadow-slate-200 flex items-center gap-2"
+              >
+                Buka Di Tab Baru
+              </a>
+              <button onClick={() => setPreviewFile(null)} className="p-2.5 bg-red-50 text-red-500 rounded-xl hover:bg-red-600 hover:text-white transition-colors border border-red-100 shadow-sm active:scale-95">
+                  <BsX size={24} />
+              </button>
+            </div>
+          </div>
+          
+          <div className="flex-1 bg-slate-200/60 p-4 sm:p-6 overflow-hidden">
+            <div className="bg-white w-full h-full rounded-2xl shadow-sm border border-slate-300 overflow-hidden relative">
+              <iframe 
+                src={`${import.meta.env.VITE_BACKEND_URL}/storage/${previewFile.file_path}`} 
+                className="absolute inset-0 w-full h-full border-0" 
+                title="Document Preview"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
+  // --- DETAIL MODE ---
+  if (mode === "detail" && selectedItem) {
+    const isLocked = selectedItem.status === "close";
     return (
       <div className="min-h-screen bg-slate-50 p-6">
-        <button
-          onClick={() => setMode("list")}
-          className="mb-4 rounded bg-gray-200 px-4 py-2"
-        >
-          Kembali
+        <button onClick={() => setMode("list")} className="mb-6 flex items-center gap-2 font-bold text-blue-600 hover:text-blue-800 transition-all">
+          <BsArrowLeft /> Kembali ke Monitoring
         </button>
 
-        <h1 className="mb-2 text-xl font-bold">Detail Tindak Lanjut</h1>
-
-        <div className="space-y-2 p-3">
-          <Field label="Masalah yang Dijumpai" value={selectedItem.masalah} />
-          <Field label="Kondisi" value={selectedItem.kondisi} />
-          <Field label="Kriteria" value={selectedItem.kriteria} />
-          <Field label="Sebab" value={selectedItem.sebab} />
-          <Field label="Akibat" value={selectedItem.akibat} />
-          <Field
-            label="Lampiran"
-            value={
-              selectedItem.lampiran ? (
-                <a href={`/storage/${selectedItem.lampiran}`} target="_blank" rel="noreferrer">
-                  Lihat
-                </a>
-              ) : (
-                "-"
-              )
-            }
-          />
-          <Field label="Rekomendasi" value={selectedItem.rekomendasi} />
-          <Field label="Analisa Penyebab" value={selectedItem.analisa} />
-          <Field
-            label="Rencana Tindakan Koreksi"
-            value={selectedItem.rencana_koreksi}
-          />
-          <Field
-            label="Rencana Tindakan Kolektif"
-            value={selectedItem.rencana_kolektif}
-          />
-          <Field
-            label="Target Penyelesaian"
-            value={formatDate(selectedItem.target_selesai)}
-          />
-
-          <div>
-            <b>Status</b>
-            <span
-              className={`ml-2 rounded px-2 py-1 text-xs ${getStatusBadgeClass(
-                selectedItem.status,
-              )}`}
-            >
-              {getStatusLabel(selectedItem.status)}
-            </span>
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-6">
+          <div className="bg-[#1f4b82] px-6 py-4 text-white">
+            <h2 className="text-xl font-bold">Detail Temuan Audit</h2>
+          </div>
+          <div className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <Field label="Masalah yang Dijumpai" value={selectedItem.masalah} />
+            <Field label="Kondisi" value={selectedItem.kondisi} />
+            <Field label="Kriteria" value={selectedItem.kriteria} />
+            <Field label="Sebab" value={selectedItem.sebab} />
+            <Field label="Akibat" value={selectedItem.akibat} />
+            <Field label="Rekomendasi" value={selectedItem.rekomendasi} />
+            <Field label="Analisa Penyebab" value={selectedItem.analisa} />
+            <Field label="Rencana Tindakan Koreksi" value={selectedItem.rencana_koreksi} />
+            <Field label="Rencana Tindakan Kolektif" value={selectedItem.rencana_kolektif} />
+            <Field label="Target Penyelesaian" value={formatDate(selectedItem.target_selesai)} />
+            <Field label="Lampiran" value={selectedItem.lampiran ? (
+              <button
+                onClick={() => setPreviewFile({
+                  file_path: selectedItem.lampiran,
+                  judul_dokumen: selectedItem.lampiran_name || selectedItem.lampiran.split("/").pop()
+                })}
+                className="text-blue-600 font-bold hover:underline flex items-center gap-1.5 w-fit"
+              >
+                <BsFileEarmarkText size={14} /> <span className="line-clamp-1">{selectedItem.lampiran_name || selectedItem.lampiran.split("/").pop()}</span>
+              </button>
+            ) : "-"} />
+            <div className="p-3">
+              <span className="text-[10px] font-bold uppercase text-slate-400">Status Saat Ini</span>
+              <div className="mt-1"><span className={`rounded-full border px-3 py-1 text-xs font-bold ${getStatusBadgeClass(selectedItem.status)}`}>{getStatusLabel(selectedItem.status)}</span></div>
+            </div>
           </div>
         </div>
 
-        <div className="mt-6 rounded-xl bg-white p-6 shadow">
-          <div className="mb-4 flex items-center justify-between">
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+          <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
             <div>
-              <h2 className="font-bold">Tindak Lanjut</h2>
-              {isLocked && (
-                <p className="text-sm text-slate-500">
-                  Data sudah ditutup. Tindak lanjut tidak bisa ditambah atau direview lagi.
-                </p>
-              )}
+              <h2 className="text-xl font-bold text-slate-800">Riwayat Progres Tindak Lanjut</h2>
+              {isLocked && <p className="text-sm text-red-500 flex items-center gap-1 mt-1"><BsExclamationCircle /> Data terkunci (Status Close)</p>}
             </div>
-
-            <button
-              onClick={() => setShowCreateModal(true)}
-              disabled={isLocked}
-              className="rounded bg-blue-600 px-4 py-2 text-white disabled:cursor-not-allowed disabled:bg-slate-300"
-            >
-              + Tindak Lanjut
+            <button onClick={() => setShowCreateModal(true)} disabled={isLocked} className="px-5 py-2.5 bg-blue-600 text-white rounded-xl font-bold flex items-center gap-2 hover:bg-blue-700 disabled:bg-slate-300 transition-all shadow-lg shadow-blue-100">
+              <BsPlusLg /> Tambah Progress
             </button>
           </div>
 
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-[#1f4b82] text-white">
+              <thead className="bg-slate-50 border-y border-slate-100 text-slate-500">
                 <tr>
-                  <th className="p-3 text-left">No</th>
-                  <th className="p-3 text-left">Tahun</th>
-                  <th className="p-3 text-left">Periode</th>
-                  <th className="p-3 text-left">Lampiran</th>
-                  <th className="p-3 text-left">Hasil Evaluasi</th>
-                  <th className="p-3 text-left">Kesimpulan</th>
-                  <th className="p-3 text-left">Aksi</th>
+                  <th className="p-4 text-left font-bold">No</th>
+                  <th className="p-4 text-left font-bold">Periode</th>
+                  <th className="p-4 text-left font-bold">Bukti Dukung</th>
+                  <th className="p-4 text-left font-bold">Hasil Evaluasi</th>
+                  <th className="p-4 text-left font-bold">Kesimpulan</th>
+                  <th className="p-4 text-right font-bold">Aksi</th>
                 </tr>
               </thead>
-              <tbody>
-                {selectedItem.tindak_lanjut.length > 0 ? (
-                  selectedItem.tindak_lanjut.map((tl, index) => (
-                    <tr key={tl.id} className="border-t">
-                      <td className="p-3">{index + 1}</td>
-                      <td className="p-3">{tl.tahun || "-"}</td>
-                      <td className="p-3">{getMonthLabel(tl.bulan)}</td>
-                      <td className="p-3">
-                        {tl.bukti ? (
-                          <a
-                            href={`/storage/${tl.bukti}`}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="text-blue-600 underline"
-                          >
-                            {tl.bukti.split("/").pop()}
-                          </a>
-                        ) : (
-                          "-"
-                        )}
-                      </td>
-                      <td className="p-3 capitalize">
-                        {tl.hasil_evaluasi || "Menunggu review"}
-                      </td>
-                      <td className="p-3">{tl.kesimpulan || "-"}</td>
-                      <td className="p-3">
-                        <button
-                          onClick={() => openReviewModal(tl)}
-                          disabled={isLocked}
-                          className="rounded bg-blue-600 px-3 py-2 text-white disabled:cursor-not-allowed disabled:bg-slate-300"
-                        >
-                          Review
-                        </button>
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan="7" className="p-4 text-center text-slate-500">
-                      Belum ada tindak lanjut yang ditambahkan.
+              <tbody className="divide-y divide-slate-50">
+                {selectedItem.tindak_lanjut.map((tl, index) => (
+                  <tr key={tl.id} className="hover:bg-slate-50/50 transition-colors">
+                    <td className="p-4 text-slate-400">{index + 1}</td>
+                    <td className="p-4 font-bold text-slate-700">{getMonthLabel(tl.bulan)} {tl.tahun}</td>
+                    <td className="p-4">{tl.bukti ? (
+                      <button
+                        onClick={() => setPreviewFile({
+                          file_path: tl.bukti,
+                          judul_dokumen: tl.bukti.split("/").pop()
+                        })}
+                        className="inline-flex items-center gap-1.5 text-blue-600 font-bold hover:underline text-xs"
+                      >
+                        <BsFileEarmarkText size={14} /> <span className="line-clamp-1 text-left max-w-[120px]" title={tl.bukti.split("/").pop()}>{tl.bukti.split("/").pop()}</span>
+                      </button>
+                    ) : "-"}</td>
+                    <td className="p-4"><span className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase ${tl.hasil_evaluasi === 'sesuai' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>{tl.hasil_evaluasi || "Draft"}</span></td>
+                    <td className="p-4 text-slate-600 italic">"{tl.kesimpulan || "-"}"</td>
+                    <td className="p-4 text-right">
+                      <button onClick={() => openReviewModal(tl)} disabled={isLocked} className="px-4 py-1.5 bg-blue-50 text-blue-600 rounded-lg font-bold text-xs hover:bg-blue-600 hover:text-white disabled:opacity-30 transition-all">Review</button>
                     </td>
                   </tr>
-                )}
+                ))}
               </tbody>
             </table>
           </div>
         </div>
 
+        {/* MODAL TAMBAH PROGRES */}
         {showCreateModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-            <div className="w-full max-w-lg space-y-4 rounded-xl bg-white p-6">
-              <h2 className="text-lg font-bold">Tambah Tindak Lanjut</h2>
-
-              <textarea
-                placeholder="Keterangan"
-                className="w-full rounded border p-2"
-                value={createForm.keterangan}
-                onChange={(e) =>
-                  setCreateForm({ ...createForm, keterangan: e.target.value })
-                }
-              />
-
-              <input
-                type="number"
-                placeholder="Tahun"
-                className="w-full rounded border p-2"
-                value={createForm.tahun}
-                onChange={(e) =>
-                  setCreateForm({ ...createForm, tahun: e.target.value })
-                }
-              />
-
-              <select
-                className="w-full rounded border p-2"
-                value={createForm.bulan}
-                onChange={(e) =>
-                  setCreateForm({ ...createForm, bulan: e.target.value })
-                }
-              >
-                <option value="">Pilih Periode</option>
-                {MONTH_OPTIONS.map((item) => (
-                  <option key={item.value} value={item.value}>
-                    {item.label}
-                  </option>
-                ))}
-              </select>
-
-              <input
-                type="file"
-                onChange={(e) =>
-                  setCreateForm({ ...createForm, bukti: e.target.files?.[0] || null })
-                }
-              />
-
-              <div className="flex justify-end gap-2">
-                <button
-                  onClick={() => {
-                    setShowCreateModal(false);
-                    setCreateForm(EMPTY_CREATE_FORM);
-                  }}
-                  className="rounded bg-gray-300 px-4 py-2"
-                >
-                  Batal
-                </button>
-                <button
-                  onClick={handleCreateTL}
-                  className="rounded bg-blue-600 px-4 py-2 text-white"
-                >
-                  Simpan
-                </button>
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+            <div className="w-full max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in duration-200">
+              <div className="bg-blue-600 p-4 text-white flex justify-between items-center">
+                <h3 className="font-bold">Tambah Realisasi Tindak Lanjut</h3>
+                <button onClick={() => setShowCreateModal(false)}><BsX size={24} /></button>
+              </div>
+              <div className="p-6 space-y-4">
+                <textarea placeholder="Keterangan perbaikan yang dilakukan..." className="w-full rounded-xl border-slate-200 bg-slate-50 p-3 text-sm focus:border-blue-500 outline-none" rows="4" value={createForm.keterangan} onChange={(e) => setCreateForm({ ...createForm, keterangan: e.target.value })} />
+                <div className="grid grid-cols-2 gap-4">
+                  <input type="number" placeholder="Tahun" className="w-full rounded-xl border-slate-200 bg-slate-50 p-3 text-sm focus:border-blue-500 outline-none" value={createForm.tahun} onChange={(e) => setCreateForm({ ...createForm, tahun: e.target.value })} />
+                  <select className="w-full rounded-xl border-slate-200 bg-slate-50 p-3 text-sm focus:border-blue-500 outline-none" value={createForm.bulan} onChange={(e) => setCreateForm({ ...createForm, bulan: e.target.value })}>
+                    <option value="">Pilih Bulan</option>
+                    {MONTH_OPTIONS.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
+                  </select>
+                </div>
+                <div className="p-4 border-2 border-dashed border-slate-100 rounded-xl bg-slate-50">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase mb-2">Upload Bukti Dukung</p>
+                  <input type="file" onChange={(e) => setCreateForm({ ...createForm, bukti: e.target.files?.[0] || null })} className="text-xs" />
+                </div>
+                <div className="flex gap-3 pt-2">
+                  <button onClick={() => setShowCreateModal(false)} className="flex-1 py-3 text-slate-400 font-bold text-sm">Batal</button>
+                  <button onClick={handleCreateTL} className="flex-1 py-3 bg-blue-600 text-white rounded-xl font-bold shadow-lg shadow-blue-100">Simpan Data</button>
+                </div>
               </div>
             </div>
           </div>
         )}
 
+        {/* MODAL REVIEW */}
         {reviewItem && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-            <div className="w-full max-w-2xl space-y-4 rounded-xl bg-white p-6">
-              <div className="flex items-center justify-between">
-                <h2 className="text-lg font-bold">Review Tindak Lanjut</h2>
-                <button
-                  onClick={() => {
-                    setReviewItem(null);
-                    setReviewForm(EMPTY_REVIEW_FORM);
-                  }}
-                  className="text-2xl text-slate-400"
-                >
-                  ×
-                </button>
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+            <div className="w-full max-w-2xl bg-white rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in duration-200">
+              <div className="bg-slate-800 p-4 text-white flex justify-between items-center">
+                <h3 className="font-bold">Evaluasi Progress Perbaikan</h3>
+                <button onClick={() => setReviewItem(null)}><BsX size={24} /></button>
               </div>
-
-              <div className="space-y-3 text-sm">
-                <div>
-                  <b>Tahun</b>
-                  <p>{reviewItem.tahun || "-"}</p>
-                </div>
-                <div>
-                  <b>Periode</b>
-                  <p>{getMonthLabel(reviewItem.bulan)}</p>
-                </div>
-                <div>
-                  <b>Keterangan</b>
-                  <p>{reviewItem.keterangan || "-"}</p>
-                </div>
-                <div>
-                  <b>Lampiran</b>
-                  <p>
-                    {reviewItem.bukti ? (
-                      <a
-                        href={`/storage/${reviewItem.bukti}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-blue-600 underline"
+              <div className="p-6 space-y-5">
+                 <div className="grid grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-100">
+                   <div><p className="text-[10px] font-bold text-slate-400">PERIODE</p><p className="text-sm font-bold text-slate-700">{getMonthLabel(reviewItem.bulan)} {reviewItem.tahun}</p></div>
+                   <div><p className="text-[10px] font-bold text-slate-400">BUKTI</p>{reviewItem.bukti ? (
+                      <button
+                        onClick={() => setPreviewFile({
+                          file_path: reviewItem.bukti,
+                          judul_dokumen: reviewItem.bukti.split("/").pop()
+                        })}
+                        className="text-xs text-blue-600 font-bold hover:underline flex items-center gap-1.5"
                       >
-                        {reviewItem.bukti.split("/").pop()}
-                      </a>
-                    ) : (
-                      "-"
-                    )}
-                  </p>
+                        <BsFileEarmarkText size={14} /> <span className="line-clamp-1 max-w-[150px]">{reviewItem.bukti.split("/").pop()}</span>
+                      </button>
+                    ) : "-"}</div>
+                   <div className="col-span-2 mt-2"><p className="text-[10px] font-bold text-slate-400">KETERANGAN AUDITEE</p><p className="text-sm italic text-slate-600">"{reviewItem.keterangan || "-"}"</p></div>
                 </div>
-              </div>
-
-              <div>
-                <label className="mb-1 block font-semibold">Hasil Evaluasi</label>
-                <select
-                  className="w-full rounded border p-2"
-                  value={reviewForm.hasil_evaluasi}
-                  onChange={(e) =>
-                    setReviewForm({ ...reviewForm, hasil_evaluasi: e.target.value })
-                  }
-                >
-                  <option value="">Pilih hasil evaluasi</option>
-                  {EVALUATION_OPTIONS.map((item) => (
-                    <option key={item.value} value={item.value}>
-                      {item.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="mb-1 block font-semibold">Kesimpulan</label>
-                <textarea
-                  className="w-full rounded border p-2"
-                  rows="3"
-                  value={reviewForm.kesimpulan}
-                  onChange={(e) =>
-                    setReviewForm({ ...reviewForm, kesimpulan: e.target.value })
-                  }
-                />
-              </div>
-
-              <div className="flex justify-end">
-                <button
-                  onClick={handleSubmitReview}
-                  className="rounded bg-blue-700 px-4 py-2 text-white"
-                >
-                  Save
-                </button>
+                <div>
+                  <label className="text-xs font-bold text-slate-500 uppercase mb-2 block">Hasil Evaluasi Auditor</label>
+                  <select className="w-full rounded-xl border-slate-200 bg-slate-50 p-3 text-sm focus:border-blue-500 outline-none" value={reviewForm.hasil_evaluasi} onChange={(e) => setReviewForm({ ...reviewForm, hasil_evaluasi: e.target.value })}>
+                    <option value="">-- Pilih Hasil Evaluasi --</option>
+                    {EVALUATION_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-500 uppercase mb-2 block">Kesimpulan / Feedback</label>
+                  <textarea rows="3" className="w-full rounded-xl border-slate-200 bg-slate-50 p-3 text-sm focus:border-blue-500 outline-none" value={reviewForm.kesimpulan} onChange={(e) => setReviewForm({ ...reviewForm, kesimpulan: e.target.value })} placeholder="Berikan catatan tambahan untuk auditee..." />
+                </div>
+                <div className="flex gap-4">
+                  <button onClick={() => setReviewItem(null)} className="flex-1 py-3 text-slate-400 font-bold">Batal</button>
+                  <button onClick={handleSubmitReview} className="flex-1 py-3 bg-emerald-600 text-white rounded-xl font-bold shadow-lg shadow-emerald-50">Simpan Evaluasi</button>
+                </div>
               </div>
             </div>
           </div>
         )}
+
+        {renderPreviewModal()}
       </div>
     );
   }
 
+  // --- LIST MODE ---
   return (
     <div className="min-h-screen bg-slate-50 p-6">
-      <div className="mb-6">
-        <h1 className="flex items-center gap-3 text-2xl font-bold">
-          <BsArrowRepeat /> Monitoring Tindak Lanjut
+      <div className="mb-8">
+        <h1 className="flex items-center gap-3 text-2xl font-black text-slate-800 uppercase tracking-tight">
+          <BsArrowRepeat className="text-blue-600" /> Monitoring Tindak Lanjut
         </h1>
-        <p className="text-gray-500">Pantau realisasi perbaikan dari hasil audit</p>
+        <p className="text-slate-500 text-sm">Sistem Pemantauan dan Realisasi Rekomendasi Hasil Pemeriksaan</p>
       </div>
 
-<div className="mb-4 flex flex-wrap items-center gap-3">
-  {/* Search */}
-  <div className="relative w-80">
-    <BsSearch className="absolute left-3 top-3 text-gray-400" />
-    <input
-      type="text"
-      placeholder="Cari masalah yang dijumpai..."
-      className="w-full rounded border py-2 pl-10 pr-4"
-      onChange={(e) => setSearchTerm(e.target.value)}
-    />
-  </div>
+      <div className="mb-6 flex flex-wrap items-center gap-3 bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
+        <div className="relative flex-1 min-w-[300px]">
+          <BsSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+          <input type="text" placeholder="Cari masalah temuan atau unit..." className="w-full rounded-xl border-none bg-slate-50 py-3 pl-12 pr-4 text-sm focus:ring-2 focus:ring-blue-500 outline-none" onChange={(e) => setSearchTerm(e.target.value)} />
+        </div>
+        <div className="flex gap-2">
+          <select className="rounded-xl border-none bg-slate-50 px-4 py-3 text-sm font-bold text-slate-600 focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer" value={filterJenisAudit} onChange={(e) => setFilterJenisAudit(e.target.value)}>
+            <option value="">Jenis Audit</option>
+            {getUniqueJenisAudit().map(item => <option key={item} value={item}>{item}</option>)}
+          </select>
+          <select className="rounded-xl border-none bg-slate-50 px-4 py-3 text-sm font-bold text-slate-600 focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer" value={filterUnit} onChange={(e) => setFilterUnit(e.target.value)}>
+            <option value="">Unit Kerja</option>
+            {getUniqueUnit().map(item => <option key={item} value={item}>{item}</option>)}
+          </select>
+          <select className="rounded-xl border-none bg-slate-50 px-4 py-3 text-sm font-bold text-slate-600 focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
+            <option value="">Status</option>
+            {getUniqueStatus().map(s => <option key={s} value={s}>{getStatusLabel(s)}</option>)}
+          </select>
+        </div>
+      </div>
 
-  {/* Filter */}
-  <select
-    className="rounded border px-3 py-2"
-    value={filterJenisAudit}
-    onChange={(e) => setFilterJenisAudit(e.target.value)}
-  >
-    <option value="">Jenis Audit</option>
-    {getUniqueJenisAudit().map((item) => (
-      <option key={item} value={item}>
-        {item}
-      </option>
-    ))}
-  </select>
-
-  <select
-    className="rounded border px-3 py-2"
-    value={filterUnit}
-    onChange={(e) => setFilterUnit(e.target.value)}
-  >
-    <option value="">Unit</option>
-    {getUniqueUnit().map((item) => (
-      <option key={item} value={item}>
-        {item}
-      </option>
-    ))}
-  </select>
-
-  <select
-    className="rounded border px-3 py-2"
-    value={filterStatus}
-    onChange={(e) => setFilterStatus(e.target.value)}
-  >
-    <option value="">Status</option>
-    {getUniqueStatus().map((status) => (
-      <option key={status} value={status}>
-        {getStatusLabel(status)}
-      </option>
-    ))}
-  </select>
-</div>
-
-      <div className="overflow-hidden rounded-xl bg-white shadow">
-        <table className="w-full">
-          <thead className="bg-gray-100 text-sm">
+      <div className="overflow-hidden rounded-2xl bg-white shadow-sm border border-slate-200">
+        <table className="w-full text-left">
+          <thead className="bg-slate-50 text-[11px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">
             <tr>
-              <th className="p-3">No</th>
-              <th className="p-3">Masalah yang Dijumpai</th>
-              <th className="p-3">Jenis Audit</th>
-              <th className="p-3">Unit</th>
-              <th className="p-3">Target</th>
-              <th className="p-3">Status</th>
-              <th className="p-3">Aksi</th>
+              <th className="px-6 py-4 text-center">No</th>
+              <th className="px-6 py-4">Informasi Temuan (Masalah)</th>
+              <th className="px-6 py-4">Audit / Unit</th>
+              <th className="px-6 py-4">Target</th>
+              <th className="px-6 py-4">Status</th>
+              <th className="px-6 py-4 text-right">Aksi</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody className="divide-y divide-slate-50">
             {filteredData.map((item, index) => (
-              <tr key={item.id} className="border-t">
-                <td className="p-3">{index + 1}</td>
-                <td className="p-3 font-semibold">{item.masalah}</td>
-                <td className="p-3 capitalize">{item.jenis_audit || "-"}</td>
-                <td className="p-3">{item.unit || "-"}</td>
-                <td className="p-3">
-                  <div className="flex items-center gap-2">
-                    <BsClock />
-                    {formatDate(item.target_selesai)}
+              <tr key={item.id} className="hover:bg-blue-50/20 transition-colors group">
+                <td className="px-6 py-4 text-center text-slate-400 font-mono text-xs">{index + 1}</td>
+                <td className="px-6 py-4"><p className="text-sm font-bold text-slate-700 max-w-md line-clamp-2 uppercase leading-snug">{item.masalah}</p></td>
+                <td className="px-6 py-4">
+                  <p className="text-[10px] font-bold text-blue-600 uppercase mb-0.5">{item.jenis_audit || "-"}</p>
+                  <p className="text-xs text-slate-500 italic">{item.unit || "-"}</p>
+                </td>
+                <td className="px-6 py-4">
+                  <div className="flex items-center gap-2 text-xs font-medium text-slate-600 bg-slate-50 px-2 py-1 rounded w-fit border border-slate-100">
+                    <BsClock className="text-blue-500" /> {formatDate(item.target_selesai)}
                   </div>
                 </td>
-                <td className="p-3">
-                  <span
-                    className={`rounded px-2 py-1 text-xs ${getStatusBadgeClass(
-                      item.status,
-                    )}`}
-                  >
+                <td className="px-6 py-4">
+                  <span className={`rounded-full border px-3 py-1 text-[10px] font-bold uppercase tracking-tighter ${getStatusBadgeClass(item.status)}`}>
                     {getStatusLabel(item.status)}
                   </span>
                 </td>
-                <td className="p-3">
-                  <button
-                    onClick={() => handleDetail(item)}
-                    className="inline-flex items-center gap-1.5 rounded bg-[#1f5aa6] px-2.5 py-1.5 text-sm font-semibold leading-none text-white hover:bg-[#184b8b]"
-                  >
-                    <BsBoxArrowInRight className="text-sm" />
-                    <span>Tindak Lanjut</span>
+                <td className="px-6 py-4 text-right">
+                  <button onClick={() => handleDetail(item)} className="inline-flex items-center gap-2 rounded-xl bg-[#1f4b82] px-4 py-2 text-xs font-bold text-white hover:bg-slate-800 transition-all shadow-md shadow-blue-50">
+                    <BsBoxArrowInRight /> Detail
                   </button>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
+        {filteredData.length === 0 && <div className="py-20 text-center text-slate-400">Data tindak lanjut tidak ditemukan...</div>}
       </div>
     </div>
   );

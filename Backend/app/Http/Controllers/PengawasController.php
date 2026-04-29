@@ -15,7 +15,7 @@ class PengawasController extends Controller
     public function index()
     {
         try {
-            $data = PengawasSpi::orderBy('id', 'desc')->get();
+            $data = PengawasSpi::orderBy('id', 'asc')->get();
             return response()->json($data, 200);
         } catch (\Exception $e) {
             return response()->json(['message' => 'Gagal mengambil data'], 500);
