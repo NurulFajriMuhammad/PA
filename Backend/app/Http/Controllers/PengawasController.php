@@ -61,8 +61,7 @@ public function store(Request $request)
             $file = $request->file('image');
 
             $path = $file->store('pengawas', 'public');
-
-            $data['foto_url'] = asset('storage/'.$path);
+            $data['foto_url'] = $path;
         }
 
         if ($request->has('certs')) {

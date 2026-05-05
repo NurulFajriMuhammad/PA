@@ -12,6 +12,7 @@ import {
   BsCheckCircleFill,
   BsCardChecklist
 } from "react-icons/bs";
+import { notifySuccess, notifyError, notifyConfirm } from "../../../Shared/utils/notifier.jsx";
 
 const ExternalAuditDetail = () => {
   const { id } = useParams();
@@ -23,6 +24,7 @@ const ExternalAuditDetail = () => {
   const [temuan, setTemuan] = useState([]);
   const [openModal, setOpenModal] = useState(false);
   const [statusTemuanList, setStatusTemuanList] = useState([]);
+  const [availableTransitions, setAvailableTransitions] = useState([]);
 
   // Fetch status temuan untuk warna badge
   useEffect(() => {
@@ -33,13 +35,116 @@ const ExternalAuditDetail = () => {
 
   // Helper: ambil style badge dari daftar status
   const getStatusTemuan = (val) => {
-    const found = statusTemuanList.find(
-      s => s.nama.toLowerCase() === (val || '').toLowerCase()
+    const v = (val || "").toLowerCase();
+    const found = statusTemuanList.find((s) => {
+      const n = s.nama.toLowerCase();
+      return n === v || n.includes(v) || v.includes(n);
+    });
+
+    if (found) {
+      return { bg: found.warna, text: found.warna_teks, label: found.nama };
+    }
+
+    // Fallback default jika tidak ada di database status-temuan
+    if (v === "monev") return { bg: "#fef3c7", text: "#d97706", label: "Monev" };
+    if (v === "draft" || v === "draft temuan") return { bg: "#f1f5f9", text: "#64748b", label: "Draft Temuan" };
+    if (v === "close") return { bg: "#dcfce7", text: "#15803d", label: "Close" };
+    if (v === "menunggu konfirmasi") return { bg: "#ffedd5", text: "#9a3412", label: "Menunggu Konfirmasi" };
+    if (v === "pengisian rtl") return { bg: "#dbeafe", text: "#1e40af", label: "Pengisian RTL" };
+    if (v === "final") return { bg: "#e0f2fe", text: "#0369a1", label: "Final" };
+    if (v === "closed" || v === "selesai") return { bg: "#d1fae5", text: "#059669", label: "Closed" };
+
+    return { bg: "#f1f5f9", text: "#64748b", label: val || "Draft" };
+  };
+
+  const getCategoryStyle = (cat) => {
+    const c = (cat || "").toLowerCase();
+    if (c.includes("major")) return { bg: "#A32D2D", text: "#ffffff" };
+    if (c.includes("minor")) return { bg: "#854F0B", text: "#ffffff" };
+    if (c.includes("observasi")) return { bg: "#185FA5", text: "#ffffff" };
+    if (c.includes("ofi")) return { bg: "#0F6E56", text: "#ffffff" };
+    return { bg: "#f1f5f9", text: "#475569" };
+  };
+
+  const [previewFile, setPreviewFile] = useState(null);
+
+  const RenderPreviewModal = () => {
+    if (!previewFile) return null;
+
+    const fileUrl = `${import.meta.env.VITE_BACKEND_URL}/storage/${previewFile.lampiran}`;
+    const fileExt = (previewFile.lampiran || "").split('.').pop().toLowerCase();
+    const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(fileExt);
+    const isPdf = fileExt === 'pdf';
+    // Browser biasanya akan download otomatis file Office jika dimasukkan ke iframe
+    const isOffice = ['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'].includes(fileExt);
+
+    return (
+      <div className="fixed inset-0 z-[10000] flex flex-col bg-slate-900/80 backdrop-blur-md animate-in fade-in duration-200">
+        <div className="flex flex-col h-full max-w-6xl mx-auto w-full bg-white shadow-2xl relative overflow-hidden">
+          {/* Header Preview */}
+          <div className="flex items-center justify-between p-4 bg-white border-b border-slate-100 shrink-0">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 bg-blue-50 text-blue-600 rounded-xl">
+                <BsFileEarmarkText size={20} />
+              </div>
+              <div>
+                <h3 className="font-bold text-slate-800 text-sm tracking-tight line-clamp-1 max-w-[300px]">
+                  {previewFile.nama_lampiran || "Preview Dokumen"}
+                </h3>
+                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Dokumen Pendukung Temuan</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <a 
+                href={fileUrl} 
+                target="_blank" 
+                rel="noreferrer" 
+                download={isOffice}
+                className="px-4 py-2 bg-slate-100 text-slate-700 hover:bg-slate-200 rounded-xl font-bold text-[10px] uppercase tracking-wider transition-all flex items-center gap-2"
+              >
+                {isOffice ? <BsCloudUpload /> : null} {isOffice ? 'Download File' : 'Buka Tab Baru'}
+              </a>
+              <button 
+                onClick={() => setPreviewFile(null)} 
+                className="p-2 bg-rose-50 text-rose-500 rounded-lg hover:bg-rose-500 hover:text-white transition-all shadow-sm"
+              >
+                <BsX size={24} />
+              </button>
+            </div>
+          </div>
+          
+          {/* Content Area */}
+          <div className="flex-1 bg-slate-100 relative flex items-center justify-center overflow-auto p-4">
+            {isImage ? (
+              <img src={fileUrl} alt="Preview" className="max-w-full max-h-full object-contain rounded-lg shadow-lg bg-white" />
+            ) : isPdf ? (
+              <iframe 
+                src={fileUrl} 
+                className="absolute inset-0 w-full h-full border-0" 
+                title="Preview PDF"
+              />
+            ) : (
+              <div className="text-center p-12 bg-white rounded-3xl shadow-xl border border-slate-200 max-w-md w-full animate-in zoom-in-95 duration-300">
+                <div className="w-20 h-20 bg-amber-50 text-amber-500 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <BsFileEarmarkText size={40} />
+                </div>
+                <h4 className="text-xl font-black text-slate-800 uppercase tracking-tight mb-2">Preview Tidak Tersedia</h4>
+                <p className="text-sm text-slate-500 font-medium leading-relaxed mb-8">
+                  Format file <span className="font-bold text-slate-700">.{fileExt}</span> tidak dapat dipratinjau langsung di browser. Silakan unduh dokumen untuk melihat isinya.
+                </p>
+                <a 
+                  href={fileUrl} 
+                  download 
+                  className="inline-flex items-center gap-2 px-8 py-4 bg-blue-600 text-white rounded-2xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 active:scale-95 uppercase text-xs tracking-widest"
+                >
+                  <BsCloudUpload size={18} /> Unduh Dokumen Sekarang
+                </a>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
     );
-    return found ? { bg: found.warna, text: found.warna_teks, label: found.nama }
-                 : (val === 'monev'
-                   ? { bg: '#d1fae5', text: '#059669', label: 'Monev' }
-                   : { bg: '#fef3c7', text: '#d97706', label: val || 'Draft' });
   };
 
   const [lheFile, setLheFile] = useState(null);
@@ -59,7 +164,8 @@ const ExternalAuditDetail = () => {
       rencana: item.rencana || "",
       keterangan: item.keterangan || "",
       target_penyelesaian: item.target_penyelesaian || "",
-      nilai_kerugian: item.nilai_kerugian || ""
+      nilai_kerugian: item.nilai_kerugian || "",
+      kategori: item.kategori || ""
     });
 
     setSelectedId(item.id);
@@ -85,14 +191,24 @@ const ExternalAuditDetail = () => {
         setData(res.data.data);
       } catch (err) {
         console.error(err);
-        alert("Gagal mengambil data");
+        notifyError("Gagal mengambil data");
       } finally {
         setLoading(false);
       }
     };
     
+    const fetchTransitions = async () => {
+      try {
+        const res = await apiClient.get(`/api/external-audit/${id}/transitions`);
+        setAvailableTransitions(res.data.data || []);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
     fetchDetail();
     fetchTemuan();
+    fetchTransitions();
   }, [id]);
 
   const formatTanggal = (dateString) => {
@@ -121,8 +237,6 @@ const ExternalAuditDetail = () => {
 
       if (lheFile) {
         formData.append("lampiran", lheFile);
-      } else if (!existingLampiran) {
-        formData.append("lampiran", null);
       }
 
       const isComplete =
@@ -135,7 +249,7 @@ const ExternalAuditDetail = () => {
         form.rencana &&
         form.target_penyelesaian;
 
-      formData.append("status", isComplete ? "monev" : "draft");
+      formData.append("status", isComplete ? "final" : "draft");
 
       if (isEdit) {
         await apiClient.post(`/api/external-audit-temuan/${selectedId}?_method=PUT`, formData);
@@ -149,14 +263,48 @@ const ExternalAuditDetail = () => {
       setSelectedId(null);
       setForm({
         masalah: "", kriteria: "", sebab: "", akibat: "", kondisi: "",
-        rekomendasi: "", rencana: "", keterangan: "", target_penyelesaian: "", nilai_kerugian: ""
+        rekomendasi: "", rencana: "", keterangan: "", target_penyelesaian: "", nilai_kerugian: "",
+        kategori: ""
       });
       setLheFile(null);
+      notifySuccess("Data temuan berhasil disimpan!");
 
     } catch (err) {
       console.error(err);
-      alert("Gagal simpan");
+      notifyError("Gagal simpan");
     }
+  };
+
+  const handleTransition = (transition) => {
+    notifyConfirm(`Apakah Anda yakin ingin memproses ${transition.label}?`, async () => {
+      try {
+        setLoading(true);
+        const res = await apiClient.post(`/api/external-audit/${id}/transition`, {
+          action: transition.action,
+          next_status_id: transition.next_status_id
+        });
+        if (res.data.success) {
+          notifySuccess(res.data.message);
+          // Refresh data
+          const resDetail = await apiClient.get(`/api/external-audit/${id}`);
+          setData(resDetail.data.data);
+          fetchTemuan();
+          // Refresh transitions
+          const resTrans = await apiClient.get(`/api/external-audit/${id}/transitions`);
+          setAvailableTransitions(resTrans.data.data || []);
+        }
+      } catch (err) {
+        notifyError(err.response?.data?.message || "Gagal melakukan transisi");
+      } finally {
+        setLoading(false);
+      }
+    }, null, { 
+      title: "Konfirmasi Alur Pengajuan",
+      confirmColor: "bg-blue-600",
+      confirmHoverColor: "hover:bg-blue-700",
+      iconColor: "bg-blue-600",
+      iconShadow: "shadow-blue-200"
+    });
   };
 
   const [form, setForm] = useState({
@@ -169,7 +317,8 @@ const ExternalAuditDetail = () => {
     rencana: "",
     keterangan: "",
     target_penyelesaian: "",
-    nilai_kerugian: ""
+    nilai_kerugian: "",
+    kategori: ""
   });
 
   const formatRupiah = (value) => {
@@ -177,15 +326,16 @@ const ExternalAuditDetail = () => {
     return new Intl.NumberFormat("id-ID").format(Number(value));
   };
 
-  const handleDelete = async (idTemuan) => {
-    if (!window.confirm("Yakin hapus data?")) return;
-    try {
-      await apiClient.delete(`/api/external-audit-temuan/${idTemuan}`);
-      fetchTemuan();
-    } catch (e) {
-      console.error(e);
-      alert("Gagal Menghapus Data");
-    }
+  const handleDelete = (idTemuan) => {
+    notifyConfirm("Yakin hapus data temuan ini? Tindakan ini tidak dapat dibatalkan.", async () => {
+      try {
+        await apiClient.delete(`/api/external-audit-temuan/${idTemuan}`);
+        notifySuccess("Temuan berhasil dihapus");
+        fetchTemuan();
+      } catch (err) {
+        notifyError("Gagal hapus temuan");
+      }
+    }, null, { title: "Konfirmasi Hapus" });
   };
 
   const resetForm = () => {
@@ -199,7 +349,8 @@ const ExternalAuditDetail = () => {
       rencana: "",
       keterangan: "",
       target_penyelesaian: "",
-      nilai_kerugian: ""
+      nilai_kerugian: "",
+      kategori: ""
     });
 
     setIsEdit(false);
@@ -242,12 +393,11 @@ const ExternalAuditDetail = () => {
           >
             Detail Pemeriksaan
             <div className="flex justify-end">
-              <span className={`px-3 py-1 rounded-md text-xs font-bold
-                ${data.status === "Selesai"
-                  ? "bg-green-600"
-                  : "bg-blue-600"} text-white`}
+              <span 
+                className="px-3 py-1 rounded-md text-xs font-black uppercase tracking-widest text-white shadow-sm"
+                style={{ backgroundColor: data.status_color || "#2563eb" }}
               >
-                {data.status || "Planning"}
+                {data.status_label}
               </span>
             </div>
           </h1>
@@ -267,6 +417,7 @@ const ExternalAuditDetail = () => {
             <div className="grid grid-cols-2 gap-6 text-sm">
               <div className="space-y-2">
                 <p><b>Nama Objek Audit :</b> {data.objek_pemeriksaan}</p>
+                <p><b>Lembaga Pemeriksa :</b> {data.lembaga_pemeriksa || "-"}</p>
                 <p><b>Kegiatan :</b> {data.nama_kegiatan}</p>
                 <p><b>Jenis Audit :</b> Audit Eksternal</p>
                 <p><b>Lokasi :</b> {data.lokasi || "-"}</p>
@@ -287,116 +438,227 @@ const ExternalAuditDetail = () => {
       </div>
 
       {/* ===================== TABEL TEMUAN (STYLING BARU) ===================== */}
-      <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden transition-all">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center p-6 bg-slate-50/80 border-b border-slate-200 gap-4">
+      <div className="overflow-hidden transition-all">
+        <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden transition-all flex flex-col md:flex-row justify-between items-start md:items-center p-6 bg-slate-50/80 border-b border-slate-200 gap-4">
           <div>
             <h2 className="font-black text-lg text-slate-800 uppercase tracking-tight flex items-center gap-2">
               <BsCardChecklist className="text-slate-700" /> Daftar Temuan
             </h2>
             <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">Hasil Evaluasi Eksternal</p>
           </div>
-          <button
-            onClick={() => {
-              resetForm();
-              setOpenModal(true);
-            }}
-            className="flex items-center justify-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold uppercase tracking-wider rounded-xl transition-all shadow-md shadow-blue-200 active:scale-95"
-          >
-            <BsPlusLg size={14} /> Tambah Temuan
-          </button>
+          
+          <div className="flex gap-3">
+            {availableTransitions.map((t, idx) => (
+              <button 
+                key={idx}
+                onClick={() => handleTransition(t)}
+                className={`flex items-center justify-center gap-2 px-5 py-2.5 ${t.color} hover:brightness-110 text-white text-xs font-bold uppercase tracking-wider rounded-xl transition-all shadow-md active:scale-95`}
+              >
+                <BsCheckCircleFill size={14} /> {t.label}
+              </button>
+            ))}
+
+            {data && data.status_label !== "Selesai" && (
+              <button
+                onClick={() => {
+                  resetForm();
+                  setOpenModal(true);
+                }}
+                className="flex items-center justify-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold uppercase tracking-wider rounded-xl transition-all shadow-md shadow-blue-200 active:scale-95"
+              >
+                <BsPlusLg size={14} /> Tambah Temuan
+              </button>
+            )}
+          </div>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse text-sm">
-            <thead className="bg-slate-50 border-b border-slate-200 text-slate-600">
-              <tr className="uppercase text-[10px] tracking-widest font-bold text-left">
-                <th className="py-3 px-2 text-center w-8">No</th>
-                <th className="py-3 px-2">Masalah</th>
-                <th className="py-3 px-2">Kriteria</th>
-                <th className="py-3 px-2">Sebab</th>
-                <th className="py-3 px-2">Akibat</th>
-                <th className="py-3 px-2">Kondisi</th>
-                <th className="py-3 px-2 text-blue-600">Rekomendasi</th>
-                <th className="py-3 px-2 text-blue-600">Rencana</th>
-                <th className="py-3 px-2 text-blue-600">Keterangan</th>
-                <th className="py-3 px-2 text-center">Status</th>
-                <th className="py-3 px-2 text-center w-20">Aksi</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 bg-white">
-              {temuan.length > 0 ? (
-                temuan.map((t, i) => (
-                  <tr key={t.id} className="hover:bg-slate-50 transition-colors group text-[12px] align-top">
-                    <td className="px-2 py-3 text-center text-slate-400 font-mono text-[11px] font-bold bg-slate-50/50 group-hover:bg-transparent">
+        <div className="py-6 space-y-6">
+          {temuan.length > 0 ? (
+            temuan.map((t, i) => (
+              <div key={t.id} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden transition-all hover:shadow-md group">
+                {/* --- HEADER ROW --- */}
+                <div className="flex flex-col md:flex-row items-start md:items-center justify-between p-5 border-b border-slate-100 bg-slate-50/30 gap-4">
+                  <div className="flex items-start gap-3 flex-1">
+                    <span className="text-slate-400 font-mono text-sm font-bold shrink-0 mt-[2px] min-w-[1.25rem] text-center">
                       {i + 1}
-                    </td>
-                    <td className="px-2 py-3 font-bold text-slate-800 leading-relaxed break-words">
+                    </span>
+                    <h4 className="text-slate-800 font-bold text-base leading-snug break-words tracking-tight">
                       {t.masalah}
-                    </td>
-                    <td className="px-2 py-3 leading-relaxed text-slate-600 break-words">
-                      {t.kriteria}
-                    </td>
-                    <td className="px-2 py-3 leading-relaxed text-slate-600 break-words">
-                      {t.sebab}
-                    </td>
-                    <td className="px-2 py-3 text-red-600 font-medium leading-relaxed break-words">
-                      {t.akibat}
-                    </td>
-                    <td className="px-2 py-3 text-slate-600 italic leading-relaxed break-words">
-                      {t.kondisi}
-                    </td>
-                    <td className="px-2 py-3 bg-blue-50/30 text-blue-700 font-bold leading-relaxed break-words">
-                      {t.rekomendasi}
-                    </td>
-                    <td className="px-2 py-3 bg-blue-50/30 text-slate-700 leading-relaxed break-words">
-                      {t.rencana}
-                    </td>
-                    <td className="px-2 py-3 text-slate-500 text-[11px] break-words">
-                      {t.keterangan || "-"}
-                    </td>
-                    <td className="px-2 py-3 text-center align-middle">
-                      {(() => {
-                        const st = getStatusTemuan(t.status);
-                        return (
-                          <span
-                            className="inline-flex items-center justify-center px-2 py-1 rounded text-[9px] font-black uppercase tracking-widest"
-                            style={{ backgroundColor: st.bg, color: st.text }}
-                          >
-                            {st.label}
-                          </span>
-                        );
-                      })()}
-                    </td>
-                    <td className="px-2 py-3 text-center align-middle">
-                      <div className="flex flex-row justify-center gap-1.5">
+                    </h4>
+                  </div>
+                  
+                  <div className="flex items-center gap-3 shrink-0 ml-10 md:ml-0 self-end md:self-center">
+                    {/* Category Badge */}
+                    {t.kategori && (() => {
+                      const catStyle = getCategoryStyle(t.kategori);
+                      return (
+                        <span 
+                          className="px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest shadow-sm"
+                          style={{ backgroundColor: catStyle.bg, color: catStyle.text }}
+                        >
+                          {t.kategori}
+                        </span>
+                      );
+                    })()}
+                    
+                    {/* Finding Status Badge */}
+                    {/* {(() => {
+                      const st = getStatusTemuan(t.status);
+                      return (
+                        <span 
+                          className="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest text-slate-500 bg-slate-100 border border-slate-200"
+                          style={st.label === "Final" ? { backgroundColor: "#e0f2fe", color: "#0369a1", borderColor: "#bae6fd" } : {}}
+                        >
+                          {st.label}
+                        </span>
+                      );
+                    })()} */}
+
+                    {/* Actions */}
+                    {data && data.status_label !== "Selesai" && (t.status || "").toLowerCase() !== "close" && (
+                      <div className="flex gap-1.5 ml-2 border-l border-slate-200 pl-3">
                         <button 
                           onClick={() => handleEdit(t)}
-                          className="p-1.5 bg-slate-100 text-amber-600 hover:bg-amber-500 hover:text-white rounded-lg transition-colors border border-slate-200 hover:border-transparent flex items-center justify-center" title="Edit"
+                          className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all active:scale-90"
+                          title="Edit Temuan"
                         >
-                          <BsPencilSquare size={13} />
+                          <BsPencilSquare size={14} />
                         </button>
                         <button 
                           onClick={() => handleDelete(t.id)}
-                          className="p-1.5 bg-slate-100 text-red-500 hover:bg-red-500 hover:text-white rounded-lg transition-colors border border-slate-200 hover:border-transparent flex items-center justify-center" title="Hapus"
+                          className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all active:scale-90"
+                          title="Hapus Temuan"
                         >
-                          <BsTrash size={13} />
+                          <BsTrash size={14} />
                         </button>
                       </div>
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan="11" className="p-16 text-center text-slate-400 italic">
-                    <div className="flex flex-col items-center gap-3">
-                      <BsFileEarmarkText size={40} className="text-slate-200" />
-                      <p className="font-bold text-slate-500 uppercase tracking-widest text-[10px]">Belum ada data temuan yang diinput</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* --- CONTENT AREA (GRID) --- */}
+                <div className="p-6">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-y-8 gap-x-10">
+                    {/* Row 1 */}
+                    <div className="space-y-2">
+                      <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                        <div className="w-1 h-1 rounded-full bg-slate-300"></div> Kriteria
+                      </label>
+                      <p className="text-xs font-semibold leading-relaxed text-slate-600 break-words pl-3 border-l border-slate-100">
+                        {t.kriteria || "-"}
+                      </p>
                     </div>
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                    
+                    <div className="space-y-2">
+                      <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                        <div className="w-1 h-1 rounded-full bg-slate-300"></div> Kondisi
+                      </label>
+                      <p className="text-xs font-semibold leading-relaxed text-slate-500 italic break-words pl-3 border-l border-slate-100">
+                        {t.kondisi || "-"}
+                      </p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                        <div className="w-1 h-1 rounded-full bg-slate-300"></div> Sebab
+                      </label>
+                      <p className="text-xs font-semibold leading-relaxed text-slate-600 break-words pl-3 border-l border-slate-100">
+                        {t.sebab || "-"}
+                      </p>
+                    </div>
+
+                    {/* Row 2 */}
+                    <div className="space-y-2 pt-2">
+                      <label className="text-[9px] font-black text-red-500/70 uppercase tracking-widest flex items-center gap-2">
+                        <div className="w-1 h-1 rounded-full bg-red-200"></div> Akibat / Dampak
+                      </label>
+                      <p className="text-xs font-bold leading-relaxed text-red-600/90 break-words pl-3 border-l border-red-50/50">
+                        {t.akibat || "-"}
+                      </p>
+                    </div>
+
+                    <div className="space-y-2 pt-2">
+                      <label className="text-[9px] font-black text-blue-500/70 uppercase tracking-widest flex items-center gap-2">
+                        <div className="w-1 h-1 rounded-full bg-blue-200"></div> Rekomendasi
+                      </label>
+                      <p className="text-xs font-bold leading-relaxed text-blue-600/90 break-words pl-3 border-l border-blue-50/50">
+                        {t.rekomendasi || "-"}
+                      </p>
+                    </div>
+
+                    <div className="space-y-2 pt-2">
+                      <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                        <div className="w-1 h-1 rounded-full bg-slate-300"></div> Rencana Tindakan
+                      </label>
+                      <p className="text-xs font-bold leading-relaxed text-slate-700 break-words pl-3 border-l border-slate-100">
+                        {t.rencana || "-"}
+                      </p>
+                    </div>
+                  </div>
+
+                  {t.keterangan && (
+                    <div className="mt-8 p-4 bg-slate-50 rounded-xl border border-slate-100">
+                      <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest block mb-1">Keterangan:</label>
+                      <p className="text-[11px] text-slate-500 leading-relaxed font-medium">{t.keterangan}</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* --- FOOTER ROW --- */}
+                <div className="px-6 py-4 bg-slate-50/50 border-t border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 text-[10px] font-bold">
+                  <div className="flex flex-wrap gap-x-8 gap-y-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-slate-400 uppercase tracking-widest text-[8px]">Target Selesai:</span>
+                      <span className="text-slate-600">{t.target_penyelesaian ? formatTanggal(t.target_penyelesaian) : "-"}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-slate-400 uppercase tracking-widest text-[8px]">Nilai Kerugian:</span>
+                      <span className="text-slate-600">Rp {formatRupiah(t.nilai_kerugian)}</span>
+                    </div>
+                    {t.lampiran && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-slate-400 uppercase tracking-widest text-[8px]">Lampiran:</span>
+                        <button 
+                          onClick={() => setPreviewFile(t)}
+                          className="flex items-center gap-1.5 px-2 py-1 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition-all text-[9px] font-bold border border-indigo-100"
+                        >
+                          <BsFileEarmarkText size={12} /> 
+                          <span className="line-clamp-1 max-w-[120px]">
+                            {t.nama_lampiran || "Buka Dokumen"}
+                          </span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {(() => {
+                    const stProg = getStatusTemuan(t.status);
+                    return (
+                      <div className="flex items-center gap-3 px-4 py-2 ml-auto md:ml-0">
+                        <span className="text-slate-400 uppercase tracking-widest text-[8px]">Status Temuan:</span>
+                        <span 
+                          className="px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider"
+                          style={{ 
+                            backgroundColor: stProg.bg, 
+                            color: stProg.text || "#fff" 
+                          }}
+                        >
+                          {stProg.label}
+                        </span>
+                      </div>
+                    );
+                  })()}
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="p-16 text-center text-slate-400 bg-white border border-slate-100 rounded-2xl shadow-inner border-dashed">
+              <div className="flex flex-col items-center gap-3">
+                <BsFileEarmarkText size={40} className="text-slate-200" />
+                <p className="font-bold text-slate-500 uppercase tracking-widest text-[10px]">Belum ada data temuan</p>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -428,7 +690,7 @@ const ExternalAuditDetail = () => {
               <div className="space-y-1.5">
                 <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Masalah yang dijumpai</label>
                 <textarea 
-                  name="masalah" value={form.masalah || ""} placeholder="Uraian masalah utama..." onChange={handleChange} required
+                  name="masalah" value={form.masalah || ""} placeholder="Uraian masalah utama..." onChange={handleChange} 
                   className="w-full h-24 p-3.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 font-bold text-sm text-slate-800 resize-none transition-all"
                 />
               </div>
@@ -437,14 +699,14 @@ const ExternalAuditDetail = () => {
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Kondisi</label>
                   <textarea 
-                    name="kondisi" value={form.kondisi || ""} placeholder="Fakta di lapangan..." onChange={handleChange} required
+                    name="kondisi" value={form.kondisi || ""} placeholder="Fakta di lapangan..." onChange={handleChange} 
                     className="w-full h-24 p-3.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 font-medium text-sm text-slate-700 resize-none transition-all"
                   />
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Kriteria</label>
                   <textarea 
-                    name="kriteria" value={form.kriteria || ""} placeholder="Aturan/Standard yang dilanggar..." onChange={handleChange} required
+                    name="kriteria" value={form.kriteria || ""} placeholder="Aturan/Standard yang dilanggar..." onChange={handleChange} 
                     className="w-full h-24 p-3.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 font-medium text-sm text-slate-700 resize-none transition-all"
                   />
                 </div>
@@ -454,14 +716,14 @@ const ExternalAuditDetail = () => {
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Sebab</label>
                   <input 
-                    name="sebab" value={form.sebab || ""} placeholder="Penyebab terjadinya masalah..." onChange={handleChange} required
+                    name="sebab" value={form.sebab || ""} placeholder="Penyebab terjadinya masalah..." onChange={handleChange} 
                     className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 font-medium text-sm text-slate-700 transition-all"
                   />
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-bold text-red-500 uppercase tracking-widest ml-1">Akibat / Dampak</label>
                   <input 
-                    name="akibat" value={form.akibat || ""} placeholder="Dampak/Kerugian yang timbul..." onChange={handleChange} required
+                    name="akibat" value={form.akibat || ""} placeholder="Dampak/Kerugian yang timbul..." onChange={handleChange} 
                     className="w-full p-3.5 bg-red-50 border border-red-200 rounded-xl outline-none focus:ring-2 focus:ring-red-400 font-bold text-sm text-red-800 transition-all"
                   />
                 </div>
@@ -484,7 +746,7 @@ const ExternalAuditDetail = () => {
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Target Penyelesaian</label>
                   <input
-                    type="date" name="target_penyelesaian" required
+                    type="date" name="target_penyelesaian" 
                     className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 font-semibold text-sm transition-all cursor-text"
                     value={form.target_penyelesaian || ""}
                     onChange={handleChange}
@@ -496,20 +758,36 @@ const ExternalAuditDetail = () => {
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-bold text-blue-600 uppercase tracking-widest ml-1">Rekomendasi Eksternal</label>
                   <textarea 
-                    name="rekomendasi" placeholder="Saran perbaikan..." value={form.rekomendasi || ""} onChange={handleChange} required
+                    name="rekomendasi" placeholder="Saran perbaikan..." value={form.rekomendasi || ""} onChange={handleChange} 
                     className="w-full h-24 p-3.5 bg-blue-50/50 border border-blue-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 font-bold text-blue-800 text-sm resize-none transition-all"
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Rencana Tindakan Auditee</label>
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Rencana Tindakan Perbaikan</label>
                   <textarea 
-                    name="rencana" value={form.rencana || ""} placeholder="Langkah konkret auditee..." onChange={handleChange} required
+                    name="rencana" value={form.rencana || ""} placeholder="Langkah konkret auditee..." onChange={handleChange} 
                     className="w-full h-24 p-3.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 font-medium text-sm text-slate-700 resize-none transition-all"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5 bg-slate-50 p-5 rounded-2xl border border-slate-200">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Kategori Temuan</label>
+                  <select
+                    name="kategori"
+                    className="w-full p-3.5 bg-white border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 font-bold text-sm transition-all"
+                    value={form.kategori || ""}
+                    onChange={handleChange}
+                  >
+                    <option value="">-- Pilih Kategori --</option>
+                    <option value="Major">Major (Ketidaksesuaian Mayor)</option>
+                    <option value="Minor">Minor (Ketidaksesuaian Minor)</option>
+                    <option value="Observasi">Observasi (Catatan / Potensi Risiko)</option>
+                    <option value="OFI">OFI (Opportunity for Improvement)</option>
+                  </select>
+                </div>
+
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Keterangan Opsional</label>
                   <textarea 
@@ -577,7 +855,8 @@ const ExternalAuditDetail = () => {
           </div>
         </div>
       )}
-
+      
+      {RenderPreviewModal()}
     </div>
   );
 };

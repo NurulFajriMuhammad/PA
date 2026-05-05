@@ -1,5 +1,6 @@
 import React from 'react';
 import { Gavel, FileCheck, Landmark, Scale, BookOpen, ExternalLink, ShieldCheck } from 'lucide-react';
+import { notifyError } from '../../../../Shared/utils/notifier';
 
 const DasarHukumSpiPage = () => {
   const regulasi = [
@@ -62,12 +63,11 @@ const DasarHukumSpiPage = () => {
     }
   ];
 
-  // Fungsi untuk membuka link di tab baru
   const handleOpenDoc = (url) => {
     if (url !== "#") {
       window.open(url, '_blank', 'noopener,noreferrer');
     } else {
-      alert("Dokumen internal belum tersedia di sistem.");
+      notifyError("Dokumen internal belum tersedia di sistem.");
     }
   };
 

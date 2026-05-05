@@ -11,6 +11,7 @@ import {
   CheckCircle2
 } from 'lucide-react';
 import apiClient from "../../../../Shared/api/axios";
+import { notifySuccess, notifyError, notifyConfirm } from "../../../../Shared/utils/notifier.jsx";
 
 const PKPTSpiPage = () => {
   const [plans, setPlans] = useState([]);
@@ -86,20 +87,22 @@ const PKPTSpiPage = () => {
         year: new Date().getFullYear()
       });
       fetchData();
+      notifySuccess("PKPT berhasil disimpan!");
     } catch (err) {
-      alert("Gagal simpan rencana tahunan");
+      notifyError("Gagal simpan rencana tahunan");
     }
   };
 
-  const handleDelete = async (id) => {
-    if (window.confirm("Yakin ingin menghapus PKPT ini?")) {
+  const handleDelete = (id) => {
+    notifyConfirm("Yakin ingin menghapus PKPT ini?", async () => {
       try {
         await apiClient.delete(`/api/pkptspi/${id}`);
         fetchData();
+        notifySuccess("PKPT berhasil dihapus!");
       } catch (err) { 
-        alert("Gagal menghapus"); 
+        notifyError("Gagal menghapus"); 
       }
-    }
+    });
   };
 
   return (

@@ -651,6 +651,7 @@
   const params = new URLSearchParams(window.location.search);
   const templateId = params.get("template_id");
   const assuranceId = params.get("assurance_id");
+  const apiBaseUrl = params.get("api_base_url"); // fallback if missing
 
   // tampilkan di toolbar
   document.getElementById("tb-id").textContent = templateId || "-";
@@ -672,7 +673,7 @@
   // =========================
   async function loadData() {
     try {
-      const res = await fetch(`http://192.168.1.8:8000/api/report/${assuranceId}`);
+      const res = await fetch(`${apiBaseUrl}/api/report/${assuranceId}`);
       const result = await res.json();
       const data = result.data || result;
 

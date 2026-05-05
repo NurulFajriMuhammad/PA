@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import apiClient from "../../../../../Shared/api/apiClient";
 import { ArrowLeft, ArrowRight, CheckCircle2, AlertCircle, XCircle } from "lucide-react";
 import { BsFileEarmarkText, BsPaperclip, BsCloudUpload, BsX } from "react-icons/bs";
+import { notifySuccess, notifyError, notifyConfirm } from "../../../../../Shared/utils/notifier.jsx";
 
 const AnalisisTab = ({ assurance }) => {
   const [data, setData] = useState([]);
@@ -91,12 +92,12 @@ const AnalisisTab = ({ assurance }) => {
         formData,
       );
 
-      alert("Analisis berhasil disimpan!");
+      notifySuccess("Analisis berhasil disimpan!");
       await fetchAnalisis();
       await handleSelectTemuan(selectedTemuan); // Refresh detail
     } catch (err) {
       console.error(err);
-      alert("Gagal menyimpan data.");
+      notifyError("Gagal menyimpan data.");
     }
   };
 
@@ -134,28 +135,33 @@ const AnalisisTab = ({ assurance }) => {
     });
   };
 
-  const handleKirimTindakLanjut = async () => {
+  const handleKirimTindakLanjut = () => {
     try {
       const draftTemuan = data.filter(
         (item) => item.status_analisis === "draft"
       );
 
       if (draftTemuan.length === 0) {
-        alert("Tidak ada temuan dengan status draft yang siap dikirim.");
+        notifyError("Tidak ada temuan dengan status draft yang siap dikirim.");
         return;
       }
 
-      if(!window.confirm(`Kirim ${draftTemuan.length} temuan (draft) ke panel Tindak Lanjut?`)) return;
+      notifyConfirm(`Kirim ${draftTemuan.length} temuan (draft) ke panel Tindak Lanjut?`, async () => {
+        try {
+          await apiClient.post("/api/tindak-lanjut/generate", {
+            temuan_ids: draftTemuan.map((t) => t.id),
+          });
 
-      await apiClient.post("/api/tindak-lanjut/generate", {
-        temuan_ids: draftTemuan.map((t) => t.id),
+          notifySuccess("Berhasil dikirim ke Tindak Lanjut 🚀");
+          fetchAnalisis();
+        } catch (err) {
+          console.error(err);
+          notifyError("Gagal mengirim tindak lanjut.");
+        }
       });
-
-      alert("Berhasil dikirim ke Tindak Lanjut 🚀");
-      fetchAnalisis();
     } catch (err) {
       console.error(err);
-      alert("Gagal mengirim tindak lanjut.");
+      notifyError("Terjadi kesalahan.");
     }
   };
 
@@ -169,10 +175,11 @@ const AnalisisTab = ({ assurance }) => {
 
   // Helper badge: cari warna dari database berdasarkan nama status
   const getStatusConfig = (status) => {
-    const targetName = STATUS_KEY_MAP[status] || status;
-    const found = statusTemuanList.find(
-      s => s.nama.toLowerCase() === targetName.toLowerCase()
-    );
+    const v = (STATUS_KEY_MAP[status] || status || "").toLowerCase();
+    const found = statusTemuanList.find((s) => {
+      const n = s.nama.toLowerCase();
+      return n === v || n.includes(v) || v.includes(n);
+    });
     if (found) {
       return {
         bgColor:   found.warna,

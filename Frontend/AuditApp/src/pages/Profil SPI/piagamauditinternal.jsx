@@ -14,6 +14,7 @@ import {
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import apiClient from "../../../../Shared/api/axios";
+import { notifySuccess, notifyError } from "../../../../Shared/utils/notifier.jsx";
 
 const PiagamAuditSPI = () => {
   const printRef = useRef();
@@ -42,7 +43,7 @@ const PiagamAuditSPI = () => {
   }, []);
 
   const handleSaveToDatabase = async () => {
-    if (!fileSigned) return alert("Pilih file terlebih dahulu!");
+    if (!fileSigned) return notifyError("Pilih file terlebih dahulu!");
 
     // 1. Ambil token dari localStorage (sesuaikan nama key-nya, biasanya 'token')
     const token = localStorage.getItem("token");
@@ -61,7 +62,7 @@ const PiagamAuditSPI = () => {
       });
 
       if (response.status === 201 || response.status === 200) {
-        alert("✅ Berhasil: " + (response.data.message || "File tersimpan"));
+        notifySuccess("Berhasil: " + (response.data.message || "File tersimpan"));
         setLatestDoc(response.data.data);
         setFileSigned(null);
       }
@@ -70,9 +71,9 @@ const PiagamAuditSPI = () => {
 
       // Pesan error yang lebih spesifik untuk 401
       if (error.response && error.response.status === 401) {
-        alert("Sesi Anda telah berakhir. Silakan login kembali.");
+        notifyError("Sesi Anda telah berakhir. Silakan login kembali.");
       } else {
-        alert("Gagal mengunggah ke database. Periksa koneksi atau backend.");
+        notifyError("Gagal mengunggah ke database. Periksa koneksi atau backend.");
       }
     }
   };
@@ -86,7 +87,7 @@ const PiagamAuditSPI = () => {
 
   const handleDownloadPdf = async () => {
     if (!latestDoc || !latestDoc.stored_name) {
-      alert("Dokumen belum tersedia");
+      notifyError("Dokumen belum tersedia");
       return;
     }
 
@@ -120,7 +121,7 @@ const PiagamAuditSPI = () => {
     if (file && file.type === "application/pdf") {
       setFileSigned(file);
     } else {
-      alert("Mohon unggah file format PDF");
+      notifyError("Mohon unggah file format PDF");
     }
   };
 

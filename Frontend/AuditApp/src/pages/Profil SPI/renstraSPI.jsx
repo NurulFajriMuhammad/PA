@@ -10,7 +10,7 @@ import {
   Target
 } from "lucide-react";
 import apiClient from "../../../../Shared/api/apiClient";
-import { notifySuccess, notifyError } from "../../../../Shared/utils/notifier"; // Opsional: Jika kamu pakai ini
+import { notifySuccess, notifyError, notifyConfirm } from "../../../../Shared/utils/notifier.jsx";
 
 const RenstraSPI = () => {
   const [auditUniverse, setAuditUniverse] = useState([]);
@@ -52,23 +52,22 @@ const RenstraSPI = () => {
       setShowForm(false);
       setNewPlan({ ...newPlan, audit_universe_id: "", frequency: "" });
       fetchData();
-      // notifySuccess("Rencana berhasil disimpan");
+      notifySuccess("Rencana berhasil disimpan");
     } catch (err) {
-      alert("Gagal simpan rencana");
-      // notifyError("Gagal simpan rencana");
+      notifyError("Gagal simpan rencana");
     }
   };
 
-  const handleDelete = async (id) => {
-    if (window.confirm("Apakah Anda yakin ingin menghapus rencana ini?")) {
+  const handleDelete = (id) => {
+    notifyConfirm("Apakah Anda yakin ingin menghapus rencana ini?", async () => {
       try {
         await apiClient.delete(`/api/spijangkapanjang/${id}`);
         fetchData();
-        // notifySuccess("Rencana berhasil dihapus");
+        notifySuccess("Rencana berhasil dihapus");
       } catch (err) {
-        alert("Gagal menghapus data");
+        notifyError("Gagal menghapus data");
       }
-    }
+    });
   };
 
   // Helper untuk styling badge risiko agar sama dengan Audit Universe

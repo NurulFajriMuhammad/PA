@@ -14,6 +14,7 @@ import {
 } from "react-icons/bs";
 import apiClient from "../../../Shared/api/apiClient";
 import { useNavigate } from "react-router-dom";
+import { notifySuccess, notifyError, notifyConfirm } from "../../../Shared/utils/notifier.jsx";
 
 const unitToCategoryMap = {
   "Business Development": "Operasional & Produksi",
@@ -34,6 +35,7 @@ const ExternalAudit = () => {
   const [showModal, setShowModal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [units, setUnits] = useState([]);
 
   const initialForm = {
     objek_pemeriksaan: "",
@@ -45,6 +47,7 @@ const ExternalAudit = () => {
     tgl_mulai: "",
     tgl_selesai: "",
     lokasi: "",
+    lembaga_pemeriksa: "",
     status: "Planning",
     keterangan: "",
   };
@@ -54,8 +57,12 @@ const ExternalAudit = () => {
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await apiClient.get("/api/external-audit");
-      setData(res.data.data || []);
+      const [resAudit, resUnits] = await Promise.all([
+        apiClient.get("/api/external-audit"),
+        apiClient.get("/api/units").catch(() => ({ data: [] }))
+      ]);
+      setData(resAudit.data.data || []);
+      setUnits(resUnits.data?.data || (Array.isArray(resUnits.data) ? resUnits.data : []));
     } catch (err) {
       console.error(err);
     } finally {
@@ -89,33 +96,63 @@ const ExternalAudit = () => {
         periode_awal: form.tgl_mulai,
         periode_akhir: form.tgl_selesai,
         lokasi: form.lokasi,
+        lembaga_pemeriksa: form.lembaga_pemeriksa,
         keterangan: form.keterangan,
         status: form.status,
       };
 
-      await apiClient.post("/api/external-audit", payload);
+      if (isEdit && selectedId) {
+        await apiClient.put(`/api/external-audit/${selectedId}`, payload);
+      } else {
+        await apiClient.post("/api/external-audit", payload);
+      }
       setShowModal(false);
       setForm(initialForm); 
       fetchData();
-      alert("Data Eksternal Audit berhasil disimpan!");
+      notifySuccess("Data Eksternal Audit berhasil disimpan!");
     } catch (err) {
-      alert("Gagal menyimpan data");
+      notifyError("Gagal menyimpan data");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm("Yakin ingin menghapus data eksternal audit ini?")) return;
-    try {
-      setLoading(true);
-      await apiClient.delete(`/api/external-audit/${id}`);
-      fetchData();
-    } catch (err) {
-      console.error(err);
-      alert("Gagal menghapus data");
-      setLoading(false);
-    }
+  const [isEdit, setIsEdit] = useState(false);
+  const [selectedId, setSelectedId] = useState(null);
+
+  const handleEdit = (item) => {
+    setForm({
+      objek_pemeriksaan: item.objek_pemeriksaan || "",
+      nama_kegiatan: item.nama_kegiatan || "",
+      tujuan: item.tujuan || "",
+      objek_audit: item.objek_audit || "",
+      ruang_lingkup: item.ruang_lingkup || "",
+      metodologi: item.metodologi || "",
+      tgl_mulai: item.periode_awal ? item.periode_awal.split('T')[0] : "",
+      tgl_selesai: item.periode_akhir ? item.periode_akhir.split('T')[0] : "",
+      lokasi: item.lokasi || "",
+      lembaga_pemeriksa: item.lembaga_pemeriksa || "",
+      status: item.status || "Planning",
+      keterangan: item.keterangan || "",
+    });
+    setSelectedId(item.id);
+    setIsEdit(true);
+    setShowModal(true);
+  };
+
+  const handleDelete = (id) => {
+    notifyConfirm("Yakin ingin menghapus data eksternal audit ini?", async () => {
+      try {
+        setLoading(true);
+        await apiClient.delete(`/api/external-audit/${id}`);
+        fetchData();
+        notifySuccess("Data berhasil dihapus!");
+      } catch (err) {
+        console.error(err);
+        notifyError("Gagal menghapus data");
+        setLoading(false);
+      }
+    });
   };
 
   const filteredData = data.filter(item => 
@@ -151,6 +188,8 @@ const ExternalAudit = () => {
           <button
             onClick={() => {
               setForm(initialForm);
+              setIsEdit(false);
+              setSelectedId(null);
               setShowModal(true);
             }}
             className="bg-blue-600 text-white px-6 py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 active:scale-95"
@@ -182,6 +221,9 @@ const ExternalAudit = () => {
                   <th rowSpan="2" className="p-5 text-sm font-bold border-r border-slate-700 w-[35%] uppercase tracking-wider">
                     Unit & Kegiatan Audit
                   </th>
+                  <th rowSpan="2" className="p-5 text-center text-sm font-bold border-r border-slate-700 uppercase tracking-wider w-[20%]">
+                    Lembaga Pemeriksa
+                  </th>
                   <th colSpan="3" className="p-3 text-center text-xs font-bold border-b border-r border-slate-700 bg-black uppercase tracking-widest">
                     Status Temuan
                   </th>
@@ -202,7 +244,7 @@ const ExternalAudit = () => {
               <tbody className="divide-y divide-slate-100">
                 {loading ? (
                   <tr>
-                    <td colSpan="6" className="py-20 text-center text-slate-400 font-medium tracking-widest animate-pulse text-xs uppercase">
+                    <td colSpan="7" className="py-20 text-center text-slate-400 font-medium tracking-widest animate-pulse text-xs uppercase">
                       Memuat Data Eksternal Audit...
                     </td>
                   </tr>
@@ -211,12 +253,14 @@ const ExternalAudit = () => {
                     <React.Fragment key={lembaga}>
                       {/* UNIT HEADER ROW */}
                       <tr className="bg-slate-50/80 border-b-2 border-slate-200">
-                        <td colSpan="6" className="p-3 px-5 border-l-4 border-blue-600">
+                        <td colSpan="7" className="p-3 px-5 border-l-4 border-blue-600">
                           <span className="text-xs font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
                              <BsFolder2Open className="text-blue-500" size={16} /> {lembaga}
                           </span>
                         </td>
                       </tr>
+
+                      
 
                       {/* DATA ROWS */}
                       {groupedData[lembaga].map((item) => {
@@ -226,8 +270,9 @@ const ExternalAudit = () => {
 
                         if (item.temuan) {
                           item.temuan.forEach(t => {
-                            if (t.status === 'close' || t.status === 'closed') totalClose++;
-                            else if (t.status === 'monev') totalMonev++;
+                            const s = (t.status || "").toLowerCase();
+                            if (s === 'close' || s === 'closed') totalClose++;
+                            else if (s === 'monev') totalMonev++;
                             else totalDraft++;
                           });
                         }
@@ -249,6 +294,13 @@ const ExternalAudit = () => {
                             )}
                           </td>
 
+                          {/* LEMBAGA PEMERIKSA */}
+                          <td className="p-4 border-r border-slate-50 text-center">
+                            <span className="text-[11px] font-black text-indigo-700 uppercase tracking-wider px-3 py-1.5 block truncate" title={item.lembaga_pemeriksa}>
+                              {item.lembaga_pemeriksa || "-"}
+                            </span>
+                          </td>
+
                           {/* REAL-TIME Temuan COUNT */}
                           <td className="text-center p-4 text-sm font-black text-rose-600 border-x border-slate-50 bg-slate-50/50">{totalDraft > 0 ? totalDraft : 0}</td>
                           <td className="text-center p-4 text-sm font-bold text-amber-500 border-r border-slate-50">{totalMonev > 0 ? totalMonev : 0}</td>
@@ -256,13 +308,14 @@ const ExternalAudit = () => {
 
                           {/* STATUS BADGE */}
                           <td className="text-center p-4 border-r border-slate-50">
-                            <span className={`inline-flex items-center justify-center px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest border shadow-sm
-                              ${item.status === "Selesai" || item.status === "Closed"
-                                ? "bg-emerald-50 text-emerald-700 border-emerald-200" 
-                                : "bg-blue-50 text-blue-700 border-blue-200"}`}
+                            <span 
+                              className="inline-flex items-center justify-center px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest border border-transparent shadow-sm text-white"
+                              style={{ 
+                                backgroundColor: item.status_color || "#94a3b8", 
+                              }}
                             >
-                              {(item.status === "Selesai" || item.status === "Closed") && <BsCheckCircleFill className="mr-1.5 text-emerald-500" size={12} />}
-                              {item.status || "Planning"}
+                              {(item.status_label === "Selesai" || item.status_label === "Closed") && <BsCheckCircleFill className="mr-1.5" size={12} />}
+                              {item.status_label}
                             </span>
                           </td>
 
@@ -275,12 +328,20 @@ const ExternalAudit = () => {
                               >
                                 <BsEye size={16} />
                               </button>
-                              <button className="p-2.5 bg-slate-100 text-slate-500 hover:bg-amber-500 hover:text-white rounded-xl transition-all shadow-sm" title="Edit">
-                                <BsPencilSquare size={16} />
-                              </button>
-                              <button onClick={() => handleDelete(item.id)} className="p-2.5 bg-slate-100 text-slate-500 hover:bg-red-500 hover:text-white rounded-xl transition-all shadow-sm" title="Hapus">
-                                <BsTrash size={16} />
-                              </button>
+                              
+                              {item.status && item.status.toLowerCase() !== "selesai" && (
+                                <>
+                                  <button 
+                                    onClick={() => handleEdit(item)}
+                                    className="p-2.5 bg-slate-100 text-slate-500 hover:bg-amber-500 hover:text-white rounded-xl transition-all shadow-sm" title="Edit"
+                                  >
+                                    <BsPencilSquare size={16} />
+                                  </button>
+                                  <button onClick={() => handleDelete(item.id)} className="p-2.5 bg-slate-100 text-slate-500 hover:bg-red-500 hover:text-white rounded-xl transition-all shadow-sm" title="Hapus">
+                                    <BsTrash size={16} />
+                                  </button>
+                                </>
+                              )}
                             </div>
                           </td>
                         </tr>
@@ -290,7 +351,7 @@ const ExternalAudit = () => {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="6" className="py-16 text-center text-slate-400 font-medium text-sm">
+                    <td colSpan="7" className="py-16 text-center text-slate-400 font-medium text-sm">
                        Belum ada data eksternal audit.
                     </td>
                   </tr>
@@ -336,8 +397,8 @@ const ExternalAudit = () => {
                       onChange={handleChange}
                     >
                       <option value="">-- Pilih Sub Unit / Entitas --</option>
-                      {Object.keys(unitToCategoryMap).map((unit) => (
-                        <option key={unit} value={unit}>{unit}</option>
+                      {units.map((u) => (
+                        <option key={u.id} value={u.nama}>{u.nama}</option>
                       ))}
                     </select>
                   </div>
@@ -351,6 +412,18 @@ const ExternalAudit = () => {
                       value={form.nama_kegiatan}
                       onChange={handleChange}
                       placeholder="Contoh: Audit Eksternal ISO 9001 oleh SGS..."
+                    />
+                  </div>
+
+                  <div className="space-y-1.5 md:col-span-2">
+                    <label className="text-[10px] font-bold text-blue-600 uppercase tracking-widest ml-1">Lembaga Pemeriksa / KAP</label>
+                    <input
+                      required
+                      name="lembaga_pemeriksa"
+                      className="w-full p-3.5 bg-white border border-blue-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 font-bold text-sm text-slate-900 transition-all shadow-sm"
+                      value={form.lembaga_pemeriksa}
+                      onChange={handleChange}
+                      placeholder="Contoh: SGS Indonesia, TUV SUD, KAP Siddharta..."
                     />
                   </div>
                 </div>

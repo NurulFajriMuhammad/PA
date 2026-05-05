@@ -5,7 +5,7 @@ import {
   BsToggleOn, BsToggleOff, BsClock
 } from 'react-icons/bs';
 import apiClient from '../../../../Shared/api/apiClient';
-import { notifySuccess, notifyError } from '../../../../Shared/utils/notifier';
+import { notifySuccess, notifyError, notifyConfirm } from '../../../../Shared/utils/notifier';
 
 const EMPTY_FORM = {
   tahun: '',
@@ -97,15 +97,16 @@ const PeriodeAudit = () => {
     }
   };
 
-  const handleDelete = async (id, nama) => {
-    if (!window.confirm(`Hapus Periode Audit "${nama}"?`)) return;
-    try {
-      await apiClient.delete(`/api/periode-audit/${id}`);
-      notifySuccess('Periode Audit berhasil dihapus');
-      fetchData();
-    } catch {
-      notifyError('Gagal menghapus periode audit');
-    }
+  const handleDelete = (id, nama) => {
+    notifyConfirm(`Hapus Periode Audit "${nama}"?`, async () => {
+      try {
+        await apiClient.delete(`/api/periode-audit/${id}`);
+        notifySuccess('Periode Audit berhasil dihapus');
+        fetchData();
+      } catch {
+        notifyError('Gagal menghapus periode audit');
+      }
+    });
   };
 
   const formatDate = (d) => {

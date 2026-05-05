@@ -18,12 +18,19 @@ class ExternalAudit extends Model
         'periode_awal',
         'periode_akhir',
         'lokasi',
+        'lembaga_pemeriksa',
         'status',
         'keterangan',
+        'id_status_pemeriks',
     ];
 
     public function temuan()
     {
         return $this->hasMany(ExternalAuditTemuan::class, 'external_audit_id');
+    }
+
+    public function statusPemeriksaan()
+    {
+        return $this->belongsTo(StatusPemeriksaan::class, 'id_status_pemeriks');
     }
 }

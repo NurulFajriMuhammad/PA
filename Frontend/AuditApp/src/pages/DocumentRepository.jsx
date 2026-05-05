@@ -4,31 +4,34 @@ import {
   BsEye, BsFileEarmarkText, BsCalendar3,
   BsBoxArrowUpRight, BsX, BsFileEarmarkWord,
   BsFileEarmarkImage, BsFileEarmarkZip,
-  BsChevronLeft, BsChevronRight, BsGrid, BsListUl
+  BsChevronLeft, BsChevronRight, BsGrid, BsListUl, BsChevronDown,
+  BsPersonVcard, BsBuilding, BsShieldCheck, BsGraphUpArrow, BsArrowRepeat, BsShare
 } from 'react-icons/bs';
 import apiClient from '../../../Shared/api/apiClient';
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || '';
 
-const CATEGORY_COLORS = {
-  'Profil SPI':             'bg-violet-100 text-violet-700 border-violet-200',
-  'Dokumen Auditee':        'bg-sky-100 text-sky-700 border-sky-200',
-  'Laporan Hasil Audit':    'bg-emerald-100 text-emerald-700 border-emerald-200',
-  'Temuan Audit Internal':  'bg-rose-100 text-rose-700 border-rose-200',
-  'Analisis Penyebab':      'bg-orange-100 text-orange-700 border-orange-200',
-  'Tindak Lanjut':          'bg-amber-100 text-amber-700 border-amber-200',
-  'Temuan Audit Eksternal': 'bg-indigo-100 text-indigo-700 border-indigo-200',
+const CATEGORY_THEMES = {
+  'Profil SPI':             { color: 'violet',  icon: <BsPersonVcard /> },
+  'Dokumen Auditee':        { color: 'sky',     icon: <BsBuilding /> },
+  'Laporan Hasil Audit':    { color: 'emerald', icon: <BsFileEarmarkPdf /> },
+  'Temuan Audit Internal':  { color: 'rose',    icon: <BsShieldCheck /> },
+  'Analisis Penyebab':      { color: 'orange',  icon: <BsGraphUpArrow /> },
+  'Tindak Lanjut':          { color: 'amber',   icon: <BsArrowRepeat /> },
+  'Temuan Audit Eksternal': { color: 'indigo',  icon: <BsShare /> },
 };
 
-const CATEGORY_BG = {
-  'Profil SPI':             'bg-violet-50',
-  'Dokumen Auditee':        'bg-sky-50',
-  'Laporan Hasil Audit':    'bg-emerald-50',
-  'Temuan Audit Internal':  'bg-rose-50',
-  'Analisis Penyebab':      'bg-orange-50',
-  'Tindak Lanjut':          'bg-amber-50',
-  'Temuan Audit Eksternal': 'bg-indigo-50',
+const THEME_STYLES = {
+  violet:  'bg-violet-50 text-violet-600 border-violet-100',
+  sky:     'bg-sky-50 text-sky-600 border-sky-100',
+  emerald: 'bg-emerald-50 text-emerald-600 border-emerald-100',
+  rose:    'bg-rose-50 text-rose-600 border-rose-100',
+  orange:  'bg-orange-50 text-orange-600 border-orange-100',
+  amber:   'bg-amber-50 text-amber-600 border-amber-100',
+  indigo:  'bg-indigo-50 text-indigo-600 border-indigo-100',
+  slate:   'bg-slate-50 text-slate-600 border-slate-100',
 };
+
 
 const MODULE_LABELS = {
   'internal_audit_charter': 'Profil SPI',
@@ -170,8 +173,9 @@ const DocumentRepository = () => {
   // ---- Card dokumen (grid) ----
   const DocCard = ({ doc }) => {
     const { icon: FileIcon, color } = getFileIcon(doc.file_type, doc.file_name);
-    const catColor  = CATEGORY_COLORS[doc.category] || 'bg-slate-100 text-slate-500 border-slate-200';
-    const catBg     = CATEGORY_BG[doc.category]     || 'bg-slate-50';
+    const theme = CATEGORY_THEMES[doc.category] || { color: 'slate' };
+    const catColor = THEME_STYLES[theme.color] || THEME_STYLES.slate;
+    const catBg = `bg-${theme.color}-50/40`;
     return (
       <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 flex flex-col group">
         <div className={`${catBg} px-4 pt-4 pb-3 flex items-start gap-3`}>
@@ -209,7 +213,8 @@ const DocumentRepository = () => {
   // ---- Row dokumen (list) ----
   const DocRow = ({ doc, index }) => {
     const { icon: FileIcon, color } = getFileIcon(doc.file_type, doc.file_name);
-    const catColor = CATEGORY_COLORS[doc.category] || 'bg-slate-100 text-slate-500 border-slate-200';
+    const theme = CATEGORY_THEMES[doc.category] || { color: 'slate' };
+    const catColor = THEME_STYLES[theme.color] || THEME_STYLES.slate;
     return (
       <tr className="hover:bg-blue-50/30 transition-colors group">
         <td className="px-4 py-3 text-center text-xs text-slate-400 font-mono">{index + 1}</td>
@@ -258,24 +263,69 @@ const DocumentRepository = () => {
 
         {/* Statistik */}
         {statistics && (
-          <div className="mt-5 grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
-            {Object.entries(statistics.categories || {}).map(([cat, count]) => (
-              <button
-                key={cat}
-                onClick={() => setActiveCategory(cat === activeCategory ? 'Semua' : cat)}
-                className={`text-left p-3 rounded-xl border transition-all hover:shadow-md ${
-                  activeCategory === cat
-                    ? (CATEGORY_COLORS[cat] || 'bg-blue-100 text-blue-700 border-blue-200') + ' shadow-md'
-                    : 'bg-white border-slate-200 text-slate-700 hover:border-blue-200'
-                }`}
-              >
-                <div className="text-xl font-black">{count}</div>
-                <div className="text-[10px] font-bold uppercase tracking-wide leading-tight mt-0.5">{cat}</div>
-              </button>
-            ))}
-            <div className="text-left p-3 rounded-xl border bg-slate-800 text-white border-slate-700">
-              <div className="text-xl font-black">{statistics.total_documents}</div>
-              <div className="text-[10px] font-bold uppercase tracking-wide leading-tight mt-0.5">Total Dokumen</div>
+          <div className="mt-8 flex flex-col lg:flex-row gap-6">
+            {/* Total Documents Side */}
+            <button 
+              onClick={() => setActiveCategory('Semua')}
+              className={`relative overflow-hidden w-full lg:w-72 p-6 rounded-3xl border transition-all duration-500 hover:shadow-2xl group ${
+                activeCategory === 'Semua' 
+                  ? 'bg-slate-900 border-slate-800 text-white shadow-xl scale-[1.02]' 
+                  : 'bg-white border-slate-100 text-slate-800 shadow-sm hover:border-blue-200'
+              }`}
+            >
+              <div className="absolute -right-6 -top-6 opacity-10 group-hover:rotate-12 transition-transform duration-700">
+                <BsFolder2Open size={160} />
+              </div>
+              
+              <div className="relative z-10">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className={`p-3 rounded-2xl ${activeCategory === 'Semua' ? 'bg-blue-600 text-white' : 'bg-blue-50 text-blue-600'}`}>
+                    <BsFolder2Open size={24} />
+                  </div>
+                  <span className={`text-[10px] font-black uppercase tracking-widest ${activeCategory === 'Semua' ? 'text-slate-400' : 'text-slate-400'}`}>Summary</span>
+                </div>
+                
+                <div className="text-5xl font-black mb-2 tabular-nums">{statistics.total_documents}</div>
+                <div className="text-sm font-bold opacity-70">Total File Repository</div>
+                <div className={`mt-6 inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-wider px-3 py-1.5 rounded-full ${activeCategory === 'Semua' ? 'bg-white/10 text-white' : 'bg-slate-100 text-slate-500'}`}>
+                  {activeCategory === 'Semua' ? 'Menampilkan Semua' : 'Klik untuk Reset'}
+                </div>
+              </div>
+            </button>
+
+            {/* Categories Grid */}
+            <div className="flex-1 grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-4">
+              {Object.entries(statistics.categories || {}).map(([cat, count]) => {
+                const isActive = activeCategory === cat;
+                const theme = CATEGORY_THEMES[cat] || { color: 'blue', icon: <BsFolder2Open /> };
+                
+                return (
+                  <button
+                    key={cat}
+                    onClick={() => setActiveCategory(cat === activeCategory ? 'Semua' : cat)}
+                    className={`relative group p-4 rounded-2xl border transition-all duration-300 hover:shadow-xl ${
+                      isActive
+                        ? 'bg-white border-blue-600 ring-2 ring-blue-600 ring-offset-2'
+                        : 'bg-white border-slate-100 hover:border-blue-200'
+                    }`}
+                  >
+                    <div className={`mb-3 p-2.5 rounded-xl w-fit transition-transform group-hover:scale-110 duration-300 ${isActive ? 'bg-blue-600 text-white shadow-lg shadow-blue-200' : (THEME_STYLES[theme.color] || 'bg-slate-50 text-slate-400')}`}>
+                      {theme.icon}
+                    </div>
+                    
+                    <div className="text-xl font-black text-slate-800 mb-1">{count}</div>
+                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-tight leading-snug group-hover:text-slate-600">
+                      {cat}
+                    </div>
+                    
+                    {isActive && (
+                      <div className="absolute top-4 right-4">
+                        <div className="w-2 h-2 bg-blue-600 rounded-full animate-ping" />
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
             </div>
           </div>
         )}
@@ -295,34 +345,34 @@ const DocumentRepository = () => {
           />
         </div>
 
-        {/* Category pills */}
-        <div className="flex bg-slate-100 p-1 rounded-xl gap-1 flex-wrap">
-          {['Semua', ...categories.filter(c => c !== 'Semua')].map(cat => (
-            <button
-              key={cat}
-              onClick={() => setActiveCategory(cat)}
-              className={`px-3 py-1.5 text-[11px] font-bold rounded-lg transition-all ${
-                activeCategory === cat
-                  ? 'bg-white text-blue-600 shadow-sm'
-                  : 'text-slate-500 hover:text-slate-700'
-              }`}
-            >
-              {cat}
-            </button>
-          ))}
-        </div>
+
 
         {/* Module filter */}
-        <select
-          value={selectedModule}
-          onChange={(e) => setSelectedModule(e.target.value)}
-          className="px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500"
-        >
-          <option value="">Semua Modul</option>
-          {modules.map(m => (
-            <option key={m} value={m}>{MODULE_LABELS[m] || m}</option>
-          ))}
-        </select>
+        <div className="relative group">
+          <select
+            value={selectedModule}
+            onChange={(e) => setSelectedModule(e.target.value)}
+            className="appearance-none pl-3 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500 font-bold text-slate-600 min-w-[150px]"
+          >
+            <option value="">Semua Modul</option>
+            {modules.map(m => (
+              <option key={m} value={m}>{MODULE_LABELS[m] || m}</option>
+            ))}
+          </select>
+          {selectedModule ? (
+            <button 
+              onClick={() => setSelectedModule("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 p-1 bg-red-50 text-red-500 rounded-lg hover:bg-red-500 hover:text-white transition-all shadow-sm"
+              title="Hapus Filter Modul"
+            >
+              <BsX size={16} />
+            </button>
+          ) : (
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+              <BsChevronDown size={14} />
+            </div>
+          )}
+        </div>
 
         {/* View mode toggle */}
         <div className="flex bg-slate-100 p-1 rounded-xl gap-1 ml-auto">

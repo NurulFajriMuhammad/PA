@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import apiClient from "../../../../../Shared/api/apiClient";
 import { BsX, BsTrash, BsPencilSquare, BsPlusLg, BsCloudUpload, BsFileEarmarkText, BsWallet2, BsCardChecklist } from "react-icons/bs";
+import { notifySuccess, notifyError, notifyConfirm } from "@shared/utils/notifier.jsx";
 
 const PelaksanaanTab = ({ assurance }) => {
   const [kka, setKka] = useState([]);
@@ -88,14 +89,14 @@ const PelaksanaanTab = ({ assurance }) => {
 
   const handleUploadLHE = async (e) => {
     e.preventDefault();
-    if (!lheFile) return alert("Pilih file LHE terlebih dahulu");
+    if (!lheFile) return notifyError("Pilih file LHE terlebih dahulu");
 
     const form = new FormData();
     form.append("file", lheFile);
 
     try {
       await apiClient.post(`/api/kka/${selectedKka.id}/upload-lhe`, form);
-      alert("File LHE berhasil diupload");
+      notifySuccess("File LHE berhasil diupload");
       setLheFile(null); 
       
       const lhe = await apiClient.get(`/api/kka/${selectedKka.id}/lhe`);
@@ -103,7 +104,7 @@ const PelaksanaanTab = ({ assurance }) => {
       fetchKka(); 
     } catch (e) {
       console.error(e);
-      alert("Gagal upload LHE");
+      notifyError("Gagal upload LHE");
     }
   };
 
@@ -141,9 +142,10 @@ const PelaksanaanTab = ({ assurance }) => {
       setShowTambahTemuan(false);
       fetchTemuan();
       fetchKka(); 
+      notifySuccess("Temuan berhasil disimpan");
     } catch (err) {
       console.error("ERROR BACKEND:", err.response?.data);
-      alert(JSON.stringify(err.response?.data));
+      notifyError("Gagal menyimpan temuan");
     }
   };
 
@@ -161,16 +163,18 @@ const PelaksanaanTab = ({ assurance }) => {
     fetchKka();
   };
 
-  const handleDeleteLhe = async () => {
-    if (!window.confirm("Hapus file LHE?")) return;
-    try {
-      await apiClient.delete(`/api/kka/${selectedKka.id}/lhe`);
-      setExistingLhe(null);
-      fetchKka();
-    } catch (e) {
-      console.error(e);
-      alert("Gagal menghapus LHE");
-    }
+  const handleDeleteLhe = () => {
+    notifyConfirm("Hapus file LHE?", async () => {
+      try {
+        await apiClient.delete(`/api/kka/${selectedKka.id}/lhe`);
+        setExistingLhe(null);
+        fetchKka();
+        notifySuccess("File LHE berhasil dihapus");
+      } catch (e) {
+        console.error(e);
+        notifyError("Gagal menghapus LHE");
+      }
+    });
   };
 
   const handleSaveBiaya = async (e) => {
@@ -186,33 +190,38 @@ const PelaksanaanTab = ({ assurance }) => {
       setEditBiaya(null);
       setFormBiaya({ kka_id: "", nama: "", jenis_akomodasi: "", nilai_realisasi: "" });
       fetchBiaya();
+      notifySuccess("Biaya berhasil disimpan");
     } catch (err) {
       console.error(err);
-      alert("Gagal simpan biaya");
+      notifyError("Gagal simpan biaya");
     }
   };
 
-  const handleDeleteTemuan = async (id) => {
-    if (!window.confirm("Hapus temuan?")) return;
-    try {
-      await apiClient.delete(`/api/temuan/${id}`);
-      fetchTemuan();
-      fetchKka();
-    } catch (e) {
-      console.error(e);
-      alert("Gagal menghapus temuan");
-    }
+  const handleDeleteTemuan = (id) => {
+    notifyConfirm("Hapus temuan?", async () => {
+      try {
+        await apiClient.delete(`/api/temuan/${id}`);
+        fetchTemuan();
+        fetchKka();
+        notifySuccess("Temuan berhasil dihapus");
+      } catch (e) {
+        console.error(e);
+        notifyError("Gagal menghapus temuan");
+      }
+    });
   };
 
-  const handleDeleteBiaya = async (id) => {
-    if (!window.confirm("Hapus biaya?")) return;
-    try {
-      await apiClient.delete(`/api/biaya/${id}`);
-      fetchBiaya();
-    } catch (e) {
-      console.error(e);
-      alert("Gagal menghapus biaya");
-    }
+  const handleDeleteBiaya = (id) => {
+    notifyConfirm("Hapus biaya?", async () => {
+      try {
+        await apiClient.delete(`/api/biaya/${id}`);
+        fetchBiaya();
+        notifySuccess("Biaya berhasil dihapus");
+      } catch (e) {
+        console.error(e);
+        notifyError("Gagal menghapus biaya");
+      }
+    });
   };
 
   const jenisAkomodasiList = [
@@ -519,16 +528,16 @@ const PelaksanaanTab = ({ assurance }) => {
                           <td className="py-3 px-3 text-center font-bold text-slate-600 border-r border-slate-100 text-xs">
                             {t.halaman_lhe}
                           </td>
-                          <td className="py-3 px-4 font-bold text-slate-800 border-r border-slate-100 leading-snug text-[13px]">
+                          <td className="py-3 px-4 font-bold text-slate-800 border-r border-slate-100 leading-relaxed text-[13px]">
                             <button
                               onClick={() => { setSelectedTemuan(t); setShowDetailTemuan(true); }}
-                              className="text-left hover:text-blue-600 hover:underline transition-colors line-clamp-2"
+                              className="text-left hover:text-blue-600 hover:underline transition-colors w-full"
                               title="Lihat Detail Temuan"
                             >
                               {t.masalah}
                             </button>
                           </td>
-                          <td className="py-3 px-4 text-slate-600 border-r border-slate-100 text-[12px] line-clamp-2 leading-relaxed">
+                          <td className="py-3 px-4 text-slate-600 border-r border-slate-100 text-[12px] whitespace-pre-line leading-relaxed">
                             {t.rekomendasi}
                           </td>
                           <td className="py-3 px-3 text-center">

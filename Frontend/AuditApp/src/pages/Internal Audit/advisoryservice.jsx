@@ -13,6 +13,7 @@ import {
   BsPencilSquare,
   BsTrash
 } from "react-icons/bs";
+import { notifySuccess, notifyError, notifyConfirm } from "../../../../Shared/utils/notifier.jsx";
 
 const AdvisoryService = () => {
   const [dataAdvisory, setDataAdvisory] = useState([]);
@@ -86,9 +87,10 @@ const AdvisoryService = () => {
       setIsEdit(false);
       setSelectedId(null);
       resetForm();
+      notifySuccess("Data advisory berhasil disimpan!");
     } catch (err) {
       console.error(err);
-      alert("Gagal simpan data advisory");
+      notifyError("Gagal simpan data advisory");
     }
   };
 
@@ -111,14 +113,16 @@ const AdvisoryService = () => {
     setOpenModal(true);
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm("Yakin ingin menghapus data advisory ini?")) return;
-    try {
-      await apiClient.delete(`/api/advisory-service/${id}`);
-      fetchData();
-    } catch (err) {
-      alert("Gagal menghapus data");
-    }
+  const handleDelete = (id) => {
+    notifyConfirm("Yakin ingin menghapus data advisory ini?", async () => {
+      try {
+        await apiClient.delete(`/api/advisory-service/${id}`);
+        fetchData();
+        notifySuccess("Data advisory berhasil dihapus!");
+      } catch (err) {
+        notifyError("Gagal menghapus data");
+      }
+    });
   };
 
   const resetForm = () => {

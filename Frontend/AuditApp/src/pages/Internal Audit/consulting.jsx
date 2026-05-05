@@ -7,6 +7,7 @@ import {
   BsArrowRepeat, BsPeopleFill, BsFillBookmarkStarFill, 
   BsLink45Deg, BsX, BsCalendar3, BsChatDots
 } from 'react-icons/bs';
+import { notifySuccess, notifyError } from "../../../../Shared/utils/notifier.jsx";
 
 const Consulting = () => {
   const navigate = useNavigate();
@@ -71,9 +72,10 @@ const Consulting = () => {
         proyek: "", klien: "", unit_id: "", role_id: "",
         prioritas: "", tahap: "", deadline: "",
       });
+      notifySuccess("Proyek consulting berhasil disimpan!");
     } catch (err) {
       console.error(err);
-      alert("Gagal menyimpan proyek consulting");
+      notifyError("Gagal menyimpan proyek consulting");
     }
   };
 

@@ -117,8 +117,7 @@ Route::middleware('auth:sanctum')->group(function () {
      // Route::delete('/permissions/{permission}', [PermissionController::class, 'destroy'])
      //      ->middleware('permission:delete permissions');
 
-     Route::get('/dashboard-stats', [DashboardController::class, 'getStats'])
-          ->middleware('permission:view dashboard');
+     Route::get('/dashboard-stats', [DashboardController::class, 'getStats']);
 
      // Users
      Route::get('/users', [UserController::class, 'index']);
@@ -230,6 +229,8 @@ Route::get('external-audit/{id}/temuan', [ExternalAuditTemuanController::class, 
 Route::post('external-audit-temuan', [ExternalAuditTemuanController::class, 'store']);
 Route::put('external-audit-temuan/{id}', [ExternalAuditTemuanController::class, 'update']);
 Route::delete('external-audit-temuan/{id}', [ExternalAuditTemuanController::class, 'destroy']);
+Route::get('external-audit/{id}/transitions', [ExternalAuditController::class, 'availableTransitions']);
+Route::post('external-audit/{id}/transition', [ExternalAuditController::class, 'executeTransition']);
                
 
 Route::get('/advisory-service', [AdvisoryServiceController::class, 'index']);

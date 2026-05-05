@@ -5,6 +5,7 @@ import { ArrowLeft } from "lucide-react";
 import PerencanaanTab from "./tabs/PerencanaanTab";
 import PelaksanaanTab from "./tabs/PelaksanaanTab";
 import AnalisisTab from "./tabs/AnalisisPenyebabTab";
+import { notifyError } from "@shared/utils/notifier.jsx";
 
 const AssuranceDetail = () => {
   const { id } = useParams();
@@ -91,18 +92,19 @@ const AssuranceDetail = () => {
       const templates = res.data?.data || res.data || [];
 
       if (templates.length === 0) {
-        alert("Template KKA belum ada");
+        notifyError("Template KKA belum ada");
         return;
       }
 
       const latest = templates[0]; // 🔥 paling terbaru
 
-      const url = `/PrintTemplateKKA.html?template_id=${latest.id}&assurance_id=${id}`;
+      const apiBaseUrl = import.meta.env.VITE_BACKEND_URL;
+      const url = `/PrintTemplateKKA.html?template_id=${latest.id}&assurance_id=${id}&api_base_url=${encodeURIComponent(apiBaseUrl)}`;
 
       window.open(url, "_blank");
     } catch (err) {
       console.error(err);
-      alert("Gagal mengambil template KKA");
+      notifyError("Gagal mengambil template KKA");
     }
   };
 
@@ -119,12 +121,20 @@ const AssuranceDetail = () => {
 
       {/* HEADER */}
       <div className="bg-slate-800 text-white p-6 rounded-xl mt-1">
-        <h1
-          onClick={() => setOpenInfo(!openInfo)}
-          className="text-xl font-bold cursor-pointer"
-        >
-          {assurance.nama_kegiatan}
-        </h1>
+        <div className="flex justify-between items-center">
+          <h1
+            onClick={() => setOpenInfo(!openInfo)}
+            className="text-xl font-bold cursor-pointer"
+          >
+            {assurance.nama_kegiatan}
+          </h1>
+          <span 
+            className="px-3 py-1 rounded-md text-xs font-black uppercase tracking-widest text-white shadow-sm"
+            style={{ backgroundColor: assurance.status_color || "#2563eb" }}
+          >
+            {assurance.status_label}
+          </span>
+        </div>
 
         <p
           onClick={() => setOpenInfo(!openInfo)}

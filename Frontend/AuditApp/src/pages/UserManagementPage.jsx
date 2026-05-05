@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import apiClient from '../../../Shared/api/axios';
 import AddUserModal from '../../../Shared/components/AddUserModal';
+import { notifySuccess, notifyError, notifyConfirm } from '../../../Shared/utils/notifier';
 
 export default function UserManagementPage() {
   const [users, setUsers] = useState([]);
@@ -25,20 +26,20 @@ export default function UserManagementPage() {
   }, []); 
 
   const handleEdit = (id) => {
-    alert(`Edit user dengan ID: ${id}`);
+    notifySuccess(`Edit user dengan ID: ${id}`);
   };
 
-  const handleDelete = async (id) => {
-    if (window.confirm(`Yakin ingin menghapus user ID: ${id}?`)) {
+  const handleDelete = (id) => {
+    notifyConfirm(`Yakin ingin menghapus user ID: ${id}?`, async () => {
       try {
         // await apiClient.delete(`/api/users/${id}`); 
         setUsers(users.filter(user => user.id !== id));
-        alert('User berhasil dihapus (simulasi)');
+        notifySuccess('User berhasil dihapus (simulasi)');
       } catch (err) {
-        alert('Gagal menghapus user.');
+        notifyError('Gagal menghapus user.');
         console.error(err);
       }
-    }
+    });
   };
 
   // 3. Fungsi ini akan dipanggil oleh modal setelah user berhasil dibuat

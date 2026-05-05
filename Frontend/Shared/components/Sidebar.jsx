@@ -311,17 +311,10 @@ export default function Sidebar({ isSidebarOpen, toggleSidebar }) {
           </Link>
 
           <div className="nav-section-label">Konfigurasi</div>
-          <div className="nav-item-wrapper">
-            <button className={`dropdown-btn ${isChildActive('/master-data') ? 'active-parent' : ''}`} onClick={(e) => handleDropdownToggle(e, 'master')} title={getTooltip("Master Data")}>
-              <span className="sidebar-icon"><BsDatabaseGear /></span>
-              <span className="sidebar-text">Master Data</span>
-              <BsChevronDown className="chevron" style={{transform: openDropdown === 'master' ? 'rotate(180deg)' : ''}}/>
-            </button>
-            <div className={`submenu-list ${openDropdown === 'master' ? 'is-open' : ''}`} style={!isSidebarOpen ? { top: `${floatingPos}px` } : {}}>
-              <Link to="/master-data/template-kka" className={`submenu-item ${isActive('/master-data/template-kka') ? 'active-sub' : ''}`} onClick={closeFloatingOnNav}>Template KKA</Link>
-              {/* <Link to="/master-data/checklist-pemeriksaan" className={`submenu-item ${isActive('/master-data/checklist-pemeriksaan') ? 'active-sub' : ''}`} onClick={closeFloatingOnNav}>Checklist</Link> */}
-            </div>
-          </div>
+          <Link to="/master-data/template-kka" className={`nav-link ${isChildActive('/master-data') ? 'active' : ''}`} title={getTooltip("Template KKA")} onClick={closeFloatingOnNav}>
+            <span className="sidebar-icon"><BsDatabaseGear /></span>
+            <span className="sidebar-text">Template KKA</span>
+          </Link>
 
           <Link to="/document-repository" className={`nav-link ${isActive('/document-repository') ? 'active' : ''}`} title={getTooltip("Repository Dokumen")} onClick={closeFloatingOnNav}>
             <span className="sidebar-icon"><BsFolder2Open /></span>

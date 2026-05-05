@@ -17,6 +17,7 @@ import {
 } from "react-icons/bs";
 import apiClient from "../../../../Shared/api/apiClient";
 import { useNavigate } from "react-router-dom";
+import { notifySuccess, notifyError, notifyConfirm } from "@shared/utils/notifier.jsx";
 
 const unitToCategoryMap = {
   "Business Development": "Operasional & Produksi",
@@ -37,6 +38,7 @@ const Assurance = () => {
   const [dataAssurance, setDataAssurance] = useState([]);
   const [suratTugasList, setSuratTugasList] = useState([]);
   const [usersList, setUsersList] = useState([]);
+  const [units, setUnits] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -68,15 +70,17 @@ const Assurance = () => {
       const extract = (res) =>
         res.data?.data || (Array.isArray(res.data) ? res.data : []);
 
-      const [resAssurance, resST, resUsers] = await Promise.all([
+      const [resAssurance, resST, resUsers, resUnits] = await Promise.all([
         apiClient.get("/api/assurance").catch(() => ({ data: [] })),
         apiClient.get("/api/surat-tugas").catch(() => ({ data: [] })),
         apiClient.get("/api/users").catch(() => ({ data: [] })),
+        apiClient.get("/api/units").catch(() => ({ data: [] })),
       ]);
 
       setDataAssurance(extract(resAssurance));
       setSuratTugasList(extract(resST));
       setUsersList(extract(resUsers));
+      setUnits(extract(resUnits));
     } catch (err) {
       console.error("Fetch Error:", err);
     } finally {
@@ -91,11 +95,15 @@ const Assurance = () => {
   const handleSTChange = (val) => {
     const st = suratTugasList.find((item) => item.nomor_surat === val);
     if (st) {
+      // Split periode_pemeriksaan (format: "YYYY-MM-DD s/d YYYY-MM-DD")
+      const dates = st.periode_pemeriksaan?.split(" s/d ") || ["", ""];
+      
       setFormData((prev) => ({
         ...prev,
         noST: val,
-        objek_audit: st.deskripsi || "",
-        periode_pemeriksaan: st.periode_pemeriksaan || "",
+        // objek_audit tetap kosong untuk diinput manual sesuai permintaan
+        tgl_mulai: dates[0] || "",
+        tgl_selesai: dates[1] || "",
         ketua: st.ketua || "",
         pengendali_teknis: st.pengendali_teknis || "",
         koordinator: st.koordinator || "",
@@ -142,9 +150,10 @@ const Assurance = () => {
       setShowModal(false);
       fetchData();
       resetForm();
+      notifySuccess("Data assurance berhasil disimpan!");
     } catch (err) {
       console.log(err.response?.data);
-      alert("Gagal simpan data assurance.");
+      notifyError("Gagal simpan data assurance.");
     } finally {
       setLoading(false);
     }
@@ -316,14 +325,15 @@ const Assurance = () => {
                           <td className="text-center p-4 text-sm font-bold text-emerald-500 border-r border-slate-50">{totalClose > 0 ? totalClose : 0}</td>
 
                           {/* STATUS BADGE */}
-                          <td className="text-center p-4">
-                            <span className={`inline-flex items-center justify-center px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest border
-                              ${item.status === "Selesai" || item.status === "Closed"
-                                ? "bg-emerald-50 text-emerald-700 border-emerald-200" 
-                                : "bg-blue-50 text-blue-700 border-blue-200 shadow-sm"}`}
+                          <td className="text-center p-4 border-r border-slate-50">
+                            <span 
+                              className="inline-flex items-center justify-center px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest border border-transparent shadow-sm text-white"
+                              style={{ 
+                                backgroundColor: item.status_color || "#94a3b8", 
+                              }}
                             >
-                              {(item.status === "Selesai" || item.status === "Closed") && <BsCheckCircleFill className="mr-1.5 text-emerald-500" size={12} />}
-                              {item.status || "Planning"}
+                              {(item.status_label === "Selesai" || item.status_label === "Closed") && <BsCheckCircleFill className="mr-1.5" size={12} />}
+                              {item.status_label}
                             </span>
                           </td>
 
@@ -415,8 +425,8 @@ const Assurance = () => {
                       onChange={(e) => setFormData({ ...formData, objek_pemeriksaan: e.target.value })}
                     >
                       <option value="">-- Pilih --</option>
-                      {Object.keys(unitToCategoryMap).map((unit) => (
-                        <option key={unit} value={unit}>{unit}</option>
+                      {units.map((u) => (
+                        <option key={u.id} value={u.nama}>{u.nama}</option>
                       ))}
                     </select>
                   </div>
@@ -605,7 +615,7 @@ const Assurance = () => {
                   <button
                     type="button"
                     onClick={() => setShowModal(false)}
-                    className="flex-1 py-4 text-slate-500 bg-slate-100 hover:bg-slate-200 rounded-xl font-bold transition-all text-sm uppercase tracking-wider"
+                    className="flex-1 py-4 text-slate-500 bg-red-100 hover:bg-red-200 rounded-xl font-bold transition-all text-sm uppercase tracking-wider"
                   >
                     Batal
                   </button>

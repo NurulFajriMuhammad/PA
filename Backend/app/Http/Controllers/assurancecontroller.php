@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\assurance;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\DB;
 
 class assurancecontroller extends Controller
 {
@@ -14,7 +15,6 @@ class assurancecontroller extends Controller
      */
     public function index()
     {
-        // Mengambil data dengan 'with' agar frontend dapat nama (bukan cuma ID)
         $data = assurance::with([
             'suratTugas', 
             'statusPemeriksaan',
@@ -23,9 +23,75 @@ class assurancecontroller extends Controller
             'ketuaTim',
             'auditor',
             'kka.temuan.analisis',
-        ])->orderBy('id', 'asc')->get();
+        ])
+        ->orderBy('id', 'asc')
+        ->get()
+        ->map(function($item) {
+            return $this->appendStatusInfo($item);
+        });
 
         return response()->json($data);
+    }
+
+    private function appendStatusInfo($item)
+    {
+        // 1. Hitung status dinamis berdasarkan temuan yang di-load
+        $calculated = 'Perencanaan';
+        
+        // Ambil semua temuan dari KKA
+        $findings = collect();
+        if ($item->kka) {
+            foreach ($item->kka as $kka) {
+                if ($kka->temuan) {
+                    foreach ($kka->temuan as $temuan) {
+                        $findings->push($temuan);
+                    }
+                }
+            }
+        }
+
+        if ($findings->isEmpty()) {
+            $calculated = 'Perencanaan';
+        } else {
+            // Cek status temuan
+            $hasDraft = false;
+            $allClosed = true;
+            $findingIds = $findings->pluck('id');
+
+            foreach ($findings as $f) {
+                $status = strtolower($f->analisis->status ?? 'draft');
+                if ($status === 'draft') $hasDraft = true;
+                if (!in_array($status, ['close', 'closed', 'selesai'])) $allClosed = false;
+            }
+
+            if ($hasDraft) {
+                $calculated = 'Pemeriksaan';
+            } elseif ($allClosed) {
+                $calculated = 'Selesai';
+            } else {
+                // Cek progress di tindak_lanjut untuk menentukan Monev vs Konfirmasi Auditee
+                $hasProgress = DB::table('tindak_lanjut')
+                    ->where(function($q) {
+                        $q->where('jenis_audit', 'internal')
+                          ->orWhereNull('jenis_audit');
+                    })
+                    ->whereIn('temuan_id', $findingIds)
+                    ->where(function($q) {
+                        $q->whereNotNull('keterangan')->orWhereNotNull('bukti');
+                    })
+                    ->exists();
+                
+                $calculated = $hasProgress ? 'Monev' : 'Konfirmasi Auditee';
+            }
+        }
+
+        $statusInfo = DB::table('status_pemeriksaans')
+            ->where('nama', $calculated)
+            ->first();
+        
+        $item->status_label = $statusInfo ? $statusInfo->nama : $calculated;
+        $item->status_color = $statusInfo ? $statusInfo->warna : '#94a3b8';
+        return $item;
     }
 
     /**
@@ -39,7 +105,6 @@ class assurancecontroller extends Controller
             'nama_kegiatan'     => 'required|string|max:255',
             'periode_awal'      => 'nullable|date',
             'periode_akhir'     => 'nullable|date',
-            // Default status akan otomatis 1 (Perencanaan) dari Model
         ]);
 
         if ($validator->fails()) {
@@ -61,12 +126,16 @@ class assurancecontroller extends Controller
     {
         $assurance = assurance::with([
             'suratTugas', 'auditUniverse', 'statusPemeriksaan', 
-            'koordinator', 'pengendaliTeknis', 'ketuaTim', 'auditor'
-        ])->find($id);
+            'koordinator', 'pengendaliTeknis', 'ketuaTim', 'auditor',
+            'kka.temuan.analisis'
+        ])
+        ->find($id);
 
         if (!$assurance) {
             return response()->json(['message' => 'Data tidak ditemukan'], 404);
         }
+
+        $assurance = $this->appendStatusInfo($assurance);
 
         return response()->json($assurance);
     }

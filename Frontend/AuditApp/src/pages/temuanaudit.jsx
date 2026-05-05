@@ -11,6 +11,32 @@ const AuditFindings = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [kategoriFilter, setKategoriFilter] = useState("Semua Kategori");
+  const [statusTemuanList, setStatusTemuanList] = useState([]);
+
+  // Fetch status temuan untuk warna badge
+  useEffect(() => {
+    apiClient.get('/api/status-temuan').then(res => {
+      setStatusTemuanList(res.data || []);
+    }).catch(() => {});
+  }, []);
+
+  const getStatusTemuan = (val) => {
+    const v = (val || "").toLowerCase();
+    const found = statusTemuanList.find((s) => {
+      const n = s.nama.toLowerCase();
+      return n === v || n.includes(v) || v.includes(n);
+    });
+
+    if (found) {
+      return { bg: found.warna, text: found.warna_teks, label: found.nama };
+    }
+
+    // Fallback
+    if (v === "selesai" || v === "closed") return { bg: "#ecfdf5", text: "#059669", label: "Selesai" };
+    if (v === "draft") return { bg: "#f1f5f9", text: "#64748b", label: "Draft" };
+    return { bg: "#eff6ff", text: "#2563eb", label: val || "Proses" };
+  };
+
 
   const [stats, setStats] = useState({
     critical: 0,
@@ -100,12 +126,12 @@ const AuditFindings = () => {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+      {/* <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
         <FindingStat label="Tinggi / Critical" value={stats.critical < 10 && stats.critical > 0 ? `0${stats.critical}` : stats.critical} color="bg-red-600" />
         <FindingStat label="Sedang / Major" value={stats.major < 10 && stats.major > 0 ? `0${stats.major}` : stats.major} color="bg-orange-500" />
         <FindingStat label="Rendah / Minor" value={stats.minor < 10 && stats.minor > 0 ? `0${stats.minor}` : stats.minor} color="bg-amber-400" />
         <FindingStat label="Total Impact Estimasi" value={formatRupiah(stats.totalImpact)} color="bg-slate-800" isValue />
-      </div>
+      </div> */}
 
       {/* Filter Bar */}
       <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 mb-6 flex flex-wrap gap-4 items-center justify-between">
@@ -141,7 +167,7 @@ const AuditFindings = () => {
           <table className="w-full text-left min-w-[800px]">
             <thead>
               <tr className="bg-slate-50/50 text-slate-500 text-[11px] font-bold uppercase tracking-wider border-b border-slate-100">
-                <th className="px-6 py-4">Status & ID</th>
+                <th className="px-6 py-4">Status</th>
                 <th className="px-6 py-4 min-w-[250px]">Judul Temuan Masalah</th>
                 <th className="px-6 py-4 w-36">Kategori</th>
                 <th className="px-6 py-4 text-center">Risiko</th>
@@ -159,14 +185,17 @@ const AuditFindings = () => {
                   <tr key={finding.id_format} className="hover:bg-red-50/20 transition-all cursor-pointer group text-[13px] align-top">
                     <td className="px-6 py-5 align-middle">
                       <div className="flex flex-col gap-2 items-start">
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest border ${
-                            finding.status === 'Draft' ? 'bg-slate-100 text-slate-600 border-slate-200' :
-                            finding.status === 'Selesai' ? 'bg-emerald-50 text-emerald-600 border-emerald-200' :
-                            'bg-blue-50 text-blue-600 border-blue-200'
-                          }`}>
-                            {finding.status || 'Draft'}
-                        </span>
-                        <div className="text-[11px] font-mono text-slate-600 font-bold bg-slate-100 px-2 rounded">{finding.id_format}</div>
+                        {(() => {
+                          const st = getStatusTemuan(finding.status);
+                          return (
+                            <span 
+                              className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest border"
+                              style={{ backgroundColor: st.bg, color: st.text, borderColor: 'transparent' }}
+                            >
+                              {st.label}
+                            </span>
+                          );
+                        })()}
                       </div>
                     </td>
                     <td className="px-6 py-5">

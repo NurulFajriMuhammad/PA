@@ -5,18 +5,16 @@ import {
   BsArrowReturnLeft, BsPersonBadge, BsDiagram3
 } from 'react-icons/bs';
 import { IoWater } from "react-icons/io5";
-import { notifySuccess, notifyError } from "../../../../Shared/utils/notifier";
+import { notifySuccess, notifyError, notifyConfirm } from "../../../../Shared/utils/notifier.jsx";
 
 const JENIS_OPTIONS = [
   { value: 'internal',   label: 'Internal' },
   { value: 'eksternal',  label: 'Eksternal' },
-  { value: 'keduanya',   label: 'Keduanya' },
 ];
 
 const JENIS_BADGE = {
   internal:  'bg-blue-100 text-blue-700 border border-blue-200',
   eksternal: 'bg-purple-100 text-purple-700 border border-purple-200',
-  keduanya:  'bg-slate-100 text-slate-600 border border-slate-200',
 };
 
 const EMPTY_FORM = {
@@ -94,15 +92,16 @@ const SettingPengajuan = () => {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Hapus aturan transisi ini?')) return;
-    try {
-      await apiClient.delete(`/api/pengajuan-transitions/${id}`);
-      notifySuccess('Berhasil dihapus');
-      fetchAll();
-    } catch (err) {
-      notifyError('Gagal menghapus');
-    }
+  const handleDelete = (id) => {
+    notifyConfirm('Hapus aturan transisi ini?', async () => {
+      try {
+        await apiClient.delete(`/api/pengajuan-transitions/${id}`);
+        notifySuccess('Berhasil dihapus');
+        fetchAll();
+      } catch (err) {
+        notifyError('Gagal menghapus');
+      }
+    });
   };
 
   const statusMap  = Object.fromEntries(statuses.map(s => [s.id, s]));
@@ -128,7 +127,7 @@ const SettingPengajuan = () => {
         <div className="flex gap-3 items-center">
           {/* Filter Jenis */}
           <div className="flex bg-white border border-slate-200 rounded-xl p-1 gap-1">
-            {['', 'internal', 'eksternal', 'keduanya'].map(j => (
+            {['', 'internal', 'eksternal'].map(j => (
               <button key={j}
                 onClick={() => setFilterJenis(j)}
                 className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${filterJenis === j ? 'bg-blue-600 text-white' : 'text-slate-500 hover:text-slate-700'}`}

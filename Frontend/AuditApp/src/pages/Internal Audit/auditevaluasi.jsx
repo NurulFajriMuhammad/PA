@@ -12,6 +12,7 @@ import {
   BsTrash,
   BsCheckCircle
 } from 'react-icons/bs';
+import { notifySuccess, notifyError, notifyConfirm } from "../../../../Shared/utils/notifier.jsx";
 
 const AuditEvaluasi = () => {
   const [dataEvaluasi, setDataEvaluasi] = useState([]);
@@ -89,9 +90,10 @@ const AuditEvaluasi = () => {
       fetchData();
       setOpenModal(false);
       resetForm();
+      notifySuccess("Evaluasi berhasil disimpan!");
     } catch (err) {
       console.error(err);
-      alert("Gagal menyimpan evaluasi.");
+      notifyError("Gagal menyimpan evaluasi.");
     }
   };
 
@@ -111,14 +113,16 @@ const AuditEvaluasi = () => {
     return "Need Improvement";
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm("Apakah Anda yakin ingin menghapus data evaluasi ini?")) return;
-    try {
-      await apiClient.delete(`/api/audit-evaluasi/${id}`);
-      fetchData();
-    } catch (err) {
-      alert("Gagal menghapus data.");
-    }
+  const handleDelete = (id) => {
+    notifyConfirm("Apakah Anda yakin ingin menghapus data evaluasi ini?", async () => {
+      try {
+        await apiClient.delete(`/api/audit-evaluasi/${id}`);
+        fetchData();
+        notifySuccess("Data evaluasi berhasil dihapus!");
+      } catch (err) {
+        notifyError("Gagal menghapus data.");
+      }
+    });
   };
 
   // ================= FORMAT =================

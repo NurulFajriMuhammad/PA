@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   Building2,
   Wallet,
@@ -17,6 +17,7 @@ import {
   Target,
 } from "lucide-react";
 import apiClient from "../../../../Shared/api/axios";
+import { notifySuccess, notifyError, notifyConfirm } from "../../../../Shared/utils/notifier.jsx";
 
 const AuditUniverseSPI = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -46,18 +47,27 @@ const AuditUniverseSPI = () => {
     last_audit: new Date().getFullYear().toString(),
   });
 
-  const unitToCategoryMap = {
-    "Business Development": "Operasional & Produksi",
-    "Customer Service": "Operasional & Produksi",
-    "Kantor Pusat": "Operasional & Produksi",
-    "Finance & Accounting": "Keuangan & Logistik",
-    "Human Resources Development": "SDM & Hukum",
-    "Legal": "SDM & Hukum",
-    "APU-PPT": "SDM & Hukum",
-    "Compliance & Internal Auditor": "SDM & Hukum",
-    "Information Technology": "IT & Infrastruktur",
-    "Data Analyst": "IT & Infrastruktur",
-  };
+  const unitToCategoryMap = useMemo(() => {
+    const map = {};
+    units.forEach((u) => {
+      if (u.kategori) {
+        map[u.nama] = u.kategori;
+        return;
+      }
+
+      const name = u.nama.toLowerCase();
+      if (/\b(it|network|data|infrastruktur|system|information technology)\b/.test(name)) {
+        map[u.nama] = "IT & Infrastruktur";
+      } else if (/\b(finance|accounting|keuangan|logistik|purchasing)\b/.test(name)) {
+        map[u.nama] = "Keuangan & Logistik";
+      } else if (/\b(hrd|human|sdm|legal|hukum|compliance|apu-ppt|auditor)\b/.test(name)) {
+        map[u.nama] = "SDM & Hukum";
+      } else {
+        map[u.nama] = "Operasional & Produksi";
+      }
+    });
+    return map;
+  }, [units]);
 
   const filteredUnits = units
     .map((unit) => unit.nama)
@@ -94,24 +104,29 @@ const AuditUniverseSPI = () => {
     fetchUnits();
   }, []);
 
-  const categoriesConfig = [
-    {
-      title: "Operasional & Produksi",
-      icon: <Building2 size={20} className="text-blue-600" />,
-    },
-    {
-      title: "Keuangan & Logistik",
-      icon: <Wallet size={20} className="text-emerald-600" />,
-    },
-    {
-      title: "SDM & Hukum",
-      icon: <Users size={20} className="text-purple-600" />,
-    },
-    {
-      title: "IT & Infrastruktur",
-      icon: <Monitor size={20} className="text-orange-600" />,
-    },
+  const categoryIconMap = {
+    "Operasional & Produksi": <Building2 size={20} className="text-blue-600" />,
+    "Keuangan & Logistik": <Wallet size={20} className="text-emerald-600" />,
+    "SDM & Hukum": <Users size={20} className="text-purple-600" />,
+    "IT & Infrastruktur": <Monitor size={20} className="text-orange-600" />,
+  };
+
+  // Kategori dasar yang selalu ada
+  const baseCategories = [
+    "Operasional & Produksi",
+    "Keuangan & Logistik",
+    "SDM & Hukum",
+    "IT & Infrastruktur",
   ];
+
+  const categoriesConfig = useMemo(() => {
+    const dynamicCategories = units.map((u) => unitToCategoryMap[u.nama] || "Operasional & Produksi");
+    const uniqueCategories = Array.from(new Set([...baseCategories, ...dynamicCategories]));
+    return uniqueCategories.map((title) => ({
+      title,
+      icon: categoryIconMap[title] ?? <Building2 size={20} className="text-gray-600" />, // fallback
+    }));
+  }, [units]);
 
   const getRiskStyle = (risk) => {
     switch (risk) {
@@ -141,9 +156,11 @@ const AuditUniverseSPI = () => {
           last_audit: new Date().getFullYear().toString(),
         });
         fetchData();
+        notifySuccess("Data berhasil ditambahkan!");
       }
     } catch (error) {
       console.error("Gagal menyimpan data:", error);
+      notifyError(error);
     }
   };
 
@@ -173,17 +190,20 @@ const AuditUniverseSPI = () => {
     </div>
   );
 
-  const handleDelete = async (id) => {
-    try {
-      const response = await apiClient.delete(`/api/audit-universe/${id}`);
-      if (response.status === 200) {
-        setSelectedAudit(null); // Tutup modal detail
-        fetchData(); // Refresh data di grid
+  const handleDelete = (id) => {
+    notifyConfirm("Yakin ingin menghapus data ini?", async () => {
+      try {
+        const response = await apiClient.delete(`/api/audit-universe/${id}`);
+        if (response.status === 200) {
+          setSelectedAudit(null); // Tutup modal detail
+          fetchData(); // Refresh data di grid
+          notifySuccess("Data berhasil dihapus!");
+        }
+      } catch (error) {
+        console.error("Gagal menghapus data:", error);
+        notifyError(error);
       }
-    } catch (error) {
-      console.error("Gagal menghapus data:", error);
-      alert("Terjadi kesalahan saat menghapus data.");
-    }
+    });
   };
 
   return (
@@ -515,21 +535,15 @@ const AuditUniverseSPI = () => {
                       required
                       className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500"
                       onChange={(e) =>
-                        setNewEntry({
-                          ...newEntry,
-                          risk_register: e.target.value,
-                        })
+                        setNewEntry({ ...newEntry, risk_register: e.target.value })
                       }
                     >
                       <option value="">Pilih Sumber</option>
-                      <option>Management</option>
-                      <option>Finance</option>
-                      <option>HRD (Human Resources Department)</option>
-                      <option>IT (Information Technology)</option>
-                      <option>Legal</option>
-                      <option>Data Analyst</option>
-                      <option>Bussiness Development</option>
-                      <option>Risk register testing</option>
+                      {Array.from(new Set(units.map((u) => u.nama))).map((unitName, i) => (
+                        <option key={i} value={unitName}>
+                          {unitName}
+                        </option>
+                      ))}
                     </select>
                   </div>
                 </div>

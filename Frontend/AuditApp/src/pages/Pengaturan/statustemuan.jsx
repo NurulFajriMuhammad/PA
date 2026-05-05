@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { BsPlusLg, BsPencil, BsTrash, BsX, BsTags } from 'react-icons/bs';
 import apiClient from "../../../../Shared/api/apiClient";
-import { notifySuccess, notifyError } from "../../../../Shared/utils/notifier";
+import { notifySuccess, notifyError, notifyConfirm } from "../../../../Shared/utils/notifier.jsx";
 
 const EMPTY_FORM = { nama: '', warna: '#01aec4', warna_teks: '#ffffff' };
 
@@ -41,13 +41,14 @@ const StatusTemuan = () => {
     } catch (err) { notifyError('Gagal menyimpan'); }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Hapus status temuan ini?')) return;
-    try {
-      await apiClient.delete(`/api/status-temuan/${id}`);
-      notifySuccess('Berhasil dihapus');
-      fetchData();
-    } catch (err) { notifyError('Gagal menghapus'); }
+  const handleDelete = (id) => {
+    notifyConfirm('Hapus status temuan ini?', async () => {
+      try {
+        await apiClient.delete(`/api/status-temuan/${id}`);
+        notifySuccess('Berhasil dihapus');
+        fetchData();
+      } catch (err) { notifyError('Gagal menghapus'); }
+    });
   };
 
   return (

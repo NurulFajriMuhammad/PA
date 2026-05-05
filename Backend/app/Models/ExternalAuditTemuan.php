@@ -20,8 +20,10 @@ class ExternalAuditTemuan extends Model
         'keterangan',
         'target_penyelesaian',
         'nilai_kerugian',
+        'kategori',
         'status',
-        'lampiran'
+        'lampiran',
+        'nama_lampiran'
     ];
 
     public function externalAudit()

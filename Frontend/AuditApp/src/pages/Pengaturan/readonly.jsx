@@ -5,7 +5,7 @@ import {
 } from 'react-icons/bs';
 import { IoWater } from 'react-icons/io5';
 import apiClient from "../../../../Shared/api/apiClient";
-import { notifySuccess, notifyError } from "../../../../Shared/utils/notifier";
+import { notifySuccess, notifyError, notifyConfirm } from "../../../../Shared/utils/notifier.jsx";
 
 // ─── Daftar URL/Halaman yang tersedia (sesuai routes di App.jsx) ─────────────
 const AVAILABLE_URLS = [
@@ -141,15 +141,16 @@ const HakAkses = () => {
     }
   };
 
-  const handleDeleteUrl = async (id) => {
-    if (!window.confirm('Hapus akses URL ini?')) return;
-    try {
-      await apiClient.delete(`/api/status-pemeriksaan-akses/${id}`);
-      notifySuccess('Berhasil dihapus');
-      fetchAll();
-    } catch (err) {
-      notifyError('Gagal menghapus');
-    }
+  const handleDeleteUrl = (id) => {
+    notifyConfirm('Hapus akses URL ini?', async () => {
+      try {
+        await apiClient.delete(`/api/status-pemeriksaan-akses/${id}`);
+        notifySuccess('Berhasil dihapus');
+        fetchAll();
+      } catch (err) {
+        notifyError('Gagal menghapus');
+      }
+    });
   };
 
   return (

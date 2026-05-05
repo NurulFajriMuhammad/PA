@@ -11,6 +11,7 @@ import {
   TrendingUp
 } from "lucide-react";
 import apiClient from "../../../../Shared/api/axios";
+import { notifySuccess, notifyError, notifyConfirm } from "../../../../Shared/utils/notifier.jsx";
 
 const RKASpiPage = () => {
   const [kpis, setKpis] = useState([]);
@@ -56,20 +57,22 @@ const RKASpiPage = () => {
         tahun: new Date().getFullYear() 
       }); 
       fetchData();
+      notifySuccess("Data RKA berhasil disimpan!");
     } catch (err) {
-      alert("Gagal simpan data");
+      notifyError("Gagal simpan data");
     }
   };
 
-  const handleDelete = async (id) => {
-    if (window.confirm("Apakah Anda yakin ingin menghapus data KPI ini?")) {
+  const handleDelete = (id) => {
+    notifyConfirm("Apakah Anda yakin ingin menghapus data KPI ini?", async () => {
       try {
         await apiClient.delete(`/api/rka/${id}`);
         fetchData();
+        notifySuccess("Data RKA berhasil dihapus!");
       } catch (err) {
-        alert("Gagal menghapus data");
+        notifyError("Gagal menghapus data");
       }
-    }
+    });
   };
 
   return (

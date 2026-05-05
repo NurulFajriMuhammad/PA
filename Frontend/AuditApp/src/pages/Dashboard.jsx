@@ -208,4 +208,4 @@ const ActivityRow = ({ title, time, icon, color, desc }) => (
       <p className="text-xs text-slate-500 leading-relaxed">{desc}</p>
     </div>
   </div>
-);
+);

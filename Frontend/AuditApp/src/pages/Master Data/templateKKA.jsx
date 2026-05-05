@@ -5,6 +5,7 @@ import {
 } from 'react-icons/bs';
 import apiClient from "../../../../Shared/api/apiClient";
 import { generateKKAHTML } from './generateKKAHTML';
+import { notifySuccess, notifyError, notifyConfirm } from "../../../../Shared/utils/notifier.jsx";
 
 
 const TemplateKKA = () => {
@@ -53,23 +54,26 @@ const TemplateKKA = () => {
       }
       setShowModal(false);
       fetchData(); // Refresh list
+      notifySuccess("Data berhasil disimpan");
     } catch (err) {
       console.error("Save Error:", err.response?.data);
-      alert(err.response?.data?.message || "Gagal menyimpan data");
+      notifyError(err.response?.data?.message || "Gagal menyimpan data");
     } finally {
       setLoading(false);
     }
   };
 
   // 3. Handle Delete
-  const handleDelete = async (id) => {
-    if (window.confirm(`Hapus template ${id}?`)) {
+  const handleDelete = (id) => {
+    notifyConfirm(`Hapus template ${id}?`, async () => {
       try {
         await apiClient.delete(`/api/kka-templates/${id}`);
         setTemplates(templates.filter(t => t.id !== id));
+        notifySuccess("Template KKA berhasil dihapus");
       } catch (err) {
+        notifyError("Gagal menghapus template");
       }
-    }
+    });
   };
 
   // --- UI LOGIC ---

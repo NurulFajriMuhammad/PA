@@ -10,6 +10,7 @@ import {
   Info,
   CheckCircle
 } from "lucide-react";
+import { notifySuccess, notifyError, notifyConfirm } from "../../../../Shared/utils/notifier.jsx";
 
 // Template balasan cepat
 const quickReplies = [
@@ -125,20 +126,21 @@ const ConsultingDetail = () => {
   };
 
   // --- FITUR TUTUP KONSULTASI ---
-  const handleCloseConsulting = async () => {
-    if (!window.confirm("Akhiri sesi konsultasi ini? Ruang diskusi akan ditutup permanen.")) return;
-    
-    try {
-      await apiClient.put(`/api/consulting/${id}`, {
-        ...consulting,
-        tahap: 'Selesai',
-        status: 'Selesai'
-      });
-      fetchDetail(); 
-    } catch (err) {
-      console.error(err);
-      alert("Gagal menutup konsultasi.");
-    }
+  const handleCloseConsulting = () => {
+    notifyConfirm("Akhiri sesi konsultasi ini? Ruang diskusi akan ditutup permanen.", async () => {
+      try {
+        await apiClient.put(`/api/consulting/${id}`, {
+          ...consulting,
+          tahap: 'Selesai',
+          status: 'Selesai'
+        });
+        fetchDetail(); 
+        notifySuccess("Sesi konsultasi ditutup.");
+      } catch (err) {
+        console.error(err);
+        notifyError("Gagal menutup konsultasi.");
+      }
+    });
   };
 
   if (!consulting || !user) {

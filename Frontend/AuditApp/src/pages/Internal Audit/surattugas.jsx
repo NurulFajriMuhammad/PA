@@ -16,6 +16,7 @@ import {
   Users,
 } from "lucide-react";
 import apiClient from "../../../../Shared/api/axios";
+import { notifySuccess, notifyError, notifyConfirm } from "@shared/utils/notifier.jsx";
 
 // --- CSS KHUSUS UNTUK PRINTING (Sembunyikan Web, Tampilkan Kertas) ---
 const printStyles = `
@@ -90,8 +91,14 @@ const SuratTugas = () => {
     }
   };
 
-  const renderUserOptions = () => {
-    return users.map((user) => (
+  const renderUserOptions = (roleName = null) => {
+    let filtered = users;
+    if (roleName) {
+      filtered = users.filter((user) =>
+        user.roles?.some((r) => r.name.toLowerCase() === roleName.toLowerCase())
+      );
+    }
+    return filtered.map((user) => (
       <option key={user.id} value={user.name}>
         {user.name} ({user.roles?.[0]?.name})
       </option>
@@ -142,8 +149,9 @@ const SuratTugas = () => {
       setShowModal(false);
       resetForm();
       fetchData();
+      notifySuccess("Data surat tugas berhasil disimpan!");
     } catch (err) {
-      alert("Gagal menyimpan data.");
+      notifyError("Gagal menyimpan data.");
     }
   };
 
@@ -192,15 +200,16 @@ const SuratTugas = () => {
     setShowModal(true);
   };
 
-  const handleDelete = async (id) => {
-    if (window.confirm("Hapus data surat tugas ini?")) {
+  const handleDelete = (id) => {
+    notifyConfirm("Hapus data surat tugas ini?", async () => {
       try {
         await apiClient.delete(`/api/surat-tugas/${id}`);
         fetchData();
+        notifySuccess("Surat tugas berhasil dihapus!");
       } catch (err) {
-        alert("Gagal menghapus");
+        notifyError("Gagal menghapus");
       }
-    }
+    });
   };
 
   const handlePrint = (item) => {
@@ -373,7 +382,7 @@ const SuratTugas = () => {
 
           {/* MODAL FORM WEB */}
           {showModal && (
-            <div className="fixed inset-0 z-[150] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
+            <div className="fixed inset-0 z-[9999] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
               <div className="bg-white rounded-[2rem] p-8 w-full max-w-2xl shadow-2xl overflow-y-auto max-h-[90vh] animate-in zoom-in-95 duration-200">
                 <div className="flex justify-between items-center mb-6 pb-4 border-b border-slate-100">
                   <div>
@@ -476,7 +485,7 @@ const SuratTugas = () => {
                         onChange={(e) => setFormData({ ...formData, koordinator: e.target.value })}
                       >
                         <option value="">Pilih Koordinator...</option>
-                        {renderUserOptions()}
+                        {renderUserOptions("koordinator")}
                       </select>
                     </div>
                     <div className="space-y-1.5">
@@ -490,7 +499,7 @@ const SuratTugas = () => {
                         onChange={(e) => setFormData({ ...formData, pengendali_teknis: e.target.value })}
                       >
                         <option value="">Pilih Pengendali Teknis...</option>
-                        {renderUserOptions()}
+                        {renderUserOptions("Pengendali Teknis")}
                       </select>
                     </div>
                   </div>
@@ -508,7 +517,7 @@ const SuratTugas = () => {
                         onChange={(e) => setFormData({ ...formData, ketua: e.target.value })}
                       >
                         <option value="">Pilih Ketua Tim...</option>
-                        {renderUserOptions()}
+                        {renderUserOptions("Ketua")}
                       </select>
                     </div>
                     <div className="space-y-1.5">
@@ -523,7 +532,7 @@ const SuratTugas = () => {
                         }}
                       >
                         <option value="">+ Tambah Auditor...</option>
-                        {renderUserOptions()}
+                        {renderUserOptions("auditor")}
                       </select>
 
                       <div className="flex flex-wrap gap-2">
@@ -543,7 +552,7 @@ const SuratTugas = () => {
                     <button
                       type="button"
                       onClick={() => setShowModal(false)}
-                      className="flex-1 py-4 text-slate-500 bg-slate-100 hover:bg-slate-200 rounded-xl font-bold transition-all text-sm uppercase tracking-wider"
+                      className="flex-1 py-4 text-slate-500 bg-red-100 hover:bg-red-200 rounded-xl font-bold transition-all text-sm uppercase tracking-wider"
                     >
                       Batal
                     </button>

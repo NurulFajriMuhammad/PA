@@ -27,17 +27,36 @@ const fetchTeamData = async () => {
 
     const response = await apiClient.get("/api/pengawas");
 
-    const mapped = response.data.map((item) => ({
-      id: item.id,
-      name: item.nama,
-      role: item.jabatan,
-      specialty: item.keahlian,
-      education: item.pendidikan,
-      email: item.email,
-      image: item.foto_url,
-      bio: item.bio,
-      certs: item.sertifikasi ? item.sertifikasi.split(",") : []
-    }));
+    const mapped = response.data.map((item) => {
+      let imageUrl = item.foto_url;
+      const baseUrl = import.meta.env.VITE_BACKEND_URL || "http://127.0.0.1:8000";
+
+      if (imageUrl) {
+        // Jika URL mengandung "/storage/", kita ambil bagian setelahnya saja (relatif)
+        // Ini untuk membersihkan URL lama yang mungkin tersimpan dengan IP lama di database
+        if (imageUrl.includes("/storage/")) {
+          imageUrl = imageUrl.split("/storage/").pop();
+        }
+        
+        // Pastikan kita prepend dengan baseUrl + /storage/ jika path-nya relatif
+        if (!imageUrl.startsWith('http')) {
+          const cleanPath = imageUrl.startsWith('/') ? imageUrl.substring(1) : imageUrl;
+          imageUrl = `${baseUrl}/storage/${cleanPath}`;
+        }
+      }
+
+      return {
+        id: item.id,
+        name: item.nama,
+        role: item.jabatan,
+        specialty: item.keahlian,
+        education: item.pendidikan,
+        email: item.email,
+        image: imageUrl,
+        bio: item.bio,
+        certs: item.sertifikasi ? item.sertifikasi.split(",") : []
+      };
+    });
 
     setTeam(mapped);
 

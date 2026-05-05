@@ -12,7 +12,7 @@ import {
   BsExclamationCircle,
   BsX
 } from "react-icons/bs";
-import { notifySuccess, notifyError } from "../../../Shared/utils/notifier";
+import { notifySuccess, notifyError } from "../../../Shared/utils/notifier.jsx";
 import apiClient from "../../../Shared/api/apiClient";
 
 const EMPTY_CREATE_FORM = { tahun: "", bulan: "", keterangan: "", bukti: null };
@@ -52,6 +52,44 @@ const FollowUp = () => {
   const [createForm, setCreateForm] = useState(EMPTY_CREATE_FORM);
   const [reviewForm, setReviewForm] = useState(EMPTY_REVIEW_FORM);
   const [previewFile, setPreviewFile] = useState(null);
+  const [statusTemuanList, setStatusTemuanList] = useState([]);
+
+  // Ambil data user untuk cek role
+  const currentUserContainer = JSON.parse(localStorage.getItem("user") || "{}");
+  const user = currentUserContainer.user || currentUserContainer; // Fallback jika struktur flat
+  
+  const isAuditor = user?.role?.toLowerCase().includes("auditor") || 
+                    user?.roles?.some(r => r.name?.toLowerCase().includes("auditor")) ||
+                    (typeof user?.role === 'string' && user.role.toLowerCase().includes("auditor"));
+
+  // Fetch status temuan untuk warna badge
+  useEffect(() => {
+    apiClient.get('/api/status-temuan').then(res => {
+      setStatusTemuanList(res.data || []);
+    }).catch(() => {});
+  }, []);
+
+  const getStatusConfig = (status) => {
+    const v = (status || "").toLowerCase();
+    const found = statusTemuanList.find((s) => {
+      const n = s.nama.toLowerCase();
+      return n === v || n.includes(v) || v.includes(n);
+    });
+
+    if (found) {
+      return { bg: found.warna, text: found.warna_teks, label: found.nama };
+    }
+
+    // Fallback
+    if (v === "draft" || v === "draft temuan") return { bg: "#f1f5f9", text: "#64748b", label: "Draft Temuan" };
+    if (v === "monev") return { bg: "#fef3c7", text: "#d97706", label: "Monev" };
+    if (v === "close") return { bg: "#dcfce7", text: "#15803d", label: "Close" };
+    if (v === "menunggu konfirmasi") return { bg: "#ffedd5", text: "#9a3412", label: "Menunggu Konfirmasi" };
+    if (v === "pengisian rtl") return { bg: "#dbeafe", text: "#1e40af", label: "Pengisian RTL" };
+
+    return { bg: "#f1f5f9", text: "#64748b", label: status || "Draft Temuan" };
+  };
+
 
   const fetchFollowUp = async () => {
     try {
@@ -79,18 +117,6 @@ const FollowUp = () => {
   };
 
   const getMonthLabel = (month) => MONTH_OPTIONS.find((item) => item.value === Number(month))?.label || "-";
-
-  const getStatusBadgeClass = (status) => {
-    if (status === "close") return "bg-emerald-100 text-emerald-700 border-emerald-200";
-    if (status === "monev") return "bg-amber-100 text-amber-700 border-amber-200";
-    return "bg-blue-100 text-blue-700 border-blue-200";
-  };
-
-  const getStatusLabel = (status) => {
-    if (status === "close") return "Close";
-    if (status === "monev") return "Monev";
-    return "Draft Temuan";
-  };
 
   const getUniqueJenisAudit = () => [...new Set(dataFollowUp.map((item) => item.jenis_audit).filter(Boolean))].sort();
   const getUniqueUnit = () => [...new Set(dataFollowUp.map((item) => item.unit).filter(Boolean))].sort();
@@ -191,7 +217,7 @@ const FollowUp = () => {
 
   // --- DETAIL MODE ---
   if (mode === "detail" && selectedItem) {
-    const isLocked = selectedItem.status === "close";
+    const isLocked = (selectedItem.status || "").toLowerCase() === "close";
     return (
       <div className="min-h-screen bg-slate-50 p-6">
         <button onClick={() => setMode("list")} className="mb-6 flex items-center gap-2 font-bold text-blue-600 hover:text-blue-800 transition-all">
@@ -226,7 +252,19 @@ const FollowUp = () => {
             ) : "-"} />
             <div className="p-3">
               <span className="text-[10px] font-bold uppercase text-slate-400">Status Saat Ini</span>
-              <div className="mt-1"><span className={`rounded-full border px-3 py-1 text-xs font-bold ${getStatusBadgeClass(selectedItem.status)}`}>{getStatusLabel(selectedItem.status)}</span></div>
+              <div className="mt-1">
+                {(() => {
+                  const sc = getStatusConfig(selectedItem.status);
+                  return (
+                    <span 
+                      className="rounded-full border px-3 py-1 text-xs font-bold"
+                      style={{ backgroundColor: sc.bg, color: sc.text, borderColor: 'transparent' }}
+                    >
+                      {sc.label}
+                    </span>
+                  );
+                })()}
+              </div>
             </div>
           </div>
         </div>
@@ -270,10 +308,18 @@ const FollowUp = () => {
                         <BsFileEarmarkText size={14} /> <span className="line-clamp-1 text-left max-w-[120px]" title={tl.bukti.split("/").pop()}>{tl.bukti.split("/").pop()}</span>
                       </button>
                     ) : "-"}</td>
-                    <td className="p-4"><span className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase ${tl.hasil_evaluasi === 'sesuai' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>{tl.hasil_evaluasi || "Draft"}</span></td>
+                    <td className="p-4"><span className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase ${tl.hasil_evaluasi?.toLowerCase() === 'sesuai' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>{tl.hasil_evaluasi || "Draft"}</span></td>
                     <td className="p-4 text-slate-600 italic">"{tl.kesimpulan || "-"}"</td>
                     <td className="p-4 text-right">
-                      <button onClick={() => openReviewModal(tl)} disabled={isLocked} className="px-4 py-1.5 bg-blue-50 text-blue-600 rounded-lg font-bold text-xs hover:bg-blue-600 hover:text-white disabled:opacity-30 transition-all">Review</button>
+                      {isAuditor && (
+                        <button 
+                          onClick={() => openReviewModal(tl)} 
+                          disabled={isLocked} 
+                          className="px-4 py-1.5 bg-blue-50 text-blue-600 rounded-lg font-bold text-xs hover:bg-blue-600 hover:text-white disabled:opacity-30 transition-all shadow-sm"
+                        >
+                          Review
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -290,22 +336,77 @@ const FollowUp = () => {
                 <h3 className="font-bold">Tambah Realisasi Tindak Lanjut</h3>
                 <button onClick={() => setShowCreateModal(false)}><BsX size={24} /></button>
               </div>
-              <div className="p-6 space-y-4">
-                <textarea placeholder="Keterangan perbaikan yang dilakukan..." className="w-full rounded-xl border-slate-200 bg-slate-50 p-3 text-sm focus:border-blue-500 outline-none" rows="4" value={createForm.keterangan} onChange={(e) => setCreateForm({ ...createForm, keterangan: e.target.value })} />
+              <div className="p-6 space-y-5">
+                {/* Keterangan */}
+                <div>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Keterangan Perbaikan</label>
+                  <textarea 
+                    placeholder="Jelaskan detail perbaikan yang telah dilakukan..." 
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm focus:ring-2 focus:ring-blue-400 focus:border-transparent outline-none transition-all" 
+                    rows="4" 
+                    value={createForm.keterangan} 
+                    onChange={(e) => setCreateForm({ ...createForm, keterangan: e.target.value })} 
+                  />
+                </div>
+
+                {/* Periode */}
                 <div className="grid grid-cols-2 gap-4">
-                  <input type="number" placeholder="Tahun" className="w-full rounded-xl border-slate-200 bg-slate-50 p-3 text-sm focus:border-blue-500 outline-none" value={createForm.tahun} onChange={(e) => setCreateForm({ ...createForm, tahun: e.target.value })} />
-                  <select className="w-full rounded-xl border-slate-200 bg-slate-50 p-3 text-sm focus:border-blue-500 outline-none" value={createForm.bulan} onChange={(e) => setCreateForm({ ...createForm, bulan: e.target.value })}>
-                    <option value="">Pilih Bulan</option>
-                    {MONTH_OPTIONS.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
-                  </select>
+                  <div>
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Tahun</label>
+                    <input 
+                      type="number" 
+                      placeholder="2024" 
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm focus:ring-2 focus:ring-blue-400 outline-none transition-all" 
+                      value={createForm.tahun} 
+                      onChange={(e) => setCreateForm({ ...createForm, tahun: e.target.value })} 
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Bulan</label>
+                    <select 
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm focus:ring-2 focus:ring-blue-400 outline-none transition-all cursor-pointer" 
+                      value={createForm.bulan} 
+                      onChange={(e) => setCreateForm({ ...createForm, bulan: e.target.value })}
+                    >
+                      <option value="">Pilih Bulan</option>
+                      {MONTH_OPTIONS.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
+                    </select>
+                  </div>
                 </div>
-                <div className="p-4 border-2 border-dashed border-slate-100 rounded-xl bg-slate-50">
-                  <p className="text-[10px] font-bold text-slate-400 uppercase mb-2">Upload Bukti Dukung</p>
-                  <input type="file" onChange={(e) => setCreateForm({ ...createForm, bukti: e.target.files?.[0] || null })} className="text-xs" />
+
+                {/* Upload */}
+                <div>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Bukti Dukung (Dokumen/Foto)</label>
+                  <div className="relative group">
+                    <div className="p-5 border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50 group-hover:bg-blue-50/30 group-hover:border-blue-200 transition-all flex flex-col items-center justify-center gap-2">
+                      <BsFileEarmarkArrowDown className="text-slate-300 group-hover:text-blue-400 transition-colors" size={32} />
+                      <input 
+                        type="file" 
+                        onChange={(e) => setCreateForm({ ...createForm, bukti: e.target.files?.[0] || null })} 
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" 
+                      />
+                      <p className="text-xs font-bold text-slate-500">
+                        {createForm.bukti ? createForm.bukti.name : "Klik atau seret file ke sini"}
+                      </p>
+                      <p className="text-[9px] text-slate-400 uppercase">Maksimal 5MB (PDF, JPG, PNG)</p>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex gap-3 pt-2">
-                  <button onClick={() => setShowCreateModal(false)} className="flex-1 py-3 text-slate-400 font-bold text-sm">Batal</button>
-                  <button onClick={handleCreateTL} className="flex-1 py-3 bg-blue-600 text-white rounded-xl font-bold shadow-lg shadow-blue-100">Simpan Data</button>
+
+                {/* Buttons */}
+                <div className="flex gap-4 pt-2">
+                  <button 
+                    onClick={() => setShowCreateModal(false)} 
+                    className="flex-1 py-3.5 text-slate-500 font-bold text-sm hover:bg-slate-100 rounded-xl transition-all"
+                  >
+                    Batal
+                  </button>
+                  <button 
+                    onClick={handleCreateTL} 
+                    className="flex-1 py-3.5 bg-blue-600 text-white rounded-xl font-bold shadow-xl shadow-blue-100 hover:bg-blue-700 active:scale-95 transition-all flex items-center justify-center gap-2"
+                  >
+                    <BsPlusLg size={14} /> Simpan Progress
+                  </button>
                 </div>
               </div>
             </div>
@@ -387,7 +488,10 @@ const FollowUp = () => {
           </select>
           <select className="rounded-xl border-none bg-slate-50 px-4 py-3 text-sm font-bold text-slate-600 focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
             <option value="">Status</option>
-            {getUniqueStatus().map(s => <option key={s} value={s}>{getStatusLabel(s)}</option>)}
+            {getUniqueStatus().map(s => {
+              const sc = getStatusConfig(s);
+              return <option key={s} value={s}>{sc.label}</option>;
+            })}
           </select>
         </div>
       </div>
@@ -419,9 +523,17 @@ const FollowUp = () => {
                   </div>
                 </td>
                 <td className="px-6 py-4">
-                  <span className={`rounded-full border px-3 py-1 text-[10px] font-bold uppercase tracking-tighter ${getStatusBadgeClass(item.status)}`}>
-                    {getStatusLabel(item.status)}
-                  </span>
+                  {(() => {
+                    const sc = getStatusConfig(item.status);
+                    return (
+                      <span 
+                        className="rounded-full border px-3 py-1 text-[10px] font-bold uppercase tracking-tighter"
+                        style={{ backgroundColor: sc.bg, color: sc.text, borderColor: 'transparent' }}
+                      >
+                        {sc.label}
+                      </span>
+                    );
+                  })()}
                 </td>
                 <td className="px-6 py-4 text-right">
                   <button onClick={() => handleDetail(item)} className="inline-flex items-center gap-2 rounded-xl bg-[#1f4b82] px-4 py-2 text-xs font-bold text-white hover:bg-slate-800 transition-all shadow-md shadow-blue-50">

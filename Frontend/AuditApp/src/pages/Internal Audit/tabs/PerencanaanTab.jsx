@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import apiClient from "../../../../../Shared/api/apiClient";
 import { BsX, BsPrinter, BsFileEarmarkCheck, BsPlusLg, BsCloudUpload, BsFileEarmarkText, BsFolder2Open } from "react-icons/bs";
+import { notifySuccess, notifyError } from "../../../../../Shared/utils/notifier.jsx";
 
 const PerencanaanTab = ({ assurance }) => {
   const [kka, setKka] = useState([]);
@@ -69,16 +70,17 @@ const PerencanaanTab = ({ assurance }) => {
         uraian: "", user_id: "", no_kka: "", anggaran: "", keterangan: "",
       });
       fetchKka();
+      notifySuccess("Data KKA berhasil disimpan!");
     } catch (e) {
       console.error(e);
-      alert("Gagal menyimpan data KKA");
+      notifyError("Gagal menyimpan data KKA");
     }
   };
 
   const handleUploadDoc = async (e) => {
     e.preventDefault();
     if (!docFile || !docTitle) {
-      alert("Judul dan File Dokumen harus diisi!");
+      notifyError("Judul dan File Dokumen harus diisi!");
       return;
     }
 
@@ -92,9 +94,10 @@ const PerencanaanTab = ({ assurance }) => {
       setDocFile(null);
       setDocTitle("");
       fetchDocs();
+      notifySuccess("Dokumen berhasil diupload!");
     } catch (e) {
       console.error(e);
-      alert("Upload dokumen gagal");
+      notifyError("Upload dokumen gagal");
     }
   };
 
