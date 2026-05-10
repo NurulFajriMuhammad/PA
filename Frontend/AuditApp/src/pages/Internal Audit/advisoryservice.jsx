@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import apiClient from "../../../../Shared/api/apiClient";
+import useRealTime from "../../hooks/useRealTime";
 import {
   BsChatLeftText,
   BsSearch,
@@ -37,6 +38,12 @@ const AdvisoryService = () => {
   });
 
   // ================= FETCH =================
+  // Sinkronisasi Real-Time
+  useRealTime(['advisory_services', 'units'], () => {
+    fetchData();
+    fetchUnits();
+  });
+
   useEffect(() => {
     fetchData();
     fetchUnits();
@@ -154,7 +161,7 @@ const AdvisoryService = () => {
   );
 
   return (
-    <div className="min-h-screen bg-slate-50 py-12 px-6 font-sans">
+    <div className="py-12 px-6 font-sans">
       <div className="max-w-7xl mx-auto">
         
         {/* --- HEADER --- */}

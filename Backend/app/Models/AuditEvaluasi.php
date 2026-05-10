@@ -4,9 +4,12 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use App\Models\Unit;
+use App\Traits\BroadcastsRealTime;
 
 class AuditEvaluasi extends Model
 {
+    use BroadcastsRealTime;
+
     protected $table = 'audit_evaluasi';
 
     protected $fillable = [
@@ -27,7 +30,5 @@ class AuditEvaluasi extends Model
     public function unit()
     {
         return $this->belongsTo(Unit::class);
-
     }
-
 }

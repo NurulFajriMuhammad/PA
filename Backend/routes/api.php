@@ -207,9 +207,12 @@ Route::middleware('auth:sanctum')->group(function () {
      Route::get('/tindak-lanjut', [TindakLanjutController::class, 'index']);
      Route::get('/tindak-lanjut/{id}', [TindakLanjutController::class, 'show']);
      Route::put('/tindak-lanjut/{id}', [TindakLanjutController::class, 'update']);
+     Route::delete('/tindak-lanjut/{id}', [TindakLanjutController::class, 'destroy']);
      Route::post('/tindak-lanjut/{id}/detail', [TindakLanjutController::class, 'storeDetail']);
      Route::put('/tindak-lanjut/{id}/review', [TindakLanjutController::class, 'review']);
      Route::get('/tindak-lanjut/detail/{id}', [TindakLanjutController::class, 'detail']);
+     Route::post('/tindak-lanjut/temuan/{id}/close', [TindakLanjutController::class, 'closeTemuan']);
+     Route::post('/tindak-lanjut/temuan/{id}/rtl', [TindakLanjutController::class, 'saveRtl']);
 
 
 
@@ -231,6 +234,8 @@ Route::put('external-audit-temuan/{id}', [ExternalAuditTemuanController::class, 
 Route::delete('external-audit-temuan/{id}', [ExternalAuditTemuanController::class, 'destroy']);
 Route::get('external-audit/{id}/transitions', [ExternalAuditController::class, 'availableTransitions']);
 Route::post('external-audit/{id}/transition', [ExternalAuditController::class, 'executeTransition']);
+Route::post('external-audit/{id}/bulk-update-temuan-status', [ExternalAuditController::class, 'bulkUpdateTemuanStatus']);
+
                
 
 Route::get('/advisory-service', [AdvisoryServiceController::class, 'index']);

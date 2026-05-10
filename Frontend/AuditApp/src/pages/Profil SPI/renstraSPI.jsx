@@ -10,6 +10,7 @@ import {
   Target
 } from "lucide-react";
 import apiClient from "../../../../Shared/api/apiClient";
+import useRealTime from "../../hooks/useRealTime";
 import { notifySuccess, notifyError, notifyConfirm } from "../../../../Shared/utils/notifier.jsx";
 
 const RenstraSPI = () => {
@@ -40,6 +41,11 @@ const RenstraSPI = () => {
       setLoading(false);
     }
   };
+
+  // Sinkronisasi Real-Time
+  useRealTime(['spijangkapanjang', 'audit_universe'], () => {
+    fetchData();
+  });
 
   useEffect(() => {
     fetchData();

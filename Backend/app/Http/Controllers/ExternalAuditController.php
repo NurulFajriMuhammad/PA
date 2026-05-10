@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\ExternalAudit;
+use App\Models\ExternalAuditTemuan;
+use App\Models\TindakLanjut;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -89,8 +91,8 @@ class ExternalAuditController extends Controller
         $data = ExternalAudit::findOrFail($id);
 
         $validated = $request->validate([
-            'objek_pemeriksaan' => 'required|string',
-            'nama_kegiatan' => 'required|string',
+            'objek_pemeriksaan' => 'sometimes|required|string',
+            'nama_kegiatan' => 'sometimes|required|string',
             'tujuan' => 'nullable|string',
             'objek_audit' => 'nullable|string',
             'ruang_lingkup' => 'nullable|string',
@@ -103,7 +105,18 @@ class ExternalAuditController extends Controller
             'keterangan' => 'nullable|string',
         ]);
 
+        // Sync id_status_pemeriks if status name is provided
+        if (isset($validated['status'])) {
+            $statusRow = DB::table('status_pemeriksaans')->where('nama', $validated['status'])->first();
+            if ($statusRow) {
+                $data->id_status_pemeriks = $statusRow->id;
+            }
+            // Trigger side effects (like syncing to follow-up table)
+            $this->handleStatusSideEffects($id, $validated['status']);
+        }
+
         $data->update($validated);
+
 
         return response()->json([
             'success' => true,
@@ -211,30 +224,24 @@ class ExternalAuditController extends Controller
         
         // 1. Jika pindah ke Konfirmasi Auditee
         if ($statusName === 'konfirmasi auditee') {
-            DB::table('external_audit_temuan')
-                ->where('external_audit_id', $id)
+            ExternalAuditTemuan::where('external_audit_id', $id)
                 ->update(['status' => 'Menunggu Konfirmasi']);
         }
 
-        // 2. Jika pindah ke Pengisian RTL
-        if ($statusName === 'pengisian rtl') {
-            DB::table('external_audit_temuan')
-                ->where('external_audit_id', $id)
-                ->update(['status' => 'Pengisian RTL']);
+        // 2. Jika pindah ke Monitoring Tindak Lanjut ATAU Pengisian Rencana Tindak Lanjut
+        if ($statusName === 'monitoring tindak lanjut' || $statusName === 'pengisian rencana tindak lanjut') {
+            // Untuk pengisian RTL, status temuan tetap 'Pengisian Tindak Lanjut' (sudah diupdate di frontend biasanya)
+            // Tapi kita pastikan data masuk ke tabel tindak_lanjut agar muncul di Monitoring
+            $temuanList = ExternalAuditTemuan::where('external_audit_id', $id)->get();
 
-            // Pastikan data masuk ke tabel tindak_lanjut
-            $temuanList = DB::table('external_audit_temuan')
-                ->where('external_audit_id', $id)
-                ->get();
 
             foreach ($temuanList as $t) {
-                $exists = DB::table('tindak_lanjut')
-                    ->where('temuan_id', $t->id)
+                $exists = TindakLanjut::where('temuan_id', $t->id)
                     ->where('jenis_audit', 'eksternal')
                     ->exists();
 
                 if (!$exists) {
-                    DB::table('tindak_lanjut')->insert([
+                    TindakLanjut::create([
                         'temuan_id' => $t->id,
                         'unit' => $t->unit ?? '-',
                         'masalah' => $t->masalah,
@@ -242,17 +249,32 @@ class ExternalAuditController extends Controller
                         'target_selesai' => $t->target_penyelesaian,
                         'jenis_audit' => 'eksternal',
                         'status' => 'draft', // status internal tindak_lanjut tetap draft sampai ada progres
-                        'created_at' => now(),
-                        'updated_at' => now(),
                     ]);
                 }
             }
         }
     }
 
+    public function bulkUpdateTemuanStatus(Request $request, $id)
+    {
+        $request->validate([
+            'status' => 'required|string'
+        ]);
+
+        DB::table('external_audit_temuan')
+            ->where('external_audit_id', $id)
+            ->update(['status' => $request->status]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Status semua temuan berhasil diperbarui ke ' . $request->status
+        ]);
+    }
+
     // DELETE
     public function destroy($id)
     {
+
         $data = ExternalAudit::findOrFail($id);
 
         $temuanIds = \Illuminate\Support\Facades\DB::table('external_audit_temuan')

@@ -3,9 +3,12 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Traits\BroadcastsRealTime;
 
 class ExternalAudit extends Model
 {
+    use BroadcastsRealTime;
+
     protected $table = 'external_audits';
 
     protected $fillable = [

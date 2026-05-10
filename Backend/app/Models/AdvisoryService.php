@@ -3,9 +3,12 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Traits\BroadcastsRealTime;
 
 class AdvisoryService extends Model
 {
+    use BroadcastsRealTime;
+
     protected $fillable = [
         'nomor_advisory',
         'tanggal_kegiatan',

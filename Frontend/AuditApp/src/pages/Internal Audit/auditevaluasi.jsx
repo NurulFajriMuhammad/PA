@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import apiClient from "../../../../Shared/api/apiClient";
+import useRealTime from "../../hooks/useRealTime";
 
 import { 
   BsBarChartSteps, 
@@ -50,6 +51,12 @@ const AuditEvaluasi = () => {
       console.error(err);
     }
   };
+
+  // Sinkronisasi Real-Time
+  useRealTime(['audit_evaluasi', 'units'], () => {
+    fetchData();
+    fetchUnits();
+  });
 
   useEffect(() => {
     fetchData();
@@ -141,7 +148,7 @@ const AuditEvaluasi = () => {
   );
 
   return (
-    <div className="min-h-screen bg-slate-50 py-12 px-6 font-sans">
+    <div className="py-12 px-6 font-sans">
       <div className="max-w-7xl mx-auto">
         
         {/* --- HEADER --- */}

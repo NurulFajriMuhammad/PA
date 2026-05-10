@@ -92,8 +92,7 @@ const StatusPengajuan = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 py-8 px-6 relative font-sans">
-      <div className="max-w-7xl mx-auto">
+    <div className="py-8 px-6 relative font-sans">
         
         {/* --- HEADER --- */}
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-6">
@@ -298,7 +297,6 @@ const StatusPengajuan = () => {
           </div>
         )}
       </div>
-    </div>
   );
 };
 

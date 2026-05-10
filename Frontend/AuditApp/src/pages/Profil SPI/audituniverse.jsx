@@ -17,6 +17,7 @@ import {
   Target,
 } from "lucide-react";
 import apiClient from "../../../../Shared/api/axios";
+import useRealTime from "../../hooks/useRealTime";
 import { notifySuccess, notifyError, notifyConfirm } from "../../../../Shared/utils/notifier.jsx";
 
 const AuditUniverseSPI = () => {
@@ -98,6 +99,11 @@ const AuditUniverseSPI = () => {
       setUnits([]);
     }
   };
+
+  // Sinkronisasi Real-Time
+  useRealTime('audit_universes', () => {
+    fetchData();
+  });
 
   useEffect(() => {
     fetchData();

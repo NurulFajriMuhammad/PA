@@ -14,6 +14,7 @@ import {
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import apiClient from "../../../../Shared/api/axios";
+import useRealTime from "../../hooks/useRealTime";
 import { notifySuccess, notifyError } from "../../../../Shared/utils/notifier.jsx";
 
 const PiagamAuditSPI = () => {
@@ -28,17 +29,23 @@ const PiagamAuditSPI = () => {
     unitAudit: "Satuan Audit Internal",
   };
 
+  const fetchLatest = async () => {
+    try {
+      const response = await apiClient.get("/api/charter/latest");
+      setLatestDoc(response.data);
+      console.log("✅ Data terbaru berhasil diambil:", response.data);
+    } catch (error) {
+      console.error("❌ Gagal mengambil data terbaru:", error);
+    }
+  };
+
+  // Sinkronisasi Real-Time
+  useRealTime('internal_audit_charters', () => {
+    fetchLatest();
+  });
+
   // Mengambil data terbaru saat komponen dimuat
   useEffect(() => {
-    const fetchLatest = async () => {
-      try {
-        const response = await apiClient.get("/api/charter/latest");
-        setLatestDoc(response.data);
-        console.log("✅ Data terbaru berhasil diambil:", response.data);
-      } catch (error) {
-        console.error("❌ Gagal mengambil data terbaru:", error);
-      }
-    };
     fetchLatest();
   }, []);
 

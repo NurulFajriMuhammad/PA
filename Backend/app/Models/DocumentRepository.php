@@ -4,9 +4,12 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
+use App\Traits\BroadcastsRealTime;
 
 class DocumentRepository extends Model
 {
+    use BroadcastsRealTime;
+
     protected $fillable = [
         'title',
         'file_path',

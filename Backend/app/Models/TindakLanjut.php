@@ -3,9 +3,12 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Traits\BroadcastsRealTime;
 
 class TindakLanjut extends Model
 {
+    use BroadcastsRealTime;
+
     protected $table = 'tindak_lanjut';
 
     protected $fillable = [
@@ -25,6 +28,15 @@ class TindakLanjut extends Model
         'bulan',
         'hasil_evaluasi',
         'kesimpulan',
+        'persentase',
+        'estimasi_selesai',
+        'pic_pelaksana',
+        'kendala',
+        'catatan_tambahan',
+        'bukti_name',
+        'created_by',
+        'reviewer_id',
+        'reviewed_at',
     ];
 
     protected $casts = [

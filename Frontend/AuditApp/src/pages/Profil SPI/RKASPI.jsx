@@ -11,6 +11,7 @@ import {
   TrendingUp
 } from "lucide-react";
 import apiClient from "../../../../Shared/api/axios";
+import useRealTime from "../../hooks/useRealTime";
 import { notifySuccess, notifyError, notifyConfirm } from "../../../../Shared/utils/notifier.jsx";
 
 const RKASpiPage = () => {
@@ -38,6 +39,11 @@ const RKASpiPage = () => {
       setLoading(false);
     }
   };
+
+  // Sinkronisasi Real-Time
+  useRealTime('rkaspi', () => {
+    fetchData();
+  });
 
   useEffect(() => {
     fetchData();

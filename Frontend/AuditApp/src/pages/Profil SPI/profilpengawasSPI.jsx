@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Mail, Briefcase, GraduationCap, ShieldCheck, X, CheckCircle2, UserPlus, Loader2, Image as ImageIcon } from 'lucide-react';
 import apiClient from "../../../../Shared/api/axios"; // Pastikan path ini benar sesuai struktur folder Anda
+import useRealTime from "../../hooks/useRealTime";
 import { notifySuccess, notifyError } from '../../../../Shared/utils/notifier';
 
 const ProfilPengawasSPI = () => {
@@ -15,6 +16,11 @@ const ProfilPengawasSPI = () => {
     name: "", role: "", specialty: "", education: "", email: "", image: "", bio: "", certs: ""
   });
   const [fileError, setFileError] = useState(""); // pesan kesalahan ukuran file
+
+  // Sinkronisasi Real-Time
+  useRealTime('pengawas_spi', () => {
+    fetchTeamData();
+  });
 
   // 1. MENGAMBIL DATA DARI LARAVEL SAAT LOAD
   useEffect(() => {

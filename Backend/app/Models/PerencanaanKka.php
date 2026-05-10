@@ -3,9 +3,12 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Traits\BroadcastsRealTime;
 
 class PerencanaanKka extends Model
 {
+    use BroadcastsRealTime;
+
     protected $table = 'perencanaan_kkas';
     protected $fillable = ['assurance_id', 'uraian', 'user_id', 'no_kka', 'anggaran', 'keterangan'];
 

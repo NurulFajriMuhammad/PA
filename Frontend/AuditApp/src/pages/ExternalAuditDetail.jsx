@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import apiClient from "../../../Shared/api/apiClient";
+import useRealTime from "../hooks/useRealTime";
 import {
   BsX,
   BsArrowLeft,
@@ -10,13 +11,23 @@ import {
   BsCloudUpload,
   BsFileEarmarkText,
   BsCheckCircleFill,
-  BsCardChecklist
+  BsCardChecklist,
+  BsLock,
+  BsCheckCircle
 } from "react-icons/bs";
+
 import { notifySuccess, notifyError, notifyConfirm } from "../../../Shared/utils/notifier.jsx";
+import { useAuth } from "../../../Shared/hooks/useAuth.jsx";
 
 const ExternalAuditDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user: authData } = useAuth();
+  const userRole = authData?.user?.roles?.[0]?.name || "";
+  const isAuditee = userRole.toLowerCase() === "auditee";
+  const isKepalaSPI = userRole.toLowerCase() === "kepala spi";
+  const isAuditor = userRole.toLowerCase() === "auditor" || userRole.toLowerCase() === "administrator audit";
+
 
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -46,13 +57,14 @@ const ExternalAuditDetail = () => {
     }
 
     // Fallback default jika tidak ada di database status-temuan
-    if (v === "monev") return { bg: "#fef3c7", text: "#d97706", label: "Monev" };
+    if (v.includes("monev")) return { bg: "#fef3c7", text: "#d97706", label: "Monev" };
     if (v === "draft" || v === "draft temuan") return { bg: "#f1f5f9", text: "#64748b", label: "Draft Temuan" };
-    if (v === "close") return { bg: "#dcfce7", text: "#15803d", label: "Close" };
+    if (v.includes("close")) return { bg: "#dcfce7", text: "#15803d", label: "Close" };
     if (v === "menunggu konfirmasi") return { bg: "#ffedd5", text: "#9a3412", label: "Menunggu Konfirmasi" };
-    if (v === "pengisian rtl") return { bg: "#dbeafe", text: "#1e40af", label: "Pengisian RTL" };
+    if (v.includes("pengisian tindak lanjut") || v.includes("perbaikan") || v.includes("rtl")) 
+      return { bg: "#dbeafe", text: "#1e40af", label: "Pengisian Tindak Lanjut" };
     if (v === "final") return { bg: "#e0f2fe", text: "#0369a1", label: "Final" };
-    if (v === "closed" || v === "selesai") return { bg: "#d1fae5", text: "#059669", label: "Closed" };
+    if (v === "selesai") return { bg: "#d1fae5", text: "#059669", label: "Closed" };
 
     return { bg: "#f1f5f9", text: "#64748b", label: val || "Draft" };
   };
@@ -175,41 +187,48 @@ const ExternalAuditDetail = () => {
     setLheFile(null);
   };
 
-  const fetchTemuan = async () => {
+  const fetchDetail = useCallback(async () => {
+    try {
+      const res = await apiClient.get(`/api/external-audit/${id}`);
+      setData(res.data.data);
+    } catch (err) {
+      console.error(err);
+      notifyError("Gagal mengambil data");
+    } finally {
+      setLoading(false);
+    }
+  }, [id]);
+
+  const fetchTransitions = useCallback(async () => {
+    try {
+      const res = await apiClient.get(`/api/external-audit/${id}/transitions`);
+      setAvailableTransitions(res.data.data || []);
+    } catch (err) {
+      console.error(err);
+    }
+  }, [id]);
+
+  const fetchTemuan = useCallback(async () => {
     try {
       const res = await apiClient.get(`/api/external-audit/${id}/temuan`);
       setTemuan(res.data.data);
     } catch (e) {
       console.error(e);
     }
-  };
+  }, [id]);
 
-  useEffect(() => {
-    const fetchDetail = async () => {
-      try {
-        const res = await apiClient.get(`/api/external-audit/${id}`);
-        setData(res.data.data);
-      } catch (err) {
-        console.error(err);
-        notifyError("Gagal mengambil data");
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    const fetchTransitions = async () => {
-      try {
-        const res = await apiClient.get(`/api/external-audit/${id}/transitions`);
-        setAvailableTransitions(res.data.data || []);
-      } catch (err) {
-        console.error(err);
-      }
-    };
-
+  // Sinkronisasi Real-Time
+  useRealTime(['external_audits', 'external_audit_temuan', 'status_pemeriksaans'], () => {
     fetchDetail();
     fetchTemuan();
     fetchTransitions();
-  }, [id]);
+  });
+
+  useEffect(() => {
+    fetchDetail();
+    fetchTemuan();
+    fetchTransitions();
+  }, [fetchDetail, fetchTemuan, fetchTransitions]);
 
   const formatTanggal = (dateString) => {
     if (!dateString) return "-";
@@ -249,15 +268,23 @@ const ExternalAuditDetail = () => {
         form.rencana &&
         form.target_penyelesaian;
 
-      formData.append("status", isComplete ? "final" : "draft");
+      formData.append("status", "Draft Temuan");
+
 
       if (isEdit) {
         await apiClient.post(`/api/external-audit-temuan/${selectedId}?_method=PUT`, formData);
       } else {
         await apiClient.post("/api/external-audit-temuan", formData);
+        
+        // JIKA audit status masih Perencanaan, otomatis ke Pemeriksaan
+        if (data?.status_label === "Perencanaan") {
+          await apiClient.put(`/api/external-audit/${id}`, { status: "Pemeriksaan" });
+        }
       }
 
       fetchTemuan();
+      fetchDetail(); // Refresh audit status
+
       setOpenModal(false);
       setIsEdit(false);
       setSelectedId(null);
@@ -267,7 +294,7 @@ const ExternalAuditDetail = () => {
         kategori: ""
       });
       setLheFile(null);
-      notifySuccess("Data temuan berhasil disimpan!");
+      notifySuccess(isEdit ? "Data temuan berhasil diperbarui!" : "Data temuan berhasil ditambahkan!");
 
     } catch (err) {
       console.error(err);
@@ -331,12 +358,23 @@ const ExternalAuditDetail = () => {
       try {
         await apiClient.delete(`/api/external-audit-temuan/${idTemuan}`);
         notifySuccess("Temuan berhasil dihapus");
-        fetchTemuan();
+        
+        // Refresh temuan dulu untuk cek sisa
+        const resTemuan = await apiClient.get(`/api/external-audit/${id}/temuan`);
+        const sisaTemuan = resTemuan.data.data || [];
+        setTemuan(sisaTemuan);
+
+        // JIKA temuan habis dan status audit adalah Pemeriksaan, balik ke Perencanaan
+        if (sisaTemuan.length === 0 && data?.status_label === "Pemeriksaan") {
+          await apiClient.put(`/api/external-audit/${id}`, { status: "Perencanaan" });
+          fetchDetail();
+        }
       } catch (err) {
         notifyError("Gagal hapus temuan");
       }
     }, null, { title: "Konfirmasi Hapus" });
   };
+
 
   const resetForm = () => {
     setForm({
@@ -437,7 +475,64 @@ const ExternalAuditDetail = () => {
         </div>
       </div>
 
+      {/* ===================== TUTUP AUDIT SECTION (NEW) ===================== */}
+      {data?.status_label?.toLowerCase() !== "selesai" && (
+        <div 
+          className={`p-6 rounded-2xl flex flex-col md:flex-row justify-between items-center gap-6 transition-all duration-300 ${
+            temuan.length > 0 && temuan.every(t => (t.status || "").toLowerCase() === "close")
+              ? "bg-slate-900 border-2 border-dashed border-emerald-500 shadow-xl shadow-emerald-900/10"
+              : "bg-slate-800 border border-slate-700 shadow-lg"
+          }`}
+        >
+          <div className="flex-1">
+            <h3 className="text-white font-black text-lg uppercase tracking-tight flex items-center gap-2">
+              Tutup Audit Eksternal
+            </h3>
+            <p className="text-slate-400 text-xs font-medium mt-1 uppercase tracking-wider">
+              {temuan.length > 0 && temuan.every(t => (t.status || "").toLowerCase() === "close")
+                ? "Semua temuan sudah Close — audit dapat ditutup secara resmi"
+                : `Masih ada ${temuan.filter(t => (t.status || "").toLowerCase() !== "close").length} temuan yang belum Close — audit belum dapat ditutup`}
+            </p>
+          </div>
+
+          <button
+            onClick={async () => {
+              if (!isKepalaSPI) {
+                notifyError("Hanya Kepala SPI yang berhak menutup audit.");
+                return;
+              }
+              notifyConfirm("Tutup audit ini? Semua data akan dikunci secara permanen.", async () => {
+                try {
+                  setLoading(true);
+                  await apiClient.put(`/api/external-audit/${id}`, { status: "Selesai" });
+                  notifySuccess("Audit berhasil ditutup!");
+                  fetchDetail();
+                } catch (err) {
+                  notifyError("Gagal menutup audit");
+                } finally {
+                  setLoading(false);
+                }
+              }, null, { title: "Konfirmasi Tutup Audit", confirmColor: "bg-slate-900" });
+            }}
+            disabled={!(temuan.length > 0 && temuan.every(t => (t.status || "").toLowerCase() === "close")) || !isKepalaSPI}
+            className={`flex items-center gap-2 px-8 py-3.5 rounded-xl font-black text-xs uppercase tracking-widest transition-all ${
+              temuan.length > 0 && temuan.every(t => (t.status || "").toLowerCase() === "close") && isKepalaSPI
+                ? "bg-white text-slate-900 hover:bg-emerald-50 shadow-lg active:scale-95"
+                : "bg-slate-700 text-slate-500 cursor-not-allowed border border-slate-600"
+            }`}
+          >
+            {temuan.length > 0 && temuan.every(t => (t.status || "").toLowerCase() === "close") && isKepalaSPI ? (
+              <BsCheckCircle size={16} />
+            ) : (
+              <BsLock size={16} />
+            )}
+            Tutup Audit
+          </button>
+        </div>
+      )}
+
       {/* ===================== TABEL TEMUAN (STYLING BARU) ===================== */}
+
       <div className="overflow-hidden transition-all">
         <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden transition-all flex flex-col md:flex-row justify-between items-start md:items-center p-6 bg-slate-50/80 border-b border-slate-200 gap-4">
           <div>
@@ -447,24 +542,129 @@ const ExternalAuditDetail = () => {
             <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">Hasil Evaluasi Eksternal</p>
           </div>
           
-          <div className="flex gap-3">
-            {availableTransitions.map((t, idx) => (
-              <button 
-                key={idx}
-                onClick={() => handleTransition(t)}
-                className={`flex items-center justify-center gap-2 px-5 py-2.5 ${t.color} hover:brightness-110 text-white text-xs font-bold uppercase tracking-wider rounded-xl transition-all shadow-md active:scale-95`}
+          <div className="flex gap-3 flex-wrap">
+            {/* Auditor: Ajukan ke Konfirmasi Auditee (saat Pemeriksaan) */}
+            {isAuditor && data?.status_label === "Pemeriksaan" && (
+              <button
+                onClick={async () => {
+                  notifyConfirm("Ajukan temuan ke Auditee untuk dikonfirmasi?", async () => {
+                    try {
+                      setLoading(true);
+                      // Update status audit
+                      await apiClient.put(`/api/external-audit/${id}`, { status: "Konfirmasi Auditee" });
+                      // Update SEMUA status temuan audit ini menjadi Menunggu Konfirmasi
+                      await apiClient.post(`/api/external-audit/${id}/bulk-update-temuan-status`, { 
+                        status: "Menunggu Konfirmasi" 
+                      });
+                      notifySuccess("Audit diajukan ke Auditee");
+                      fetchDetail();
+                      fetchTemuan();
+                    } catch (err) {
+                      notifyError("Gagal mengajukan audit");
+                    } finally {
+                      setLoading(false);
+                    }
+                  }, null, { 
+                    confirmColor: "bg-blue-600",
+                    confirmHoverColor: "hover:bg-blue-700",
+                    iconColor: "bg-blue-600",
+                    iconShadow: "shadow-blue-200",
+                    icon: BsCheckCircle
+                  });
+                }}
+                disabled={temuan.length === 0}
+                className={`flex items-center justify-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold uppercase tracking-wider rounded-xl transition-all shadow-md active:scale-95 ${temuan.length === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
-                <BsCheckCircleFill size={14} /> {t.label}
+                <BsCheckCircleFill size={14} /> Ajukan ke Konfirmasi Auditee
               </button>
-            ))}
+            )}
 
-            {data && data.status_label !== "Selesai" && (
+            {/* Auditee: Approve / Kembalikan */}
+            {isAuditee && (data?.status_label === "Konfirmasi Auditee" || data?.status_label === "Pengisian Rencana Tindak Lanjut") && (
+              <div className="flex gap-2">
+                {data?.status_label === "Konfirmasi Auditee" && (
+                  <button
+                    onClick={async () => {
+                      notifyConfirm("Setujui temuan audit ini?", async () => {
+                        try {
+                          setLoading(true);
+                          await apiClient.put(`/api/external-audit/${id}`, { status: "Pengisian Rencana Tindak Lanjut" });
+                          await apiClient.post(`/api/external-audit/${id}/bulk-update-temuan-status`, { 
+                            status: "Pengisian Tindak Lanjut" 
+                          });
+                          notifySuccess("Audit disetujui. Silakan isi Rencana Tindak Lanjut.");
+                          fetchDetail();
+                          fetchTemuan();
+                        } catch (err) {
+                          notifyError("Gagal menyetujui");
+                        } finally {
+                          setLoading(false);
+                        }
+                      }, null, { 
+                        confirmColor: "bg-blue-600",
+                        confirmHoverColor: "hover:bg-blue-700",
+                        iconColor: "bg-blue-600",
+                        iconShadow: "shadow-blue-200",
+                        icon: BsCheckCircle
+                      });
+                    }}
+                    className="flex items-center justify-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold uppercase tracking-wider rounded-xl transition-all shadow-md active:scale-95"
+                  >
+                    <BsCheckCircleFill size={14} /> Approve
+                  </button>
+                )}
+                
+                <button
+                  onClick={async () => {
+                    notifyConfirm("Kembalikan temuan ini ke Auditor untuk diperbaiki?", async () => {
+                      try {
+                        setLoading(true);
+                        await apiClient.put(`/api/external-audit/${id}`, { status: "Pemeriksaan" });
+                        // Jika dikembalikan, status temuan balik ke draft temuan agar bisa diedit auditor lagi
+                        await apiClient.post(`/api/external-audit/${id}/bulk-update-temuan-status`, { 
+                          status: "Draft Temuan" 
+                        });
+                        notifySuccess("Audit dikembalikan ke tahap Pemeriksaan");
+                        fetchDetail();
+                        fetchTemuan();
+                      } catch (err) {
+                        notifyError("Gagal mengembalikan");
+                      } finally {
+                        setLoading(false);
+                      }
+                    }, null, { confirmColor: "bg-amber-600", confirmText: "Ya, Kembalikan" });
+                  }}
+                  className="flex items-center justify-center gap-2 px-5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold uppercase tracking-wider rounded-xl transition-all shadow-md active:scale-95"
+                >
+                  <BsArrowLeft size={14} /> Kembalikan ke Pemeriksaan
+                </button>
+              </div>
+            )}
+
+
+            {/* Info banner saat Monitoring Tindak Lanjut */}
+            {data?.status_label === "Monitoring Tindak Lanjut" && (
+              <div className="flex items-center gap-2 px-4 py-2.5 bg-blue-500 border border-blue-200 text-white-700 text-xs font-bold rounded-xl">
+                <BsArrowLeft size={12} className="rotate-180" />
+                <span className="underline cursor-pointer ml-1" onClick={() => navigate('/follow-up')}>Silakan isi progres di halaman Monitoring Tindak Lanjut</span>
+              </div>
+            )}
+
+            {/* Tambah Temuan: hanya saat Perencanaan atau Pemeriksaan, dan bukan Auditee */}
+            {data && ["Perencanaan", "Pemeriksaan"].includes(data.status_label) && (
               <button
                 onClick={() => {
+                  if (isAuditee) return;
                   resetForm();
                   setOpenModal(true);
                 }}
-                className="flex items-center justify-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold uppercase tracking-wider rounded-xl transition-all shadow-md shadow-blue-200 active:scale-95"
+                disabled={isAuditee}
+                className={`flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl transition-all text-xs font-bold uppercase tracking-wider ${
+                  isAuditee
+                    ? "bg-slate-200 text-slate-400 cursor-not-allowed border border-slate-300"
+                    : "bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-200 active:scale-95"
+                }`}
+                title={isAuditee ? "Auditee tidak dapat menambah temuan" : "Tambah Temuan"}
               >
                 <BsPlusLg size={14} /> Tambah Temuan
               </button>
@@ -514,8 +714,9 @@ const ExternalAuditDetail = () => {
                       );
                     })()} */}
 
-                    {/* Actions */}
-                    {data && data.status_label !== "Selesai" && (t.status || "").toLowerCase() !== "close" && (
+                    {/* Actions - Hanya tampil saat Perencanaan atau Pemeriksaan, dan bukan Auditee, dan bukan Selesai */}
+                    {["Perencanaan", "Pemeriksaan"].includes(data?.status_label) && !isAuditee && data?.status_label?.toLowerCase() !== "selesai" && (
+
                       <div className="flex gap-1.5 ml-2 border-l border-slate-200 pl-3">
                         <button 
                           onClick={() => handleEdit(t)}
@@ -588,7 +789,7 @@ const ExternalAuditDetail = () => {
 
                     <div className="space-y-2 pt-2">
                       <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                        <div className="w-1 h-1 rounded-full bg-slate-300"></div> Rencana Tindakan
+                        <div className="w-1 h-1 rounded-full bg-slate-300"></div> Rencana Tindakan Perbaikan
                       </label>
                       <p className="text-xs font-bold leading-relaxed text-slate-700 break-words pl-3 border-l border-slate-100">
                         {t.rencana || "-"}

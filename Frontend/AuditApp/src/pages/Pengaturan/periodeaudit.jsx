@@ -117,7 +117,7 @@ const PeriodeAudit = () => {
   const activePeriod = data.find(d => d.is_active);
 
   return (
-    <div className="min-h-screen bg-slate-50 p-6">
+    <div className="p-6">
       {/* ── HEADER ── */}
       <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>

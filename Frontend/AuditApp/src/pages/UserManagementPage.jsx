@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import useRealTime from '../hooks/useRealTime';
 import apiClient from '../../../Shared/api/axios';
 import AddUserModal from '../../../Shared/components/AddUserModal';
 import { notifySuccess, notifyError, notifyConfirm } from '../../../Shared/utils/notifier';
@@ -10,18 +11,24 @@ export default function UserManagementPage() {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  const fetchUsers = async () => {
+    try {
+      const response = await apiClient.get('/api/users');
+      setUsers(response.data.data); 
+    } catch (err) {
+      setError('Gagal memuat data pengguna.');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Sinkronisasi Real-Time
+  useRealTime('users', () => {
+    fetchUsers();
+  });
+
   useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        const response = await apiClient.get('/api/users');
-        setUsers(response.data.data); 
-      } catch (err) {
-        setError('Gagal memuat data pengguna.');
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchUsers();
   }, []); 
 

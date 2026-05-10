@@ -5,9 +5,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
+use App\Traits\BroadcastsRealTime;
+
 class pkptspi extends Model
 {
-    use HasFactory;
+    use HasFactory, BroadcastsRealTime;
 
     // Nama tabel di database (opsional jika nama file & tabel sudah sesuai standar Laravel)
     protected $table = 'pkptspi';

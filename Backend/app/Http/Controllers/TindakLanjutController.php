@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Auth;
 
 class TindakLanjutController extends Controller
 {
@@ -77,7 +78,9 @@ class TindakLanjutController extends Controller
             }
 
             if (!empty($insertData)) {
-                DB::table('tindak_lanjut')->insert($insertData);
+                foreach ($insertData as $data) {
+                    TindakLanjut::create($data);
+                }
             }
 
             foreach ($request->temuan_ids as $tid) {
@@ -170,144 +173,173 @@ class TindakLanjutController extends Controller
     public function detail($temuanId)
     {
         $jenis = request()->query('jenis', 'internal');
-        
-        $hasReviewColumns =
-            Schema::hasColumn('tindak_lanjut', 'hasil_evaluasi') &&
-            Schema::hasColumn('tindak_lanjut', 'kesimpulan');
 
-        $selectColumns = [
-            't.id',
-            't.masalah',
-            't.kondisi',
-            't.kriteria',
-            't.sebab',
-            't.akibat',
-            't.lampiran',
-            't.rekomendasi',
-            'tl.id as tl_id',
-            'tl.tahun',
-            'tl.bulan',
-            'tl.keterangan',
-            'tl.progres',
-            'tl.tanggal',
-            'tl.bukti',
-            'tl.status as tl_status',
-        ];
-
-        if ($hasReviewColumns) {
-            $selectColumns[] = 'tl.hasil_evaluasi';
-            $selectColumns[] = 'tl.kesimpulan';
-        } else {
-            $selectColumns[] = DB::raw('NULL as hasil_evaluasi');
-            $selectColumns[] = DB::raw('NULL as kesimpulan');
-        }
-
+        // 1. Ambil Data Temuan (Header)
         if (strtolower($jenis) === 'eksternal') {
-            $selectColumns[] = DB::raw('NULL as lampiran_name');
-            $selectColumns[] = 't.keterangan as analisa';
-            $selectColumns[] = 't.rencana as rencana_koreksi';
-            $selectColumns[] = DB::raw('NULL as rencana_kolektif');
-            $selectColumns[] = 't.target_penyelesaian';
-            $selectColumns[] = 't.status as status_temuan';
+            $temuanModel = \App\Models\ExternalAuditTemuan::with(['externalAudit', 'rtlSubmitter.roles'])->find($temuanId);
+            if ($temuanModel) {
+                $temuan = (object) $temuanModel->toArray();
+                $temuan->rencana_koreksi = $temuanModel->rencana_koreksi;
+                $temuan->status_temuan = $temuanModel->status;
+                
+                // Ambil Nama & Role Submitter RTL
+                if ($temuanModel->rtlSubmitter) {
+                    $roleName = $temuanModel->rtlSubmitter->roles->first() ? $temuanModel->rtlSubmitter->roles->first()->name : 'Auditee';
+                    $temuan->rtl_submitted_by_name = $temuanModel->rtlSubmitter->name;
+                    $temuan->rtl_submitted_by_role = $roleName;
+                } else {
+                    $temuan->rtl_submitted_by_name = null;
+                    $temuan->rtl_submitted_by_role = null;
+                }
 
-            $data = DB::table('external_audit_temuan as t')
-                ->leftJoin('tindak_lanjut as tl', function($join) {
-                    $join->on('t.id', '=', 'tl.temuan_id')
-                         ->where('tl.jenis_audit', '=', 'eksternal');
-                })
-                ->select($selectColumns)
-                ->where('t.id', $temuanId)
-                ->get();
+                $ea = $temuanModel->externalAudit;
+                $temuan->unit = $ea ? ($ea->objek_pemeriksaan ?? $ea->lokasi ?? $ea->objek_audit ?? '-') : '-';
+                $temuan->external_audit_id = $temuanModel->external_audit_id;
+                $temuan->audit_status = $ea ? ($ea->statusPemeriksaan ? $ea->statusPemeriksaan->nama : $ea->status) : null;
+
+            } else {
+                $temuan = null;
+            }
         } else {
-            $selectColumns[] = 't.lampiran_name';
-            $selectColumns[] = 'at.analisa';
-            $selectColumns[] = 'at.rencana_koreksi';
-            $selectColumns[] = 'at.rencana_kolektif';
-            $selectColumns[] = 'at.target_penyelesaian';
-            $selectColumns[] = 'at.status as status_temuan';
-
-            $data = DB::table('pemeriksaan_temuan as t')
+            $temuan = DB::table('pemeriksaan_temuan as t')
                 ->leftJoin('analisis_temuan as at', 't.id', '=', 'at.temuan_id')
-                ->leftJoin('tindak_lanjut as tl', function($join) {
-                    $join->on('t.id', '=', 'tl.temuan_id')
-                         ->where(function($q) {
-                             $q->where('tl.jenis_audit', '=', 'internal')
-                               ->orWhereNull('tl.jenis_audit');
-                         });
-                })
-                ->select($selectColumns)
+                ->leftJoin('perencanaan_kkas as pk', 't.kka_id', '=', 'pk.id')
+                ->leftJoin('assurance as a', 'pk.assurance_id', '=', 'a.id')
+                ->select([
+                    't.*',
+                    'at.analisa',
+                    'at.rencana_koreksi',
+                    'at.rencana_kolektif',
+                    'at.target_penyelesaian',
+                    'at.status as status_temuan',
+                    DB::raw("COALESCE(a.objek_pemeriksaan, a.nama_kegiatan, a.objek_audit, a.lokasi, '-') as unit")
+                ])
                 ->where('t.id', $temuanId)
-                ->get();
+                ->first();
         }
 
-        if ($data->isEmpty()) {
-            return response()->json([
-                'message' => 'Data tidak ditemukan'
-            ], 404);
+        if (!$temuan) {
+            return response()->json(['message' => 'Data temuan tidak ditemukan'], 404);
         }
 
-        // 🔥 HISTORI TINDAK LANJUT
-        $tindakLanjut = collect($data)
-            ->filter(function ($d) {
-                return $d->tl_id !== null && (
-                    $d->tahun !== null ||
-                    $d->bulan !== null ||
-                    $d->keterangan !== null ||
-                    $d->bukti !== null ||
-                    $d->hasil_evaluasi !== null ||
-                    $d->kesimpulan !== null
-                );
-            })
-            ->map(function ($d) {
-                return [
-                    'id' => $d->tl_id,
-                    'tahun' => $d->tahun,
-                    'bulan' => $d->bulan,
-                    'keterangan' => $d->keterangan,
-                    'progres' => $d->progres,
-                    'tanggal' => $d->tanggal,
-                    'bukti' => $d->bukti,
-                    'status' => $d->tl_status ?? 'draft',
-                    'hasil_evaluasi' => $d->hasil_evaluasi,
-                    'kesimpulan' => $d->kesimpulan,
-                ];
-            })
-            ->sortBy('id', SORT_REGULAR, false) // 🔥 urut ID kecil ke besar (ASC)
-            ->values();
+        // 2. Ambil Riwayat Progres (List)
+        $tindakLanjut = DB::table('tindak_lanjut as tl')
+            ->leftJoin('users as reviewer', 'tl.reviewer_id', '=', 'reviewer.id')
+            ->leftJoin('users as creator', 'tl.created_by', '=', 'creator.id')
+            ->where('tl.temuan_id', $temuanId)
+            ->where('tl.jenis_audit', strtolower($jenis))
+            ->whereNotNull('tl.keterangan')
+            ->select([
+                'tl.*',
+                'reviewer.name as reviewer_name',
+                'creator.name as created_by_name'
+            ])
+            ->orderBy('tl.id', 'asc')
+            ->get();
 
-        $status = $data[0]->status_temuan ?? 'draft';
-        if ($status !== 'close' && $tindakLanjut->isEmpty()) {
-            $status = 'draft';
-        }
-
-        // 🔥 DATA TEMUAN
-        $temuan = [
-            'id' => $data[0]->id,
-            'masalah' => $data[0]->masalah,
-            'kondisi' => $data[0]->kondisi,
-            'kriteria' => $data[0]->kriteria,
-            'sebab' => $data[0]->sebab,
-            'akibat' => $data[0]->akibat,
-            'lampiran' => $data[0]->lampiran,
-            'lampiran_name' => $data[0]->lampiran_name,
-            'rekomendasi' => $data[0]->rekomendasi,
-            'analisa' => $data[0]->analisa,
-            'rencana_koreksi' => $data[0]->rencana_koreksi,
-            'rencana_kolektif' => $data[0]->rencana_kolektif,
-            'target_selesai' => $data[0]->target_penyelesaian,
-            'status' => $status,
-            'is_locked' => $status === 'close',
-        ];
+        // Mapping hasil agar sesuai dengan format lama frontend
+        $formattedTL = $tindakLanjut->map(function($d) {
+            return [
+                'id' => $d->id,
+                'tahun' => $d->tahun,
+                'bulan' => $d->bulan,
+                'keterangan' => $d->keterangan,
+                'bukti' => $d->bukti,
+                'status' => $d->status ?? 'draft',
+                'hasil_evaluasi' => $d->hasil_evaluasi,
+                'kesimpulan' => $d->kesimpulan,
+                'persentase' => $d->persentase,
+                'estimasi_selesai' => $d->estimasi_selesai,
+                'pic_pelaksana' => $d->pic_pelaksana,
+                'kendala' => $d->kendala,
+                'catatan_tambahan' => $d->catatan_tambahan,
+                'bukti_name' => $d->bukti_name,
+                'reviewer_name' => $d->reviewer_name,
+                'created_by_name' => $d->created_by_name,
+                'reviewed_at' => $d->reviewed_at,
+                'created_at' => $d->created_at,
+            ];
+        });
 
         return response()->json([
             'temuan' => $temuan,
-            'tindak_lanjut' => $tindakLanjut
+            'tindak_lanjut' => $formattedTL
         ]);
     }
 
     // =========================
-    // 🔴 UPDATE / TAMBAH TL
+    // 🔒 SIMPAN RTL (Satu Kali)
     // =========================
+    public function saveRtl(Request $request, $id)
+    {
+        try {
+            $temuan = \App\Models\ExternalAuditTemuan::findOrFail($id);
+
+            $validated = $request->validate([
+                'langkah_perbaikan' => 'required|string',
+                'target_penyelesaian' => 'required|date',
+                'prioritas' => 'required|string',
+                'pic_rtls' => 'required|array',
+                'estimasi_anggaran' => 'nullable|numeric',
+                'sdm_dibutuhkan' => 'nullable|string',
+                'sarana_alat' => 'nullable|string',
+                'potensi_kendala' => 'nullable|string',
+                'catatan_auditor' => 'nullable|string',
+            ]);
+
+            // Update temuan with RTL data
+            $temuan->update([
+                'rencana' => $validated['langkah_perbaikan'], // reuse existing 'rencana' as primary field
+                'target_penyelesaian' => $validated['target_penyelesaian'],
+                'prioritas' => $validated['prioritas'],
+                'estimasi_anggaran' => $validated['estimasi_anggaran'] ?? 0,
+                'sdm_dibutuhkan' => $validated['sdm_dibutuhkan'],
+                'sarana_alat' => $validated['sarana_alat'],
+                'potensi_kendala' => $validated['potensi_kendala'],
+                'catatan_auditor' => $validated['catatan_auditor'],
+                'pic_rtls' => $validated['pic_rtls'],
+                'rtl_submitted_at' => now(),
+                'rtl_submitted_by' => Auth::id(),
+            ]);
+
+            // Auto-update parent audit status if it's still in "Pengisian Rencana Tindak Lanjut"
+            $audit = $temuan->externalAudit;
+            if ($audit) {
+                $statusRtl = "Pengisian Rencana Tindak Lanjut";
+                $statusNext = "Pengisian Tindak Lanjut"; // Sesuaikan dengan DB
+
+                if ($audit->status === $statusRtl) {
+                    // Cek apakah SEMUA temuan sudah mengisi RTL
+                    $allFindingsCount = \App\Models\ExternalAuditTemuan::where('external_audit_id', $audit->id)->count();
+                    $submittedRtlCount = \App\Models\ExternalAuditTemuan::where('external_audit_id', $audit->id)
+                        ->whereNotNull('rtl_submitted_at')
+                        ->count();
+
+                    if ($allFindingsCount > 0 && $allFindingsCount === $submittedRtlCount) {
+                        $nextStatusModel = DB::table('status_pemeriksaans')->where('nama', $statusNext)->first();
+                        if ($nextStatusModel) {
+                            $audit->update([
+                                'status' => $statusNext,
+                                'id_status_pemeriks' => $nextStatusModel->id
+                            ]);
+                        }
+                    }
+                }
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Rencana Tindak Lanjut (RTL) berhasil disimpan',
+                'data' => $temuan
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal menyimpan RTL: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
     public function update(Request $request, $id)
     {
         $data = TindakLanjut::find($id);
@@ -330,7 +362,12 @@ class TindakLanjutController extends Controller
             'keterangan' => 'required|string',
             'tahun' => 'required|integer',
             'bulan' => 'required|integer|min:1|max:12',
-            'bukti' => 'nullable|file|max:5120'
+            'bukti' => 'nullable|file|max:5120',
+            'persentase' => 'nullable',
+            'estimasi_selesai' => 'nullable',
+            'pic_pelaksana' => 'nullable',
+            'kendala' => 'nullable',
+            'catatan_tambahan' => 'nullable'
         ]);
 
         // upload file
@@ -340,15 +377,24 @@ class TindakLanjutController extends Controller
             }
 
             $data->bukti = $request->file('bukti')->store('tindak_lanjut', 'public');
+            $data->bukti_name = $request->file('bukti')->getClientOriginalName();
         }
 
         // update field
         $data->keterangan = $validated['keterangan'];
         $data->tahun = $validated['tahun'];
         $data->bulan = $validated['bulan'];
+        $data->persentase = $validated['persentase'] ?? 0;
+        $data->estimasi_selesai = $validated['estimasi_selesai'] ?? null;
+        $data->pic_pelaksana = $validated['pic_pelaksana'] ?? null;
+        $data->kendala = $validated['kendala'] ?? null;
+        $data->catatan_tambahan = $validated['catatan_tambahan'] ?? null;
 
         // 🔥 AUTO STATUS
         $data->status = 'draft';
+        if (!$data->created_by) {
+            $data->created_by = Auth::id();
+        }
 
         $data->save();
 
@@ -398,7 +444,12 @@ class TindakLanjutController extends Controller
             'keterangan' => 'required|string',
             'tahun' => 'required|integer',
             'bulan' => 'required|integer|min:1|max:12',
-            'bukti' => 'nullable|file|max:5120'
+            'bukti' => 'nullable|file|max:5120',
+            'persentase' => 'nullable',
+            'estimasi_selesai' => 'nullable',
+            'pic_pelaksana' => 'nullable',
+            'kendala' => 'nullable',
+            'catatan_tambahan' => 'nullable'
         ]);
 
         $payload = [
@@ -412,16 +463,36 @@ class TindakLanjutController extends Controller
             'keterangan' => $validated['keterangan'],
             'tahun' => $validated['tahun'],
             'bulan' => $validated['bulan'],
+            'persentase' => $validated['persentase'] ?? 0,
+            'estimasi_selesai' => $validated['estimasi_selesai'] ?? null,
+            'pic_pelaksana' => $validated['pic_pelaksana'] ?? null,
+            'kendala' => $validated['kendala'] ?? null,
+            'catatan_tambahan' => $validated['catatan_tambahan'] ?? null,
             'tanggal' => now()->toDateString(),
             'hasil_evaluasi' => null,
             'kesimpulan' => null,
+            'created_by' => Auth::id(),
         ];
 
         if ($request->hasFile('bukti')) {
             $payload['bukti'] = $request->file('bukti')->store('tindak_lanjut', 'public');
+            $payload['bukti_name'] = $request->file('bukti')->getClientOriginalName();
         }
 
         $tindakLanjut = TindakLanjut::create($payload);
+
+        // Auto-update parent temuan status to "Monev" when progress is added
+        if (($context->jenis_audit ?? 'internal') === 'eksternal') {
+            DB::table('external_audit_temuan')
+                ->where('id', $temuanId)
+                ->where('status', '!=', 'Close')
+                ->update(['status' => 'Monev']);
+        } else {
+             \App\Models\AnalisisTemuan::updateOrCreate(
+                ['temuan_id' => $temuanId],
+                ['status' => 'monev']
+            );
+        }
 
         return response()->json([
             'message' => 'Tindak lanjut berhasil ditambahkan',
@@ -449,7 +520,7 @@ class TindakLanjutController extends Controller
                 ], 404);
             }
 
-            $status_source = 'draft';
+            // Cek apakah temuan sudah Close
             if ($data->jenis_audit === 'eksternal') {
                 $source = DB::table('external_audit_temuan')->where('id', $data->temuan_id)->first();
                 $status_source = $source->status ?? 'draft';
@@ -458,75 +529,155 @@ class TindakLanjutController extends Controller
                 $status_source = $analisis->status ?? 'draft';
             }
 
-            if ($status_source === 'close') {
+            if (strtolower($status_source) === 'close') {
                 return response()->json([
                     'message' => 'Tindak lanjut sudah ditutup dan tidak dapat direview ulang'
                 ], 422);
             }
 
+            // Support both lowercase and capitalized values from frontend
             $validated = $request->validate([
-                'hasil_evaluasi' => 'required|in:sesuai,potensi sesuai,belum sesuai',
+                'hasil_evaluasi' => 'required|in:sesuai,belum sesuai,dalam proses,Sesuai,Belum Sesuai,Dalam Proses',
                 'kesimpulan' => 'nullable|string'
             ]);
 
-            $isClose = $validated['hasil_evaluasi'] === 'sesuai';
-            $status_baru = $isClose ? 'close' : 'monev';
+            $hasil = strtolower($validated['hasil_evaluasi']);
+            $isSesuai = ($hasil === 'sesuai');
 
-            $data->hasil_evaluasi = $validated['hasil_evaluasi'];
+            $data->hasil_evaluasi = $hasil;
             $data->kesimpulan = $validated['kesimpulan'] ?? null;
-            $data->status = $status_baru;
+            $data->reviewer_id = Auth::id();
+            $data->reviewed_at = now();
             $data->save();
 
-            // Sync status ke semua progress records untuk temuan ini
-            TindakLanjut::where('temuan_id', $data->temuan_id)
-                ->where('id', '!=', $data->id)
-                ->update(['status' => $status_baru]);
-
-            // Sync status ke tabel asal (Internal/External)
             if ($data->jenis_audit === 'eksternal') {
-                DB::table('external_audit_temuan')
-                    ->where('id', $data->temuan_id)
-                    ->update(['status' => $status_baru]);
+                $statusTemuan = "";
+                if ($hasil === 'sesuai') {
+                    $statusTemuan = 'Close';
+                } else if ($hasil === 'belum sesuai') {
+                    $statusTemuan = 'Pengisian Tindak Lanjut';
+                } else if ($hasil === 'dalam proses') {
+                    $statusTemuan = 'Monev';
+                }
 
-                // 🔥 AUTO CLOSE EXTERNAL AUDIT
-                if ($isClose) {
-                    $temuan = DB::table('external_audit_temuan')->find($data->temuan_id);
-                    if ($temuan && $temuan->external_audit_id) {
-                        $allFindings = DB::table('external_audit_temuan')
-                            ->where('external_audit_id', $temuan->external_audit_id)
-                            ->get();
-                        
-                        $allClosed = $allFindings->every(function($f) {
-                            return strtolower($f->status) === 'close';
-                        });
-
-                        if ($allClosed) {
-                            $statusSelesai = DB::table('status_pemeriksaans')->where('nama', 'Selesai')->first();
-                            if ($statusSelesai) {
-                                DB::table('external_audits')
-                                    ->where('id', $temuan->external_audit_id)
-                                    ->update([
-                                        'id_status_pemeriks' => $statusSelesai->id,
-                                        'status' => 'Selesai'
-                                    ]);
-                            }
-                        }
-                    }
+                if ($statusTemuan) {
+                    DB::table('external_audit_temuan')
+                        ->where('id', $data->temuan_id)
+                        ->update(['status' => $statusTemuan]);
                 }
             } else {
-                AnalisisTemuan::updateOrCreate(
-                    ['temuan_id' => $data->temuan_id],
-                    ['status' => $status_baru]
-                );
+                if ($hasil === 'sesuai') {
+                    AnalisisTemuan::updateOrCreate(
+                        ['temuan_id' => $data->temuan_id],
+                        ['status' => 'close']
+                    );
+                }
             }
 
+
             return response()->json([
-                'message' => 'Review tindak lanjut berhasil disimpan',
+                'message' => $isSesuai
+                    ? 'Tindakan sudah diverifikasi sesuai. Status temuan berhasil diupdate.'
+                    : 'Hasil review berhasil disimpan.',
                 'data' => $data
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Gagal menyimpan review: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    // =========================
+    // 🔒 TUTUP TEMUAN (Monev → Close)
+    // =========================
+    public function closeTemuan(Request $request, $temuanId)
+    {
+        try {
+            $jenis = $request->query('jenis', 'eksternal');
+
+            if ($jenis === 'eksternal') {
+                $temuan = DB::table('external_audit_temuan')->where('id', $temuanId)->first();
+
+                if (!$temuan) {
+                    return response()->json(['message' => 'Temuan tidak ditemukan'], 404);
+                }
+
+                if (strtolower($temuan->status) !== 'monev') {
+                    return response()->json([
+                        'message' => 'Temuan harus berstatus Monev sebelum dapat ditutup'
+                    ], 422);
+                }
+
+                // Update status temuan ke Close
+                DB::table('external_audit_temuan')
+                    ->where('id', $temuanId)
+                    ->update(['status' => 'Close']);
+
+                // Lock semua progres tindak lanjut untuk temuan ini
+                DB::table('tindak_lanjut')
+                    ->where('temuan_id', $temuanId)
+                    ->where('jenis_audit', 'eksternal')
+                    ->update(['status' => 'close']);
+
+                // Cek apakah semua temuan dalam audit sudah Close
+                $auditId = $temuan->external_audit_id;
+                $allTemuan = DB::table('external_audit_temuan')
+                    ->where('external_audit_id', $auditId)->get();
+
+                $allClosed = $allTemuan->every(fn($f) => strtolower($f->status) === 'close');
+
+                if ($allClosed && $allTemuan->count() > 0) {
+                    $statusSelesai = DB::table('status_pemeriksaans')->where('nama', 'Selesai')->first();
+                    if ($statusSelesai) {
+                        DB::table('external_audits')
+                            ->where('id', $auditId)
+                            ->update([
+                                'id_status_pemeriks' => $statusSelesai->id,
+                                'status' => 'Selesai'
+                            ]);
+                    }
+                }
+
+                return response()->json([
+                    'message' => 'Temuan berhasil ditutup' . ($allClosed ? '. Semua temuan sudah Close, audit Selesai.' : ''),
+                    'audit_selesai' => $allClosed
+                ]);
+            }
+
+            return response()->json(['message' => 'Jenis audit tidak didukung'], 422);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Gagal menutup temuan: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function destroy($id)
+    {
+        try {
+            $data = TindakLanjut::find($id);
+
+            if (!$data) {
+                return response()->json([
+                    'message' => 'Data tidak ditemukan'
+                ], 404);
+            }
+
+            // Hapus file bukti jika ada
+            if ($data->bukti) {
+                Storage::disk('public')->delete($data->bukti);
+            }
+
+            $data->delete();
+
+            return response()->json([
+                'message' => 'Data progres berhasil dihapus'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Gagal menghapus data: ' . $e->getMessage()
             ], 500);
         }
     }

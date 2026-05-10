@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import useRealTime from '../../hooks/useRealTime';
 import { BsPlusLg, BsPencil, BsTrash, BsX, BsTags } from 'react-icons/bs';
 import apiClient from "../../../../Shared/api/apiClient";
 import { notifySuccess, notifyError, notifyConfirm } from "../../../../Shared/utils/notifier.jsx";
@@ -19,6 +20,11 @@ const StatusTemuan = () => {
       setStatuses(res.data);
     } catch (err) { notifyError('Gagal memuat data'); }
   };
+
+  // Sinkronisasi Real-Time
+  useRealTime('status_temuan', () => {
+    fetchData();
+  });
 
   useEffect(() => { fetchData(); }, []);
 
@@ -52,7 +58,7 @@ const StatusTemuan = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 p-6">
+    <div className="p-6">
       {/* HEADER */}
       <div className="mb-6 flex items-center justify-between">
         <div>

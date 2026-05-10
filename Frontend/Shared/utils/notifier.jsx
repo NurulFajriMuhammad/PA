@@ -10,13 +10,17 @@ export const notifySuccess = (message) => {
     duration: 3000,
     style: {
       borderRadius: '16px',
-      background: '#ffffff',
-      color: '#1e293b',
+      background: '#10b981',
+      color: '#ffffff',
       fontWeight: 'bold',
       fontSize: '14px',
       padding: '16px',
-      boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
-      border: '1px solid #e2e8f0'
+      boxShadow: '0 10px 15px -3px rgba(16, 185, 129, 0.2)',
+      border: 'none'
+    },
+    iconTheme: {
+      primary: '#ffffff',
+      secondary: '#10b981',
     },
   });
 };
@@ -52,13 +56,17 @@ export const notifyError = (error) => {
     duration: 6000,
     style: {
       borderRadius: '16px',
-      background: '#ffffff',
-      color: '#ef4444',
+      background: '#ef4444',
+      color: '#ffffff',
       fontWeight: 'bold',
       fontSize: '14px',
       padding: '16px',
-      boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
-      border: '1px solid #fee2e2'
+      boxShadow: '0 10px 15px -3px rgba(239, 68, 68, 0.2)',
+      border: 'none'
+    },
+    iconTheme: {
+      primary: '#ffffff',
+      secondary: '#ef4444',
     },
   });
 };
@@ -122,7 +130,7 @@ export const notifyConfirm = (message, onConfirm, onCancel, options = {}) => {
       duration: Infinity,
       position: "top-center",
       style: {
-        marginTop: '20vh',
+        marginTop: '15vh',
         borderRadius: '32px',
         background: '#111827',
         color: '#fff',

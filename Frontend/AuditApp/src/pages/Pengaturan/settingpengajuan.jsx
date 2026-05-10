@@ -107,20 +107,20 @@ const SettingPengajuan = () => {
   const statusMap  = Object.fromEntries(statuses.map(s => [s.id, s]));
   const roleMap    = Object.fromEntries(roles.map(r => [r.id, r]));
 
-  const filtered = filterJenis
+  const filtered = (filterJenis
     ? transitions.filter(t => t.jenis === filterJenis)
-    : transitions;
+    : transitions).sort((a, b) => a.id - b.id);
 
   return (
-    <div className="min-h-screen bg-slate-50 p-6">
+    <div className="p-6">
       {/* HEADER */}
       <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="flex items-center gap-3 text-2xl font-black text-slate-800 uppercase tracking-tight">
-            <BsDiagram3 className="text-blue-600" /> Setting Alur Pengajuan
+            <BsDiagram3 className="text-blue-600" /> History Alur Pengajuan
           </h1>
           <p className="text-slate-500 text-sm mt-1">
-            Atur aturan transisi: dari Status → Role mana yang berhak, ke Status mana selanjutnya, dan ke Status mana jika dikembalikan.
+            Atur aturan transisi: dari <strong>Status</strong> mana, <strong>Role</strong> mana yang berhak bertindak, dan ke <strong>Status</strong> mana selanjutnya.
           </p>
         </div>
 
@@ -268,7 +268,7 @@ const SettingPengajuan = () => {
               <div className="grid grid-cols-2 gap-4">
                 {/* Status Selanjutnya */}
                 <div>
-                  <label className="text-xs font-bold text-emerald-600 uppercase mb-1.5 block flex items-center gap-1"><BsArrowRightCircle /> Jika Disetujui →</label>
+                  <label className="text-xs font-bold text-emerald-600 uppercase mb-1.5 flex items-center gap-1 block"><BsArrowRightCircle /> Jika Disetujui →</label>
                   <select value={form.status_selanjutnya_id}
                     onChange={e => setForm({ ...form, status_selanjutnya_id: e.target.value })}
                     className="w-full p-3 border border-emerald-100 rounded-xl text-sm bg-emerald-50 outline-none focus:ring-2 focus:ring-emerald-400"
@@ -280,7 +280,7 @@ const SettingPengajuan = () => {
 
                 {/* Status Dikembalikan */}
                 <div>
-                  <label className="text-xs font-bold text-rose-500 uppercase mb-1.5 block flex items-center gap-1"><BsArrowReturnLeft /> Jika Ditolak →</label>
+                  <label className="text-xs font-bold text-rose-500 uppercase mb-1.5 flex items-center gap-1 block"><BsArrowReturnLeft /> Jika Ditolak →</label>
                   <select value={form.status_dikembalikan_id}
                     onChange={e => setForm({ ...form, status_dikembalikan_id: e.target.value })}
                     className="w-full p-3 border border-rose-100 rounded-xl text-sm bg-rose-50 outline-none focus:ring-2 focus:ring-rose-400"

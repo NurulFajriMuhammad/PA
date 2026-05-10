@@ -3,9 +3,12 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Traits\BroadcastsRealTime;
 
 class PemeriksaanTemuan extends Model
 {
+    use BroadcastsRealTime;
+
     protected $table = 'pemeriksaan_temuan';
 
     protected $fillable = [

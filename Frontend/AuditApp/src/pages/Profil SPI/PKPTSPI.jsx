@@ -11,6 +11,7 @@ import {
   CheckCircle2
 } from 'lucide-react';
 import apiClient from "../../../../Shared/api/axios";
+import useRealTime from "../../hooks/useRealTime";
 import { notifySuccess, notifyError, notifyConfirm } from "../../../../Shared/utils/notifier.jsx";
 
 const PKPTSpiPage = () => {
@@ -53,6 +54,11 @@ const PKPTSpiPage = () => {
       setLoading(false);
     }
   };
+
+  // Sinkronisasi Real-Time
+  useRealTime(['pkptspi', 'audit_universes'], () => {
+    fetchData();
+  });
 
   useEffect(() => { 
     fetchData(); 

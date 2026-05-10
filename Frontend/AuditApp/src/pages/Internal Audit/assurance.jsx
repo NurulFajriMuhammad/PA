@@ -16,8 +16,10 @@ import {
   BsFolder2Open
 } from "react-icons/bs";
 import apiClient from "../../../../Shared/api/apiClient";
+import useRealTime from "../../hooks/useRealTime";
 import { useNavigate } from "react-router-dom";
 import { notifySuccess, notifyError, notifyConfirm } from "@shared/utils/notifier.jsx";
+import { useAuth } from "@shared/hooks/useAuth.jsx";
 
 const unitToCategoryMap = {
   "Business Development": "Operasional & Produksi",
@@ -34,6 +36,9 @@ const unitToCategoryMap = {
 
 const Assurance = () => {
   const navigate = useNavigate();
+  const { user: authData } = useAuth();
+  const userRole = authData?.user?.roles?.[0]?.name || "";
+  const isKepalaSPI = userRole.toLowerCase() === "kepala spi";
 
   const [dataAssurance, setDataAssurance] = useState([]);
   const [suratTugasList, setSuratTugasList] = useState([]);
@@ -41,6 +46,8 @@ const Assurance = () => {
   const [units, setUnits] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
+  const [isEdit, setIsEdit] = useState(false);
+  const [selectedId, setSelectedId] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
 
   const [formData, setFormData] = useState({
@@ -87,6 +94,11 @@ const Assurance = () => {
       setLoading(false);
     }
   }, []);
+
+  // Sinkronisasi Real-Time
+  useRealTime(['assurance', 'surat_tugas', 'users', 'units'], () => {
+    fetchData();
+  });
 
   useEffect(() => {
     fetchData();
@@ -146,11 +158,16 @@ const Assurance = () => {
 
     try {
       setLoading(true);
-      await apiClient.post("/api/assurance", payload);
+      if (isEdit && selectedId) {
+        await apiClient.put(`/api/assurance/${selectedId}`, payload);
+        notifySuccess("Data assurance berhasil diupdate!");
+      } else {
+        await apiClient.post("/api/assurance", payload);
+        notifySuccess("Data assurance berhasil disimpan!");
+      }
       setShowModal(false);
       fetchData();
       resetForm();
-      notifySuccess("Data assurance berhasil disimpan!");
     } catch (err) {
       console.log(err.response?.data);
       notifyError("Gagal simpan data assurance.");
@@ -166,7 +183,55 @@ const Assurance = () => {
       lokasi: "", ketua: "", pengendali_teknis: "", koordinator: "", auditor: [""],
       keterangan: "", status: "Planning",
     });
+    setIsEdit(false);
+    setSelectedId(null);
   }
+
+  const handleEdit = (item) => {
+    setFormData({
+      noST: item.surat_tugas?.nomor_surat || "",
+      objek_pemeriksaan: item.objek_pemeriksaan || "",
+      nama_kegiatan: item.nama_kegiatan || "",
+      tujuan: item.tujuan || "",
+      sasaran: item.sasaran || "",
+      objek_audit: item.objek_audit || "",
+      ruang_lingkup: item.ruang_lingkup || "",
+      metodologi: item.metodologi || "",
+      tgl_mulai: item.periode_awal ? item.periode_awal.split('T')[0] : "",
+      tgl_selesai: item.periode_akhir ? item.periode_akhir.split('T')[0] : "",
+      lokasi: item.lokasi || "",
+      ketua: item.ketua?.name || "",
+      pengendali_teknis: item.pt?.name || "",
+      koordinator: item.koordinator?.name || "",
+      auditor: item.auditor ? [item.auditor.name] : [""], // Backend structure might differ, adjust if needed
+      keterangan: item.keterangan || "",
+      status: item.status || "Planning",
+    });
+    setSelectedId(item.id);
+    setIsEdit(true);
+    setShowModal(true);
+  };
+
+  const handleDelete = (id, status) => {
+    if (status?.toLowerCase() === "selesai" && !isKepalaSPI) {
+      notifyError("Hanya Kepala SPI yang dapat menghapus audit yang sudah selesai.");
+      return;
+    }
+
+    notifyConfirm("Yakin ingin menghapus data audit assurance ini?", async () => {
+      try {
+        setLoading(true);
+        await apiClient.delete(`/api/assurance/${id}`);
+        fetchData();
+        notifySuccess("Data berhasil dihapus!");
+      } catch (err) {
+        console.error(err);
+        notifyError("Gagal menghapus data");
+      } finally {
+        setLoading(false);
+      }
+    });
+  };
 
   const addAuditor = () => {
     setFormData((prev) => ({ ...prev, auditor: [...prev.auditor, ""] }));
@@ -198,11 +263,11 @@ const Assurance = () => {
   }, {});
 
   return (
-    <div className="min-h-screen bg-slate-50 py-12 px-6 font-sans">
-      <div className="max-w-7xl mx-auto">
+    <div className="min-h-screen px-4 sm:px-8 py-4 font-sans">
+      <div className="w-full">
         
         {/* --- HEADER --- */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-6">
+        <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-6">
           <div>
             <div className="inline-flex items-center gap-2 bg-blue-50 text-blue-600 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider mb-3 border border-blue-100">
               <BsShieldCheck size={12} /> Primary Audit Process
@@ -226,30 +291,16 @@ const Assurance = () => {
           </button>
         </div>
 
-        {/* --- SEARCH BAR --- */}
-        {/* <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 mb-8">
-          <div className="relative w-full md:w-96">
-            <BsSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Cari berdasarkan nama kegiatan atau unit..."
-              className="w-full bg-slate-50 border-none rounded-xl py-3 pl-12 pr-4 text-sm font-medium text-slate-700 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-        </div> */}
-
         {/* --- TABLE / GROUPED VIEW --- */}
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-12 transition-all">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
-              <thead className="bg-[#1e293b] text-white">
+              <thead className="bg-[#111827] text-white">
                 <tr>
-                  <th rowSpan="2" className="p-5 text-sm font-bold border-r border-slate-700 w-[35%] uppercase tracking-wider">
+                  <th rowSpan="2" className="p-5 text-sm font-bold border-r border-slate-700 w-[40%] uppercase tracking-wider">
                     Unit & Kegiatan Audit
                   </th>
-                  <th colSpan="3" className="p-3 text-center text-xs font-bold border-b border-r border-slate-700 bg-[#0f172a] uppercase tracking-widest">
+                  <th colSpan="3" className="p-3 text-center text-xs font-bold border-b border-r border-slate-700 bg-black uppercase tracking-widest">
                     Status Temuan
                   </th>
                   <th rowSpan="2" className="p-5 text-center text-sm font-bold border-r border-slate-700 uppercase tracking-wider w-[20%]">
@@ -259,7 +310,7 @@ const Assurance = () => {
                     Aksi
                   </th>
                 </tr>
-                <tr className="bg-[#334155]">
+                <tr className="bg-[#1f2937]">
                   <th className="p-2 text-center font-semibold border-r border-slate-600 text-[10px] uppercase tracking-widest text-slate-300">Draft</th>
                   <th className="p-2 text-center font-semibold border-r border-slate-600 text-[10px] uppercase tracking-widest text-slate-300">Monev</th>
                   <th className="p-2 text-center font-semibold border-slate-600 text-[10px] uppercase tracking-widest text-emerald-400">Close</th>
@@ -279,7 +330,7 @@ const Assurance = () => {
                       {/* UNIT HEADER ROW */}
                       <tr className="bg-slate-50/80 border-b-2 border-slate-200">
                         <td colSpan="6" className="p-3 px-5 border-l-4 border-blue-600">
-                          <span className="text-xs font-black text-slate-700 uppercase tracking-widest flex items-center gap-2">
+                          <span className="text-xs font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
                              <BsFolder2Open className="text-blue-500" size={16} /> {unit}
                           </span>
                         </td>
@@ -295,9 +346,9 @@ const Assurance = () => {
                           item.kka.forEach(k => {
                             if (k.temuan) {
                               k.temuan.forEach(t => {
-                                const st = t.analisis?.status || 'draft';
-                                if (st === 'close') totalClose++;
-                                else if (st === 'monev') totalMonev++;
+                                const st = (t.analisis?.status || 'draft').toLowerCase();
+                                if (st.includes('close')) totalClose++;
+                                else if (st.includes('monev')) totalMonev++;
                                 else totalDraft++;
                               });
                             }
@@ -306,7 +357,7 @@ const Assurance = () => {
 
                         return (
                         <tr key={item.id} className="hover:bg-blue-50/40 transition-colors group">
-                          <td className="p-4 pl-8">
+                          <td className="p-4 pl-8 border-r border-slate-50">
                             <button 
                               onClick={() => navigate(`/internal/assurance/${item.id}`)}
                               className="text-left font-bold text-slate-800 text-sm hover:text-blue-700 transition-colors line-clamp-2 leading-snug group-hover:underline decoration-blue-300 underline-offset-4"
@@ -320,7 +371,7 @@ const Assurance = () => {
                           </td>
 
                           {/* REALT-TIME DOKUMEN COUNT */}
-                          <td className="text-center p-4 text-sm font-black text-rose-600 border-x border-slate-50 bg-slate-50/30">{totalDraft > 0 ? totalDraft : 0}</td>
+                          <td className="text-center p-4 text-sm font-black text-rose-600 border-x border-slate-50 bg-slate-50/50">{totalDraft > 0 ? totalDraft : 0}</td>
                           <td className="text-center p-4 text-sm font-bold text-amber-500 border-r border-slate-50">{totalMonev > 0 ? totalMonev : 0}</td>
                           <td className="text-center p-4 text-sm font-bold text-emerald-500 border-r border-slate-50">{totalClose > 0 ? totalClose : 0}</td>
 
@@ -346,12 +397,23 @@ const Assurance = () => {
                               >
                                 <BsEye size={16} />
                               </button>
-                              <button className="p-2.5 bg-slate-100 text-slate-500 hover:bg-amber-500 hover:text-white rounded-xl transition-all shadow-sm" title="Edit Data">
-                                <BsPencilSquare size={16} />
-                              </button>
-                              <button className="p-2.5 bg-slate-100 text-slate-500 hover:bg-red-500 hover:text-white rounded-xl transition-all shadow-sm" title="Hapus Data">
-                                <BsTrash size={16} />
-                              </button>
+                              
+                              {item.status_label?.toLowerCase() !== "selesai" && (
+                                <>
+                                  <button onClick={() => handleEdit(item)} className="p-2.5 bg-slate-100 text-slate-500 hover:bg-amber-500 hover:text-white rounded-xl transition-all shadow-sm" title="Edit Data">
+                                    <BsPencilSquare size={16} />
+                                  </button>
+                                  <button onClick={() => handleDelete(item.id, item.status_label)} className="p-2.5 bg-slate-100 text-slate-500 hover:bg-red-500 hover:text-white rounded-xl transition-all shadow-sm" title="Hapus Data">
+                                    <BsTrash size={16} />
+                                  </button>
+                                </>
+                              )}
+
+                              {item.status_label?.toLowerCase() === "selesai" && isKepalaSPI && (
+                                <button onClick={() => handleDelete(item.id, item.status_label)} className="p-2.5 bg-slate-100 text-slate-500 hover:bg-red-500 hover:text-white rounded-xl transition-all shadow-sm" title="Hapus (Role Khusus)">
+                                  <BsTrash size={16} />
+                                </button>
+                              )}
                             </div>
                           </td>
                         </tr>
@@ -379,7 +441,7 @@ const Assurance = () => {
               <div className="flex justify-between items-center mb-6 pb-4 border-b border-slate-100 shrink-0">
                 <div>
                   <h2 className="text-xl font-black uppercase tracking-tight text-slate-800 flex items-center gap-2">
-                    <BsFileText className="text-blue-500" size={24} /> Registrasi Audit
+                    <BsFileText className="text-blue-500" size={24} /> {isEdit ? "Update Registrasi Audit" : "Registrasi Audit"}
                   </h2>
                   <p className="text-[10px] text-slate-400 font-medium uppercase tracking-widest mt-1">
                     Parameter pelaksanaan pengawasan
@@ -623,7 +685,7 @@ const Assurance = () => {
                     type="submit"
                     className="flex-2 w-[60%] py-4 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition-all shadow-xl active:scale-[0.98] uppercase text-xs tracking-widest flex items-center justify-center gap-2"
                   >
-                    <BsCheckCircleFill size={18} /> Simpan Data Assurance
+                    <BsCheckCircleFill size={18} /> {isEdit ? "Update Data Assurance" : "Simpan Data Assurance"}
                   </button>
                 </div>
               </form>

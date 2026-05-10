@@ -6,9 +6,12 @@ use Illuminate\Database\Eloquent\Model;
 use App\Models\ConsultingMessage;
 use App\Models\Unit;
 use Spatie\Permission\Models\Role;
+use App\Traits\BroadcastsRealTime;
 
 class Consulting extends Model
 {
+    use BroadcastsRealTime;
+
     protected $fillable = [
         'kode_consulting',
         'proyek',

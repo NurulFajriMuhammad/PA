@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import useRealTime from '../hooks/useRealTime';
 import apiClient from "../../../Shared/api/apiClient"; // Sesuaikan jika ini salah
 import { 
   BsExclamationOctagon, BsSearch, BsFilter, 
@@ -59,6 +60,11 @@ const AuditFindings = () => {
     }
   };
 
+  // Sinkronisasi Real-Time
+  useRealTime(['pemeriksaan_temuan', 'analisis_temuan', 'external_audit_temuan', 'status_temuan'], () => {
+    fetchSemuaTemuan();
+  });
+
   useEffect(() => {
     fetchSemuaTemuan();
   }, []);
@@ -111,7 +117,7 @@ const AuditFindings = () => {
   };
 
   return (
-    <div className="p-6 bg-slate-50 min-h-screen animate-in fade-in duration-300">
+    <div className="p-6 animate-in fade-in duration-300">
       {/* Header */}
       <div className="flex justify-between items-end mb-8">
         <div>

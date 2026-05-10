@@ -6,12 +6,18 @@ import {
 import apiClient from "../../../../Shared/api/apiClient";
 import { generateKKAHTML } from './generateKKAHTML';
 import { notifySuccess, notifyError, notifyConfirm } from "../../../../Shared/utils/notifier.jsx";
+import useRealTime from "../../hooks/useRealTime";
 
 
 const TemplateKKA = () => {
   // --- STATE ---
   const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(false);
+
+  // Sinkronisasi Real-Time
+  useRealTime('kka', () => {
+    fetchData();
+  });
   const [showModal, setShowModal] = useState(false);
   const [isEdit, setIsEdit] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -100,7 +106,7 @@ function handlePrintDocument(item) {
   ) : [];
 
   return (
-    <div className="p-6 bg-[#f8fafc] min-h-screen font-sans">
+    <div className="p-6 font-sans">
       {/* Header Section */}
       <div className="flex justify-between items-center mb-8">
         <div>

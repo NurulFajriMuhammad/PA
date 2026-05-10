@@ -7,6 +7,11 @@ use Illuminate\Http\Request;
 use App\Models\AuditUniverse;
 use App\Models\assurance;
 use App\Models\SemuaTemuan;
+use App\Models\ExternalAudit;
+use App\Models\Consulting;
+use App\Models\AdvisoryService;
+use App\Models\AuditEvaluasi;
+use App\Models\User;
 use DB;
 
 class DashboardController extends Controller
@@ -55,18 +60,21 @@ class DashboardController extends Controller
                 }
             }
 
-            // 3. Aktivitas Terkini (Gabungan dari audit baru dan temuan baru)
-            $latestAudits = assurance::orderBy('created_at', 'desc')->take(5)->get()->map(function($item) {
+            // 3. AKTIVITAS TERKINI (AGREGASI DARI BERBAGAI MODUL)
+            
+            // Internal Audit
+            $latestAudits = assurance::orderBy('created_at', 'desc')->take(3)->get()->map(function($item) {
                 return [
-                    'id' => 'a_'.$item->id,
-                    'title' => 'Audit Baru: ' . $item->objek_pemeriksaan,
+                    'id' => 'ia_'.$item->id,
+                    'title' => 'Internal Audit: ' . $item->objek_pemeriksaan,
                     'desc' => $item->nama_kegiatan,
                     'time' => $item->created_at,
                     'type' => 'audit'
                 ];
             });
 
-            $latestTemuans = SemuaTemuan::orderBy('tanggal', 'desc')->take(5)->get()->map(function($item) {
+            // Temuan (Internal & External gabungan via View)
+            $latestTemuans = SemuaTemuan::orderBy('tanggal', 'desc')->take(3)->get()->map(function($item) {
                 return [
                     'id' => 't_'.$item->id_format,
                     'title' => 'Temuan Baru: ' . $item->unit,
@@ -76,9 +84,59 @@ class DashboardController extends Controller
                 ];
             });
 
-            $aktivitas = $latestAudits->concat($latestTemuans)
+            // External Audit
+            $latestExtAudits = ExternalAudit::orderBy('created_at', 'desc')->take(3)->get()->map(function($item) {
+                return [
+                    'id' => 'ea_'.$item->id,
+                    'title' => 'External Audit: ' . $item->lembaga_pemeriksa,
+                    'desc' => $item->nama_kegiatan,
+                    'time' => $item->created_at,
+                    'type' => 'audit'
+                ];
+            });
+
+            // Consulting
+            $latestConsulting = Consulting::orderBy('created_at', 'desc')->take(3)->get()->map(function($item) {
+                return [
+                    'id' => 'c_'.$item->id,
+                    'title' => 'Konsultasi Baru',
+                    'desc' => $item->proyek,
+                    'time' => $item->created_at,
+                    'type' => 'audit'
+                ];
+            });
+
+            // Advisory Service
+            $latestAdvisory = AdvisoryService::orderBy('created_at', 'desc')->take(3)->get()->map(function($item) {
+                return [
+                    'id' => 'adv_'.$item->id,
+                    'title' => 'Layanan Advisory',
+                    'desc' => $item->uraian_konsultasi,
+                    'time' => $item->created_at,
+                    'type' => 'audit'
+                ];
+            });
+
+            // User Baru
+            $latestUsers = User::orderBy('created_at', 'desc')->take(3)->get()->map(function($item) {
+                return [
+                    'id' => 'u_'.$item->id,
+                    'title' => 'User Baru Terdaftar',
+                    'desc' => $item->name . ' (' . $item->email . ')',
+                    'time' => $item->created_at,
+                    'type' => 'audit'
+                ];
+            });
+
+            // Gabungkan semua dan ambil 8 teratas
+            $aktivitas = $latestAudits
+                ->concat($latestTemuans)
+                ->concat($latestExtAudits)
+                ->concat($latestConsulting)
+                ->concat($latestAdvisory)
+                ->concat($latestUsers)
                 ->sortByDesc('time')
-                ->take(5)
+                ->take(8)
                 ->values();
 
             return response()->json([

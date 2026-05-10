@@ -16,6 +16,7 @@ import {
   Users,
 } from "lucide-react";
 import apiClient from "../../../../Shared/api/axios";
+import useRealTime from "../../hooks/useRealTime";
 import { notifySuccess, notifyError, notifyConfirm } from "@shared/utils/notifier.jsx";
 
 // --- CSS KHUSUS UNTUK PRINTING (Sembunyikan Web, Tampilkan Kertas) ---
@@ -116,6 +117,12 @@ const SuratTugas = () => {
       setLoading(false);
     }
   };
+
+  // Sinkronisasi Real-Time
+  useRealTime(['surat_tugas', 'users'], () => {
+    fetchData();
+    fetchUsers();
+  });
 
   useEffect(() => {
     fetchData();
@@ -258,7 +265,7 @@ const SuratTugas = () => {
       {/* ========================================= */}
       {/* TAMPILAN WEB UI (AKAN HILANG SAAT PRINT)  */}
       {/* ========================================= */}
-      <div className="no-print min-h-screen bg-slate-50 py-12 px-6 font-sans">
+      <div className="no-print py-12 px-6 font-sans">
         <div className="max-w-7xl mx-auto">
           
           <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-6">

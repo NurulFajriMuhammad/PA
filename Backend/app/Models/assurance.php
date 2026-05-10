@@ -4,10 +4,11 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Traits\BroadcastsRealTime;
 
 class assurance extends Model
 {
-    use HasFactory;
+    use HasFactory, BroadcastsRealTime;
 
     // Nama tabel disesuaikan dengan migrasi sebelumnya
     protected $table = 'assurance';

@@ -13,8 +13,11 @@ import {
   BsClockHistory
 } from "react-icons/bs";
 import apiClient from "../../../Shared/api/apiClient";
+import useRealTime from "../hooks/useRealTime";
 import { useNavigate } from "react-router-dom";
 import { notifySuccess, notifyError, notifyConfirm } from "../../../Shared/utils/notifier.jsx";
+import { useAuth } from "../../../Shared/hooks/useAuth.jsx";
+
 
 const unitToCategoryMap = {
   "Business Development": "Operasional & Produksi",
@@ -31,6 +34,10 @@ const unitToCategoryMap = {
 
 const ExternalAudit = () => {
   const navigate = useNavigate();
+  const { user: authData } = useAuth();
+  const userRole = authData?.user?.roles?.[0]?.name || "";
+  const isKepalaSPI = userRole.toLowerCase() === "kepala spi";
+  
   const [data, setData] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -48,7 +55,8 @@ const ExternalAudit = () => {
     tgl_selesai: "",
     lokasi: "",
     lembaga_pemeriksa: "",
-    status: "Planning",
+    status: "Perencanaan",
+
     keterangan: "",
   };
 
@@ -69,6 +77,11 @@ const ExternalAudit = () => {
       setLoading(false);
     }
   }, []);
+
+  // Sinkronisasi Real-Time
+  useRealTime(['external_audits', 'external_audit_temuan'], () => {
+    fetchData();
+  });
 
   useEffect(() => {
     fetchData();
@@ -132,7 +145,8 @@ const ExternalAudit = () => {
       tgl_selesai: item.periode_akhir ? item.periode_akhir.split('T')[0] : "",
       lokasi: item.lokasi || "",
       lembaga_pemeriksa: item.lembaga_pemeriksa || "",
-      status: item.status || "Planning",
+      status: item.status || "Perencanaan",
+
       keterangan: item.keterangan || "",
     });
     setSelectedId(item.id);
@@ -140,8 +154,15 @@ const ExternalAudit = () => {
     setShowModal(true);
   };
 
-  const handleDelete = (id) => {
+  const handleDelete = (id, status) => {
+    // Jika status Selesai, hanya Kepala SPI yang boleh hapus
+    if (status?.toLowerCase() === "selesai" && !isKepalaSPI) {
+      notifyError("Hanya Kepala SPI yang dapat menghapus audit yang sudah selesai.");
+      return;
+    }
+
     notifyConfirm("Yakin ingin menghapus data eksternal audit ini?", async () => {
+
       try {
         setLoading(true);
         await apiClient.delete(`/api/external-audit/${id}`);
@@ -168,11 +189,11 @@ const ExternalAudit = () => {
   }, {});
 
   return (
-    <div className="min-h-screen bg-slate-50 py-12 px-6 font-sans">
-      <div className="max-w-7xl mx-auto">
+    <div className="min-h-screen px-4 sm:px-8 py-4 font-sans">
+      <div className="w-full">
         
         {/* --- HEADER --- */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-6">
+        <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-6">
           <div>
             <div className="inline-flex items-center gap-2 bg-blue-50 text-blue-600 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider mb-3 border border-blue-100">
               <BsGlobe size={12} /> External Party Audit
@@ -271,8 +292,8 @@ const ExternalAudit = () => {
                         if (item.temuan) {
                           item.temuan.forEach(t => {
                             const s = (t.status || "").toLowerCase();
-                            if (s === 'close' || s === 'closed') totalClose++;
-                            else if (s === 'monev') totalMonev++;
+                            if (s.includes('close')) totalClose++;
+                            else if (s.includes('monev')) totalMonev++;
                             else totalDraft++;
                           });
                         }
@@ -329,7 +350,7 @@ const ExternalAudit = () => {
                                 <BsEye size={16} />
                               </button>
                               
-                              {item.status && item.status.toLowerCase() !== "selesai" && (
+                              {item.status_label?.toLowerCase() !== "selesai" && (
                                 <>
                                   <button 
                                     onClick={() => handleEdit(item)}
@@ -337,11 +358,18 @@ const ExternalAudit = () => {
                                   >
                                     <BsPencilSquare size={16} />
                                   </button>
-                                  <button onClick={() => handleDelete(item.id)} className="p-2.5 bg-slate-100 text-slate-500 hover:bg-red-500 hover:text-white rounded-xl transition-all shadow-sm" title="Hapus">
+                                  <button onClick={() => handleDelete(item.id, item.status_label)} className="p-2.5 bg-slate-100 text-slate-500 hover:bg-red-500 hover:text-white rounded-xl transition-all shadow-sm" title="Hapus">
                                     <BsTrash size={16} />
                                   </button>
                                 </>
                               )}
+                              
+                              {item.status_label?.toLowerCase() === "selesai" && isKepalaSPI && (
+                                <button onClick={() => handleDelete(item.id, item.status_label)} className="p-2.5 bg-slate-100 text-slate-500 hover:bg-red-500 hover:text-white rounded-xl transition-all shadow-sm" title="Hapus (Role Khusus)">
+                                  <BsTrash size={16} />
+                                </button>
+                              )}
+
                             </div>
                           </td>
                         </tr>
@@ -389,18 +417,22 @@ const ExternalAudit = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5 bg-blue-50/50 p-5 rounded-2xl border border-blue-100">
                   <div className="space-y-1.5 md:col-span-2">
                     <label className="text-[10px] font-bold text-blue-600 uppercase tracking-widest ml-1">Objek Pemeriksaan (Pihak Eksternal / Unit)</label>
-                    <select
+                    <input
                       required
                       name="objek_pemeriksaan"
-                      className="w-full p-3.5 bg-white border border-blue-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 font-semibold text-sm transition-all cursor-pointer shadow-sm"
+                      list="unit-list"
+                      className="w-full p-3.5 bg-white border border-blue-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 font-semibold text-sm transition-all shadow-sm"
                       value={form.objek_pemeriksaan}
                       onChange={handleChange}
-                    >
-                      <option value="">-- Pilih Sub Unit / Entitas --</option>
+                      placeholder="Pilih atau ketik unit/entitas yang diperiksa..."
+                    />
+                    <datalist id="unit-list">
                       {units.map((u) => (
-                        <option key={u.id} value={u.nama}>{u.nama}</option>
+                        <option key={u.id} value={u.nama}>
+                          {u.nama}
+                        </option>
                       ))}
-                    </select>
+                    </datalist>
                   </div>
                   
                   <div className="space-y-1.5 md:col-span-2">

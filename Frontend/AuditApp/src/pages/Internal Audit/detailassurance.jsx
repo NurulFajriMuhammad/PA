@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import apiClient from "../../../../Shared/api/apiClient";
+import useRealTime from "../../hooks/useRealTime";
 import { ArrowLeft } from "lucide-react";
 import PerencanaanTab from "./tabs/PerencanaanTab";
 import PelaksanaanTab from "./tabs/PelaksanaanTab";
@@ -19,19 +20,23 @@ const AssuranceDetail = () => {
   const tabRefs = useRef({});
   const [indicatorStyle, setIndicatorStyle] = useState({});
 
-  // fetch data assurance by id
-  useEffect(() => {
-    const fetchDetail = async () => {
-      try {
-        const res = await apiClient.get(`/api/assurance/${id}`);
-        setAssurance(res.data?.data || res.data);
-      } catch (err) {
-        console.error("Error fetch detail:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchDetail = async () => {
+    try {
+      const res = await apiClient.get(`/api/assurance/${id}`);
+      setAssurance(res.data?.data || res.data);
+    } catch (err) {
+      console.error("Error fetch detail:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  // Sinkronisasi Real-Time
+  useRealTime(['assurance', 'perencanaan_kkas', 'pemeriksaan_temuan', 'analisis_temuan'], () => {
+    fetchDetail();
+  });
+
+  useEffect(() => {
     fetchDetail();
   }, [id]);
 

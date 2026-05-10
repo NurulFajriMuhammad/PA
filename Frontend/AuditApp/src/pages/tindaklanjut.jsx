@@ -9,14 +9,16 @@ import {
   BsPlusLg, 
   BsFileEarmarkArrowDown,
   BsFileEarmarkText,
-  BsExclamationCircle,
-  BsX
-} from "react-icons/bs";
-import { notifySuccess, notifyError } from "../../../Shared/utils/notifier.jsx";
+  BsCollection, BsX, BsPrinter, 
+  BsCalendar, BsChatLeftText, BsLink45Deg, BsEyeFill,
+  BsFileEarmarkPdf, BsPerson, BsGraphUp, BsPencilSquare,
+  BsCardChecklist, BsTrash, BsCheckCircleFill
+} from 'react-icons/bs';
+import { notifySuccess, notifyError, notifyConfirm } from "../../../Shared/utils/notifier.jsx";
 import apiClient from "../../../Shared/api/apiClient";
+import useRealTime from "../hooks/useRealTime";
+import DetailTindakLanjut from "./detailtindaklanjut.jsx";
 
-const EMPTY_CREATE_FORM = { tahun: "", bulan: "", keterangan: "", bukti: null };
-const EMPTY_REVIEW_FORM = { hasil_evaluasi: "", kesimpulan: "" };
 
 const MONTH_OPTIONS = [
   { value: 1, label: "Januari" }, { value: 2, label: "Februari" }, { value: 3, label: "Maret" },
@@ -24,20 +26,6 @@ const MONTH_OPTIONS = [
   { value: 7, label: "Juli" }, { value: 8, label: "Agustus" }, { value: 9, label: "September" },
   { value: 10, label: "Oktober" }, { value: 11, label: "November" }, { value: 12, label: "Desember" },
 ];
-
-const EVALUATION_OPTIONS = [
-  { value: "sesuai", label: "Sesuai" },
-  { value: "potensi sesuai", label: "Potensi Sesuai" },
-  { value: "belum sesuai", label: "Belum Sesuai" },
-];
-
-// Komponen Reusable untuk Field Detail agar rapi
-const Field = ({ label, value }) => (
-  <div className="flex flex-col p-3 bg-slate-50 rounded-lg border border-slate-100">
-    <span className="text-[10px] font-bold uppercase text-slate-400 tracking-wider mb-1">{label}</span>
-    <div className="text-sm font-medium text-slate-700">{value ?? "-"}</div>
-  </div>
-);
 
 const FollowUp = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -47,11 +35,6 @@ const FollowUp = () => {
   const [selectedItem, setSelectedItem] = useState(null);
   const [dataFollowUp, setDataFollowUp] = useState([]);
   const [mode, setMode] = useState("list");
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [reviewItem, setReviewItem] = useState(null);
-  const [createForm, setCreateForm] = useState(EMPTY_CREATE_FORM);
-  const [reviewForm, setReviewForm] = useState(EMPTY_REVIEW_FORM);
-  const [previewFile, setPreviewFile] = useState(null);
   const [statusTemuanList, setStatusTemuanList] = useState([]);
 
   // Ambil data user untuk cek role
@@ -82,10 +65,14 @@ const FollowUp = () => {
 
     // Fallback
     if (v === "draft" || v === "draft temuan") return { bg: "#f1f5f9", text: "#64748b", label: "Draft Temuan" };
+    if (v === "pengisian tindak lanjut") return { bg: "#dbeafe", text: "#1e40af", label: "Pengisian Tindak Lanjut" };
+    if (v === "pengisian tindak lanjut temuan") return { bg: "#e0f2fe", text: "#0369a1", label: "Pengisian TL Temuan" };
     if (v === "monev") return { bg: "#fef3c7", text: "#d97706", label: "Monev" };
     if (v === "close") return { bg: "#dcfce7", text: "#15803d", label: "Close" };
     if (v === "menunggu konfirmasi") return { bg: "#ffedd5", text: "#9a3412", label: "Menunggu Konfirmasi" };
-    if (v === "pengisian rtl") return { bg: "#dbeafe", text: "#1e40af", label: "Pengisian RTL" };
+    if (v === "dalam perbaikan") return { bg: "#dbeafe", text: "#1e40af", label: "Dalam Perbaikan" };
+    if (v === "pengisian rtl") return { bg: "#dbeafe", text: "#1e40af", label: "Pengisian Tindak Lanjut" }; 
+
 
     return { bg: "#f1f5f9", text: "#64748b", label: status || "Draft Temuan" };
   };
@@ -98,6 +85,14 @@ const FollowUp = () => {
       setDataFollowUp(sorted);
     } catch (err) { console.error(err); }
   };
+
+  // Sinkronisasi Real-Time
+  useRealTime(['tindak_lanjut', 'external_audit_temuan', 'analisis_temuan'], () => {
+    fetchFollowUp();
+    if (mode === 'detail' && selectedItem) {
+      refreshDetail();
+    }
+  });
 
   useEffect(() => { fetchFollowUp(); }, []);
 
@@ -141,330 +136,27 @@ const FollowUp = () => {
     await fetchFollowUp();
   };
 
-  const handleCreateTL = async () => {
-    try {
-      const formData = new FormData();
-      formData.append("tahun", createForm.tahun);
-      formData.append("bulan", createForm.bulan);
-      formData.append("keterangan", createForm.keterangan);
-      if (createForm.bukti) formData.append("bukti", createForm.bukti);
-      await apiClient.post(`/api/tindak-lanjut/${selectedItem.temuan_id}/detail?jenis=${selectedItem.jenis_audit}`, formData);
-      notifySuccess("Tindak lanjut berhasil ditambahkan");
-      setShowCreateModal(false);
-      setCreateForm(EMPTY_CREATE_FORM);
-      await refreshDetail();
-    } catch (err) { notifyError("Gagal menyimpan data"); }
-  };
-
-  const openReviewModal = (item) => {
-    setReviewItem(item);
-    setReviewForm({ hasil_evaluasi: item.hasil_evaluasi || "", kesimpulan: item.kesimpulan || "" });
-  };
-
-  const handleSubmitReview = async () => {
-    try {
-      await apiClient.put(`/api/tindak-lanjut/${reviewItem.id}/review`, reviewForm);
-      notifySuccess("Review disimpan");
-      setReviewItem(null);
-      await refreshDetail();
-    } catch (err) { console.error(err); }
-  };
-
-  const renderPreviewModal = () => {
-    if (!previewFile) return null;
-    return (
-      <div className="fixed inset-0 z-[9999] flex items-center justify-center p-6 animate-in fade-in duration-200">
-        <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-sm" onClick={() => setPreviewFile(null)}></div>
-        <div className="relative bg-white w-full max-w-6xl h-[95vh] rounded-[2rem] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
-          <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/80">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-100 text-blue-600 rounded-xl ring-4 ring-blue-50">
-                <BsFileEarmarkText size={24} />
-              </div>
-              <div>
-                  <h3 className="font-black text-slate-800 text-lg uppercase tracking-tight line-clamp-1 max-w-[250px] md:max-w-md">{previewFile.judul_dokumen || 'Preview Dokumen'}</h3>
-                  <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-0.5">Tipe: Dokumen Pendukung | Fitur Preview</p>
-              </div>
-            </div>
-            <div className="flex gap-3">
-              <a 
-                href={`${import.meta.env.VITE_BACKEND_URL}/storage/${previewFile.file_path}`} 
-                target="_blank" 
-                rel="noreferrer" 
-                className="px-6 py-2.5 bg-slate-800 text-white rounded-xl font-bold text-[11px] uppercase tracking-wider hover:bg-slate-900 active:scale-95 transition-all shadow-md shadow-slate-200 flex items-center gap-2"
-              >
-                Buka Di Tab Baru
-              </a>
-              <button onClick={() => setPreviewFile(null)} className="p-2.5 bg-red-50 text-red-500 rounded-xl hover:bg-red-600 hover:text-white transition-colors border border-red-100 shadow-sm active:scale-95">
-                  <BsX size={24} />
-              </button>
-            </div>
-          </div>
-          
-          <div className="flex-1 bg-slate-200/60 p-4 sm:p-6 overflow-hidden">
-            <div className="bg-white w-full h-full rounded-2xl shadow-sm border border-slate-300 overflow-hidden relative">
-              <iframe 
-                src={`${import.meta.env.VITE_BACKEND_URL}/storage/${previewFile.file_path}`} 
-                className="absolute inset-0 w-full h-full border-0" 
-                title="Document Preview"
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  };
+  // Detail view functions and rendering logic have been extracted to DetailTindakLanjut component
 
   // --- DETAIL MODE ---
   if (mode === "detail" && selectedItem) {
-    const isLocked = (selectedItem.status || "").toLowerCase() === "close";
     return (
-      <div className="min-h-screen bg-slate-50 p-6">
-        <button onClick={() => setMode("list")} className="mb-6 flex items-center gap-2 font-bold text-blue-600 hover:text-blue-800 transition-all">
-          <BsArrowLeft /> Kembali ke Monitoring
-        </button>
-
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-6">
-          <div className="bg-[#1f4b82] px-6 py-4 text-white">
-            <h2 className="text-xl font-bold">Detail Temuan Audit</h2>
-          </div>
-          <div className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <Field label="Masalah yang Dijumpai" value={selectedItem.masalah} />
-            <Field label="Kondisi" value={selectedItem.kondisi} />
-            <Field label="Kriteria" value={selectedItem.kriteria} />
-            <Field label="Sebab" value={selectedItem.sebab} />
-            <Field label="Akibat" value={selectedItem.akibat} />
-            <Field label="Rekomendasi" value={selectedItem.rekomendasi} />
-            <Field label="Analisa Penyebab" value={selectedItem.analisa} />
-            <Field label="Rencana Tindakan Koreksi" value={selectedItem.rencana_koreksi} />
-            <Field label="Rencana Tindakan Kolektif" value={selectedItem.rencana_kolektif} />
-            <Field label="Target Penyelesaian" value={formatDate(selectedItem.target_selesai)} />
-            <Field label="Lampiran" value={selectedItem.lampiran ? (
-              <button
-                onClick={() => setPreviewFile({
-                  file_path: selectedItem.lampiran,
-                  judul_dokumen: selectedItem.lampiran_name || selectedItem.lampiran.split("/").pop()
-                })}
-                className="text-blue-600 font-bold hover:underline flex items-center gap-1.5 w-fit"
-              >
-                <BsFileEarmarkText size={14} /> <span className="line-clamp-1">{selectedItem.lampiran_name || selectedItem.lampiran.split("/").pop()}</span>
-              </button>
-            ) : "-"} />
-            <div className="p-3">
-              <span className="text-[10px] font-bold uppercase text-slate-400">Status Saat Ini</span>
-              <div className="mt-1">
-                {(() => {
-                  const sc = getStatusConfig(selectedItem.status);
-                  return (
-                    <span 
-                      className="rounded-full border px-3 py-1 text-xs font-bold"
-                      style={{ backgroundColor: sc.bg, color: sc.text, borderColor: 'transparent' }}
-                    >
-                      {sc.label}
-                    </span>
-                  );
-                })()}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-          <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
-            <div>
-              <h2 className="text-xl font-bold text-slate-800">Riwayat Progres Tindak Lanjut</h2>
-              {isLocked && <p className="text-sm text-red-500 flex items-center gap-1 mt-1"><BsExclamationCircle /> Data terkunci (Status Close)</p>}
-            </div>
-            <button onClick={() => setShowCreateModal(true)} disabled={isLocked} className="px-5 py-2.5 bg-blue-600 text-white rounded-xl font-bold flex items-center gap-2 hover:bg-blue-700 disabled:bg-slate-300 transition-all shadow-lg shadow-blue-100">
-              <BsPlusLg /> Tambah Progress
-            </button>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-slate-50 border-y border-slate-100 text-slate-500">
-                <tr>
-                  <th className="p-4 text-left font-bold">No</th>
-                  <th className="p-4 text-left font-bold">Periode</th>
-                  <th className="p-4 text-left font-bold">Bukti Dukung</th>
-                  <th className="p-4 text-left font-bold">Hasil Evaluasi</th>
-                  <th className="p-4 text-left font-bold">Kesimpulan</th>
-                  <th className="p-4 text-right font-bold">Aksi</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-50">
-                {selectedItem.tindak_lanjut.map((tl, index) => (
-                  <tr key={tl.id} className="hover:bg-slate-50/50 transition-colors">
-                    <td className="p-4 text-slate-400">{index + 1}</td>
-                    <td className="p-4 font-bold text-slate-700">{getMonthLabel(tl.bulan)} {tl.tahun}</td>
-                    <td className="p-4">{tl.bukti ? (
-                      <button
-                        onClick={() => setPreviewFile({
-                          file_path: tl.bukti,
-                          judul_dokumen: tl.bukti.split("/").pop()
-                        })}
-                        className="inline-flex items-center gap-1.5 text-blue-600 font-bold hover:underline text-xs"
-                      >
-                        <BsFileEarmarkText size={14} /> <span className="line-clamp-1 text-left max-w-[120px]" title={tl.bukti.split("/").pop()}>{tl.bukti.split("/").pop()}</span>
-                      </button>
-                    ) : "-"}</td>
-                    <td className="p-4"><span className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase ${tl.hasil_evaluasi?.toLowerCase() === 'sesuai' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>{tl.hasil_evaluasi || "Draft"}</span></td>
-                    <td className="p-4 text-slate-600 italic">"{tl.kesimpulan || "-"}"</td>
-                    <td className="p-4 text-right">
-                      {isAuditor && (
-                        <button 
-                          onClick={() => openReviewModal(tl)} 
-                          disabled={isLocked} 
-                          className="px-4 py-1.5 bg-blue-50 text-blue-600 rounded-lg font-bold text-xs hover:bg-blue-600 hover:text-white disabled:opacity-30 transition-all shadow-sm"
-                        >
-                          Review
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* MODAL TAMBAH PROGRES */}
-        {showCreateModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-            <div className="w-full max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in duration-200">
-              <div className="bg-blue-600 p-4 text-white flex justify-between items-center">
-                <h3 className="font-bold">Tambah Realisasi Tindak Lanjut</h3>
-                <button onClick={() => setShowCreateModal(false)}><BsX size={24} /></button>
-              </div>
-              <div className="p-6 space-y-5">
-                {/* Keterangan */}
-                <div>
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Keterangan Perbaikan</label>
-                  <textarea 
-                    placeholder="Jelaskan detail perbaikan yang telah dilakukan..." 
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm focus:ring-2 focus:ring-blue-400 focus:border-transparent outline-none transition-all" 
-                    rows="4" 
-                    value={createForm.keterangan} 
-                    onChange={(e) => setCreateForm({ ...createForm, keterangan: e.target.value })} 
-                  />
-                </div>
-
-                {/* Periode */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Tahun</label>
-                    <input 
-                      type="number" 
-                      placeholder="2024" 
-                      className="w-full rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm focus:ring-2 focus:ring-blue-400 outline-none transition-all" 
-                      value={createForm.tahun} 
-                      onChange={(e) => setCreateForm({ ...createForm, tahun: e.target.value })} 
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Bulan</label>
-                    <select 
-                      className="w-full rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm focus:ring-2 focus:ring-blue-400 outline-none transition-all cursor-pointer" 
-                      value={createForm.bulan} 
-                      onChange={(e) => setCreateForm({ ...createForm, bulan: e.target.value })}
-                    >
-                      <option value="">Pilih Bulan</option>
-                      {MONTH_OPTIONS.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
-                    </select>
-                  </div>
-                </div>
-
-                {/* Upload */}
-                <div>
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Bukti Dukung (Dokumen/Foto)</label>
-                  <div className="relative group">
-                    <div className="p-5 border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50 group-hover:bg-blue-50/30 group-hover:border-blue-200 transition-all flex flex-col items-center justify-center gap-2">
-                      <BsFileEarmarkArrowDown className="text-slate-300 group-hover:text-blue-400 transition-colors" size={32} />
-                      <input 
-                        type="file" 
-                        onChange={(e) => setCreateForm({ ...createForm, bukti: e.target.files?.[0] || null })} 
-                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" 
-                      />
-                      <p className="text-xs font-bold text-slate-500">
-                        {createForm.bukti ? createForm.bukti.name : "Klik atau seret file ke sini"}
-                      </p>
-                      <p className="text-[9px] text-slate-400 uppercase">Maksimal 5MB (PDF, JPG, PNG)</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Buttons */}
-                <div className="flex gap-4 pt-2">
-                  <button 
-                    onClick={() => setShowCreateModal(false)} 
-                    className="flex-1 py-3.5 text-slate-500 font-bold text-sm hover:bg-slate-100 rounded-xl transition-all"
-                  >
-                    Batal
-                  </button>
-                  <button 
-                    onClick={handleCreateTL} 
-                    className="flex-1 py-3.5 bg-blue-600 text-white rounded-xl font-bold shadow-xl shadow-blue-100 hover:bg-blue-700 active:scale-95 transition-all flex items-center justify-center gap-2"
-                  >
-                    <BsPlusLg size={14} /> Simpan Progress
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* MODAL REVIEW */}
-        {reviewItem && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-            <div className="w-full max-w-2xl bg-white rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in duration-200">
-              <div className="bg-slate-800 p-4 text-white flex justify-between items-center">
-                <h3 className="font-bold">Evaluasi Progress Perbaikan</h3>
-                <button onClick={() => setReviewItem(null)}><BsX size={24} /></button>
-              </div>
-              <div className="p-6 space-y-5">
-                 <div className="grid grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-100">
-                   <div><p className="text-[10px] font-bold text-slate-400">PERIODE</p><p className="text-sm font-bold text-slate-700">{getMonthLabel(reviewItem.bulan)} {reviewItem.tahun}</p></div>
-                   <div><p className="text-[10px] font-bold text-slate-400">BUKTI</p>{reviewItem.bukti ? (
-                      <button
-                        onClick={() => setPreviewFile({
-                          file_path: reviewItem.bukti,
-                          judul_dokumen: reviewItem.bukti.split("/").pop()
-                        })}
-                        className="text-xs text-blue-600 font-bold hover:underline flex items-center gap-1.5"
-                      >
-                        <BsFileEarmarkText size={14} /> <span className="line-clamp-1 max-w-[150px]">{reviewItem.bukti.split("/").pop()}</span>
-                      </button>
-                    ) : "-"}</div>
-                   <div className="col-span-2 mt-2"><p className="text-[10px] font-bold text-slate-400">KETERANGAN AUDITEE</p><p className="text-sm italic text-slate-600">"{reviewItem.keterangan || "-"}"</p></div>
-                </div>
-                <div>
-                  <label className="text-xs font-bold text-slate-500 uppercase mb-2 block">Hasil Evaluasi Auditor</label>
-                  <select className="w-full rounded-xl border-slate-200 bg-slate-50 p-3 text-sm focus:border-blue-500 outline-none" value={reviewForm.hasil_evaluasi} onChange={(e) => setReviewForm({ ...reviewForm, hasil_evaluasi: e.target.value })}>
-                    <option value="">-- Pilih Hasil Evaluasi --</option>
-                    {EVALUATION_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="text-xs font-bold text-slate-500 uppercase mb-2 block">Kesimpulan / Feedback</label>
-                  <textarea rows="3" className="w-full rounded-xl border-slate-200 bg-slate-50 p-3 text-sm focus:border-blue-500 outline-none" value={reviewForm.kesimpulan} onChange={(e) => setReviewForm({ ...reviewForm, kesimpulan: e.target.value })} placeholder="Berikan catatan tambahan untuk auditee..." />
-                </div>
-                <div className="flex gap-4">
-                  <button onClick={() => setReviewItem(null)} className="flex-1 py-3 text-slate-400 font-bold">Batal</button>
-                  <button onClick={handleSubmitReview} className="flex-1 py-3 bg-emerald-600 text-white rounded-xl font-bold shadow-lg shadow-emerald-50">Simpan Evaluasi</button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {renderPreviewModal()}
-      </div>
+      <DetailTindakLanjut 
+        selectedItem={selectedItem}
+        setMode={setMode}
+        isAuditor={isAuditor}
+        refreshDetail={refreshDetail}
+        fetchFollowUp={fetchFollowUp}
+        getStatusConfig={getStatusConfig}
+        formatDate={formatDate}
+        getMonthLabel={getMonthLabel}
+      />
     );
   }
 
   // --- LIST MODE ---
   return (
-    <div className="min-h-screen bg-slate-50 p-6">
+    <div className="p-6">
       <div className="mb-8">
         <h1 className="flex items-center gap-3 text-2xl font-black text-slate-800 uppercase tracking-tight">
           <BsArrowRepeat className="text-blue-600" /> Monitoring Tindak Lanjut
@@ -472,7 +164,7 @@ const FollowUp = () => {
         <p className="text-slate-500 text-sm">Sistem Pemantauan dan Realisasi Rekomendasi Hasil Pemeriksaan</p>
       </div>
 
-      <div className="mb-6 flex flex-wrap items-center gap-3 bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
+      <div className="mb-6 flex flex-wrap items-center gap-3">
         <div className="relative flex-1 min-w-[300px]">
           <BsSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
           <input type="text" placeholder="Cari masalah temuan atau unit..." className="w-full rounded-xl border-none bg-slate-50 py-3 pl-12 pr-4 text-sm focus:ring-2 focus:ring-blue-500 outline-none" onChange={(e) => setSearchTerm(e.target.value)} />
@@ -496,9 +188,9 @@ const FollowUp = () => {
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-2xl bg-white shadow-sm border border-slate-200">
+      <div className="overflow-hidden rounded-2xl shadow-sm border border-slate-200">
         <table className="w-full text-left">
-          <thead className="bg-slate-50 text-[11px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">
+          <thead className="text-[11px] font-bold text-slate-400">
             <tr>
               <th className="px-6 py-4 text-center">No</th>
               <th className="px-6 py-4">Informasi Temuan (Masalah)</th>

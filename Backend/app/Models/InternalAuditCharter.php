@@ -4,10 +4,11 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Traits\BroadcastsRealTime;
 
 class InternalAuditCharter extends Model
 {
-    use HasFactory;
+    use HasFactory, BroadcastsRealTime;
 
     /**
      * Nama tabel yang terhubung dengan model ini.

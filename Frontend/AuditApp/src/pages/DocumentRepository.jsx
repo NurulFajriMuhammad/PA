@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import useRealTime from '../hooks/useRealTime';
 import {
   BsFileEarmarkPdf, BsSearch, BsFolder2Open,
   BsEye, BsFileEarmarkText, BsCalendar3,
@@ -108,6 +109,12 @@ const DocumentRepository = () => {
       console.error(err);
     }
   };
+
+  // Sinkronisasi Real-Time
+  useRealTime('document_repositories', () => {
+    fetchDocuments(currentPage);
+    fetchStatistics();
+  });
 
   useEffect(() => { fetchDocuments(1); fetchStatistics(); }, []);
 
@@ -249,7 +256,7 @@ const DocumentRepository = () => {
   // RENDER UTAMA
   // =====================================================================
   return (
-    <div className="min-h-screen bg-slate-50 p-6">
+    <div className="p-6">
       {/* ---- HEADER ---- */}
       <div className="mb-8">
         <div className="flex items-start justify-between gap-4 flex-wrap">

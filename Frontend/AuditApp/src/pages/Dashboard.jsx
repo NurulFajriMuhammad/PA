@@ -11,6 +11,7 @@ import {
 } from 'react-icons/bs';
 import { notifySuccess } from '../../../Shared/utils/notifier';
 import apiClient from '../../../Shared/api/apiClient';
+import useRealTime from '../hooks/useRealTime';
 
 // Registrasi ChartJS
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler);
@@ -33,16 +34,14 @@ export default function Dashboard() {
     }
   };
 
+  // Sinkronisasi Real-Time untuk semua data
+  useRealTime('*', () => {
+    fetchStats();
+  });
+
   useEffect(() => {
     setLoading(true);
     fetchStats();
-    
-    // Polling setiap 30 detik untuk update real-time
-    const interval = setInterval(() => {
-      fetchStats();
-    }, 30000);
-    
-    return () => clearInterval(interval);
   }, [selectedYear]);
 
   // Data Tren Audit (12 Bulan)
