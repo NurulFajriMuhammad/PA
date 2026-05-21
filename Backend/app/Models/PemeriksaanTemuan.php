@@ -13,6 +13,7 @@ class PemeriksaanTemuan extends Model
 
     protected $fillable = [
         'kka_id',
+        'kategori',
         'halaman_lhe',
         'masalah',
         'kondisi',
@@ -22,6 +23,7 @@ class PemeriksaanTemuan extends Model
         'klarifikasi_temuan',
         'area',
         'referensi',
+        'target_selesai',
         'nilai_kerugian',
         'rekomendasi',
         'keterangan',

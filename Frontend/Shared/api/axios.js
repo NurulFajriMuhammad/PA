@@ -32,8 +32,6 @@ apiClient.interceptors.request.use(
     if (token) {
       config.headers['Authorization'] = `Bearer ${token}`;
       console.log('✅ Auth Token attached to request');
-    } else {
-      console.warn('⚠️ No auth token found in localStorage');
     }
     
     return config;

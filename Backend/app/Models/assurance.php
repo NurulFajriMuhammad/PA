@@ -32,6 +32,10 @@ class assurance extends Model
         'auditor_id',
         'keterangan',
         'id_status_pemeriksaan',
+        'jenis_audit',
+        'area_risiko',
+        'estimasi_anggaran',
+        'sumber_anggaran',
     ];
 
     // Menetapkan default value untuk status saat record baru dibuat

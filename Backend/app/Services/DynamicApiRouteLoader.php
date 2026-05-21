@@ -13,8 +13,28 @@ class DynamicApiRouteLoader
         try {
             $routes = ApiRoute::where('is_active', true)->get();
             foreach ($routes as $r) {
-                $controllerClass = "App\\Http\\Controllers\\Api\\" . $r->controller;
-                if (!class_exists($controllerClass)) {
+                // Resolve controller class robustly
+                $controllerClass = null;
+                $rawController = trim($r->controller);
+                
+                if (strpos($rawController, 'App\\') === 0) {
+                    if (class_exists($rawController)) {
+                        $controllerClass = $rawController;
+                    }
+                } else {
+                    $possibleClasses = [
+                        "App\\Http\\Controllers\\Api\\" . $rawController,
+                        "App\\Http\\Controllers\\" . $rawController
+                    ];
+                    foreach ($possibleClasses as $pClass) {
+                        if (class_exists($pClass)) {
+                            $controllerClass = $pClass;
+                            break;
+                        }
+                    }
+                }
+
+                if (!$controllerClass) {
                     continue; 
                 }
 
@@ -26,10 +46,18 @@ class DynamicApiRouteLoader
                 // ensure path does not accidentally begin with a slash (we always prefix with api below)
                 $routePath = ltrim($r->path, '/');
 
+                // Determine handler (support invokable controller if action is empty)
+                $action = trim($r->action ?? '');
+                if ($action === '') {
+                    $handler = $controllerClass;
+                } else {
+                    $handler = [$controllerClass, $action];
+                }
+
                 // register under the api prefix; this mirrors Laravel's default api.php behaviour
                 Route::prefix('api')
                     ->middleware($middleware)
-                    ->match([$r->method], $routePath, [$controllerClass, $r->action]);
+                    ->match([$r->method], $routePath, $handler);
             }
         } catch (QueryException $e) {
             // Database or table doesn't exist yet, skip dynamic routes
@@ -40,3 +68,4 @@ class DynamicApiRouteLoader
         }
     }
 }
+

@@ -265,8 +265,8 @@ const SuratTugas = () => {
       {/* ========================================= */}
       {/* TAMPILAN WEB UI (AKAN HILANG SAAT PRINT)  */}
       {/* ========================================= */}
-      <div className="no-print py-12 px-6 font-sans">
-        <div className="max-w-7xl mx-auto">
+      <div className="no-print px-4 sm:px-8 py-4 font-sans">
+        <div className="w-full">
           
           <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-6">
             <div>
@@ -305,67 +305,80 @@ const SuratTugas = () => {
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-12">
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-12 transition-all">
             {loading ? (
-              <div className="text-center py-20 text-slate-400 font-medium tracking-widest animate-pulse text-xs uppercase">
+              <div className="text-center py-24 text-slate-400 font-medium tracking-widest animate-pulse text-xs uppercase flex flex-col items-center gap-4">
+                <div className="w-12 h-12 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin"></div>
                 Memuat Data Surat Tugas...
               </div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                   <thead>
-                    <tr className="bg-slate-50 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">
-                      <th className="px-6 py-4 text-center w-16">No</th>
-                      <th className="px-6 py-4">Nomor Surat</th>
-                      <th className="px-6 py-4">Tanggal Dibuat</th>
-                      <th className="px-6 py-4">Deskripsi / Penugasan</th>
-                      <th className="px-6 py-4 text-right">Aksi & Dokumen</th>
+                    <tr className="bg-[#111827] text-[11px] font-black text-slate-300 uppercase tracking-[0.2em] border-b border-slate-800">
+                      <th className="px-6 py-5 text-center w-20">No</th>
+                      <th className="px-6 py-5">Nomor Surat</th>
+                      <th className="px-6 py-5">Tanggal Dibuat</th>
+                      <th className="px-6 py-5">Deskripsi / Penugasan</th>
+                      <th className="px-6 py-5 text-right pr-10">Aksi & Dokumen</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-50">
+                  <tbody className="divide-y divide-slate-100">
                     {filteredData.map((item, index) => (
-                      <tr key={item.id} className="hover:bg-indigo-50/30 transition-colors group">
-                        <td className="px-6 py-4 text-center text-slate-400 font-mono text-xs">
-                          {index + 1}
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className="inline-block px-3 py-1 bg-indigo-50 border border-indigo-100 text-indigo-700 font-black text-xs uppercase tracking-wider rounded-lg">
-                            {item.nomor_surat}
+                      <tr key={item.id} className="hover:bg-slate-50/80 transition-all duration-200 group">
+                        <td className="px-6 py-6 text-center">
+                          <span className="text-xs font-black text-slate-400 font-mono">
+                            {String(index + 1).padStart(2, '0')}
                           </span>
                         </td>
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-2 text-xs font-bold text-slate-600">
-                            <Calendar size={14} className="text-slate-400" />
+                        <td className="px-6 py-6">
+                          <div className="flex flex-col gap-1">
+                            <span className="text-sm font-black text-indigo-600 uppercase tracking-tight group-hover:text-indigo-700 transition-colors">
+                              {item.nomor_surat}
+                            </span>
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Surat Penugasan Resmi</span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-6">
+                          <div className="flex items-center gap-2.5 text-xs font-bold text-slate-700 bg-slate-100 w-fit px-3 py-1.5 rounded-lg border border-slate-200">
+                            <Calendar size={14} className="text-indigo-500" />
                             {formatTanggalTable(item.tanggal_surat)}
                           </div>
                         </td>
-                        <td className="px-6 py-4">
-                          <p className="text-sm font-bold text-slate-700 max-w-md line-clamp-2">
-                            {item.deskripsi}
-                          </p>
-                          <p className="text-[10px] text-slate-400 uppercase font-bold mt-1">
-                            Ketua Tim: {item.ketua}
-                          </p>
+                        <td className="px-6 py-6">
+                          <div className="max-w-md">
+                            <p className="text-sm font-bold text-slate-800 leading-relaxed line-clamp-2 mb-1.5">
+                              {item.deskripsi}
+                            </p>
+                            <div className="flex items-center gap-2">
+                              <div className="w-5 h-5 rounded-full bg-indigo-100 flex items-center justify-center">
+                                <UserCheck size={10} className="text-indigo-600" />
+                              </div>
+                              <span className="text-[10px] text-slate-500 uppercase font-black tracking-wider">
+                                Ketua Tim: <span className="text-slate-800">{item.ketua}</span>
+                              </span>
+                            </div>
+                          </div>
                         </td>
-                        <td className="px-6 py-4 text-right">
-                          <div className="flex items-center justify-end gap-2">
+                        <td className="px-6 py-6 text-right pr-8">
+                          <div className="flex items-center justify-end gap-2.5 opacity-0 group-hover:opacity-100 transition-all transform translate-x-4 group-hover:translate-x-0">
                             <button
                               onClick={() => handlePrint(item)}
-                              className="inline-flex items-center justify-center p-2.5 bg-slate-100 text-slate-600 hover:bg-emerald-500 hover:text-white rounded-xl transition-all shadow-sm"
+                              className="flex items-center justify-center w-10 h-10 bg-white text-slate-600 hover:bg-emerald-500 hover:text-white border border-slate-200 rounded-xl transition-all shadow-sm hover:shadow-emerald-100 active:scale-95"
                               title="Cetak Surat Tugas"
                             >
                               <BsPrinter size={16} />
                             </button>
                             <button
                               onClick={() => handleEdit(item)}
-                              className="inline-flex items-center justify-center p-2.5 bg-slate-100 text-slate-600 hover:bg-amber-500 hover:text-white rounded-xl transition-all shadow-sm"
+                              className="flex items-center justify-center w-10 h-10 bg-white text-slate-600 hover:bg-amber-500 hover:text-white border border-slate-200 rounded-xl transition-all shadow-sm hover:shadow-amber-100 active:scale-95"
                               title="Edit"
                             >
                               <BsPencilSquare size={16} />
                             </button>
                             <button
                               onClick={() => handleDelete(item.id)}
-                              className="inline-flex items-center justify-center p-2.5 bg-slate-100 text-slate-600 hover:bg-red-500 hover:text-white rounded-xl transition-all shadow-sm"
+                              className="flex items-center justify-center w-10 h-10 bg-white text-slate-600 hover:bg-red-500 hover:text-white border border-slate-200 rounded-xl transition-all shadow-sm hover:shadow-red-100 active:scale-95"
                               title="Hapus"
                             >
                               <BsTrash size={16} />
@@ -376,8 +389,13 @@ const SuratTugas = () => {
                     ))}
                     {filteredData.length === 0 && (
                       <tr>
-                        <td colSpan="5" className="py-16 text-center text-slate-400 font-medium text-sm">
-                          Belum ada surat tugas yang diterbitkan.
+                        <td colSpan="5" className="py-24 text-center">
+                          <div className="flex flex-col items-center gap-3">
+                            <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-200">
+                              <FileText size={32} />
+                            </div>
+                            <p className="text-slate-400 font-bold text-sm uppercase tracking-widest">Belum ada surat tugas</p>
+                          </div>
                         </td>
                       </tr>
                     )}

@@ -6,5 +6,5 @@ use Illuminate\Database\Eloquent\Model;
 
 class AuditeeDocument extends Model
 {
-    protected $fillable = ['assurance_id', 'judul_dokumen', 'file_path', 'file_type'];
+    protected $fillable = ['assurance_id', 'judul_dokumen', 'tipe_dokumen', 'terkait_kka', 'file_path', 'file_type', 'keterangan'];
 }

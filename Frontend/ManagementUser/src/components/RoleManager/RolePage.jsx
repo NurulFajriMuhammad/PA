@@ -134,12 +134,6 @@ const RolePage = ({
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                   Nama Role
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                  Permission
-                </th>
-                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">
-                  Total Permission
-                </th>
               </tr>
             </thead>
 
@@ -160,19 +154,10 @@ const RolePage = ({
                             {perm.name}
                           </span>
                         ))}
-                        {role.permissions?.length > 3 && (
-                          <span className="px-2 py-1 bg-gray-100 text-gray-800 text-xs font-medium rounded">
-                            +{role.permissions.length - 3}
-                          </span>
-                        )}
+
                       </div>
                     </td>
-                    {/* ✅ Isi Total Permission ditengah */}
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-center">
-                      <span className="inline-block px-3 py-1 bg-blue-100 text-blue-800 rounded-full font-medium min-w-[32px]">
-                        {role.permissions?.length || 0}
-                      </span>
-                    </td>
+
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm space-x-2">
                       <button
                         onClick={() => handleEditRole(role)}

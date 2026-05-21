@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\Api\PermissionController;
+use App\Http\Controllers\Api\ApiRouteController;
 use App\Http\Controllers\InternalAuditCharterController;
 use App\Http\Controllers\PengawasController;
 use App\Http\Controllers\AuditUniverseController;
@@ -89,8 +90,7 @@ Route::middleware('auth:sanctum')->group(function () {
      Route::apiResource('jabatans', JabatanController::class);
      Route::get('/permission-matrix', [PermissionMatrixController::class, 'index']);
      Route::post('/permission-matrix/update', [PermissionMatrixController::class, 'updateMatrix']);
-     // Route::apiResource('/routes', 'ApiRouteController');
-     // Route::apiResource('/routes', ApiRouteController::class);
+      Route::apiResource('api-routes', ApiRouteController::class);
 
      // Route::get('/users', [UserController::class, 'index']);
      // //     ->middleware('permission:view users');
@@ -178,7 +178,9 @@ Route::middleware('auth:sanctum')->group(function () {
      Route::get('/assurance/{assuranceId}/kka-perencanaan', [perencanaancontroller::class, 'getKka']);
      Route::get('/assurance/{assuranceId}/documents', [perencanaancontroller::class, 'getDocs']);
      Route::post('/assurance/{assuranceId}/documents', [perencanaancontroller::class, 'storeDoc']);
+     Route::delete('/documents/{id}', [perencanaancontroller::class, 'destroyDoc']);
      Route::post('/assurance/{assuranceId}/kka-perencanaan', [perencanaancontroller::class, 'storeKka']);
+     Route::delete('/kka-perencanaan/{id}', [perencanaancontroller::class, 'destroyKka']);
      Route::get('/assurance/{assuranceId}/kka-pelaksanaan', [KkaPelaksanaanController::class, 'index']);
      Route::post('/kka/{kkaId}/upload-lhe', [KkaPelaksanaanController::class, 'uploadLhe']);
      Route::get('/kka/{kkaId}/temuan', [KkaPelaksanaanController::class, 'getTemuan']);

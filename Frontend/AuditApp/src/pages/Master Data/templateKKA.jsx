@@ -106,7 +106,8 @@ function handlePrintDocument(item) {
   ) : [];
 
   return (
-    <div className="p-6 font-sans">
+    <div className="px-4 sm:px-8 py-4 font-sans">
+      <div className="w-full">
       {/* Header Section */}
       <div className="flex justify-between items-center mb-8">
         <div>
@@ -246,6 +247,7 @@ function handlePrintDocument(item) {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 };

@@ -13,7 +13,9 @@ import {
 export default function TopHeader({ isSidebarOpen }) {
   const { user: userDataContainer, logout } = useAuth();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isAppSwitcherOpen, setIsAppSwitcherOpen] = useState(false);
   const dropdownRef = useRef(null);
+  const appSwitcherRef = useRef(null);
 
   if (!userDataContainer || !userDataContainer.user) {
     return null;
@@ -23,19 +25,30 @@ export default function TopHeader({ isSidebarOpen }) {
   const userName = user.name || "Pengguna";
   const userRole = user.roles && user.roles.length > 0 ? user.roles[0].name : "User";
 
+  const handleGoToManagementUser = () => {
+    setIsAppSwitcherOpen(false);
+    const host = window.location.hostname;
+    const protocol = window.location.protocol;
+    // Buka aplikasi manajemen user di port 5174 di tab baru
+    window.open(`${protocol}//${host}:5174`, "_blank");
+  };
+
   useEffect(() => {
     function handleClickOutside(event) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setIsDropdownOpen(false);
       }
+      if (appSwitcherRef.current && !appSwitcherRef.current.contains(event.target)) {
+        setIsAppSwitcherOpen(false);
+      }
     }
-    if (isDropdownOpen) {
+    if (isDropdownOpen || isAppSwitcherOpen) {
       document.addEventListener("mousedown", handleClickOutside);
     }
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, [isDropdownOpen]);
+  }, [isDropdownOpen, isAppSwitcherOpen]);
 
   return (
     <>
@@ -210,7 +223,32 @@ export default function TopHeader({ isSidebarOpen }) {
 
         <div className="header-actions">
           <div className="header-icons">
-            <span title="Grid"><BsGridFill /></span>
+            {/* Grid App Switcher */}
+            <div className="relative" ref={appSwitcherRef}>
+              <span title="Aplikasi Lain" onClick={() => setIsAppSwitcherOpen((prev) => !prev)}>
+                <BsGridFill />
+              </span>
+              {isAppSwitcherOpen && (
+                <div className="absolute top-[calc(100%+8px)] right-0 bg-white border border-slate-200 rounded-xl shadow-xl p-2 w-[120px] z-[1100] transition-all animate-in fade-in slide-in-from-top-2 duration-150">
+                  <div 
+                    onClick={handleGoToManagementUser}
+                    className="flex flex-col items-center justify-center p-2 hover:bg-slate-50 rounded-lg transition-all cursor-pointer border border-transparent hover:border-slate-100 group"
+                  >
+                    {/* AKSARA Stylized Logo (Dikecilkan) */}
+                    <div className="relative w-10 h-10 flex items-center justify-center bg-slate-50 border border-slate-150 rounded-lg shadow-inner mb-1.5 group-hover:scale-105 transition-transform duration-200">
+                      <svg width="22" height="22" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M25 80L48 25H52L75 80" stroke="#1e293b" strokeWidth="12" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M33 60H67" stroke="#1e293b" strokeWidth="10" strokeLinecap="round"/>
+                        <path d="M45 55L55 70L85 30" stroke="#10b981" strokeWidth="12" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    </div>
+                    <span className="text-[10px] font-black text-slate-800 mt-1 text-center leading-snug">
+                      Manajemen User
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
             <span title="Notifications"><BsBellFill /></span>
             <span title="Help"><BsQuestionCircleFill /></span>
           </div>

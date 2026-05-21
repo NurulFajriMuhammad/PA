@@ -118,8 +118,8 @@ const Consulting = () => {
   );
 
   return (
-    <div className="py-12 px-6 font-sans">
-      <div className="max-w-7xl mx-auto">
+    <div className="px-4 sm:px-8 py-4 font-sans">
+      <div className="w-full">
 
         {/* --- HEADER --- */}
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-6">

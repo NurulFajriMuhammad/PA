@@ -13,7 +13,8 @@ import {
   BsClipboardCheck,
   BsClockHistory,
   BsCheck2Circle,
-  BsFolder2Open
+  BsFolder2Open,
+  BsWallet2
 } from "react-icons/bs";
 import apiClient from "../../../../Shared/api/apiClient";
 import useRealTime from "../../hooks/useRealTime";
@@ -54,14 +55,18 @@ const Assurance = () => {
     noST: "",
     objek_pemeriksaan: "",
     nama_kegiatan: "",
-    tujuan: "",
-    sasaran: "",
+    jenis_audit: "Reguler",
     objek_audit: "",
-    ruang_lingkup: "",
     metodologi: "",
+    tujuan: "",
+    ruang_lingkup: "",
+    sasaran: "",
+    area_risiko: "",
     tgl_mulai: "",
     tgl_selesai: "",
     lokasi: "",
+    estimasi_anggaran: "",
+    sumber_anggaran: "",
     ketua: "",
     pengendali_teknis: "",
     koordinator: "",
@@ -69,6 +74,18 @@ const Assurance = () => {
     keterangan: "",
     status: "Planning",
   });
+
+  const formatRupiah = (val) => {
+    if (val === undefined || val === null || val === "") return "";
+    const clean = val.toString().replace(/\D/g, "");
+    if (!clean) return "";
+    return new Intl.NumberFormat("id-ID", {
+      style: "currency",
+      currency: "IDR",
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(clean).replace("Rp", "Rp ").trim();
+  };
 
   const fetchData = useCallback(async () => {
     try {
@@ -113,7 +130,6 @@ const Assurance = () => {
       setFormData((prev) => ({
         ...prev,
         noST: val,
-        // objek_audit tetap kosong untuk diinput manual sesuai permintaan
         tgl_mulai: dates[0] || "",
         tgl_selesai: dates[1] || "",
         ketua: st.ketua || "",
@@ -141,14 +157,18 @@ const Assurance = () => {
       surat_tugas_id: st?.id,
       objek_pemeriksaan: formData.objek_pemeriksaan,
       nama_kegiatan: formData.nama_kegiatan,
-      tujuan: formData.tujuan,
-      sasaran: formData.sasaran,
+      jenis_audit: formData.jenis_audit,
       objek_audit: formData.objek_audit,
-      ruang_lingkup: formData.ruang_lingkup,
       metodologi: formData.metodologi,
+      tujuan: formData.tujuan,
+      ruang_lingkup: formData.ruang_lingkup,
+      sasaran: formData.sasaran,
+      area_risiko: formData.area_risiko,
       periode_awal: formData.tgl_mulai,
       periode_akhir: formData.tgl_selesai,
       lokasi: formData.lokasi,
+      estimasi_anggaran: formData.estimasi_anggaran ? parseInt(formData.estimasi_anggaran.toString().replace(/\D/g, ""), 10) : null,
+      sumber_anggaran: formData.sumber_anggaran || null,
       koordinator_id: koordinator?.id,
       pt_id: pt?.id,
       ketua_id: ketua?.id,
@@ -178,32 +198,53 @@ const Assurance = () => {
 
   const resetForm = () => {
     setFormData({
-      noST: "", objek_pemeriksaan: "", nama_kegiatan: "", tujuan: "", sasaran: "",
-      objek_audit: "", ruang_lingkup: "", metodologi: "", tgl_mulai: "", tgl_selesai: "",
-      lokasi: "", ketua: "", pengendali_teknis: "", koordinator: "", auditor: [""],
-      keterangan: "", status: "Planning",
+      noST: "",
+      objek_pemeriksaan: "",
+      nama_kegiatan: "",
+      jenis_audit: "Reguler",
+      objek_audit: "",
+      metodologi: "",
+      tujuan: "",
+      ruang_lingkup: "",
+      sasaran: "",
+      area_risiko: "",
+      tgl_mulai: "",
+      tgl_selesai: "",
+      lokasi: "",
+      estimasi_anggaran: "",
+      sumber_anggaran: "",
+      ketua: "",
+      pengendali_teknis: "",
+      koordinator: "",
+      auditor: [""],
+      keterangan: "",
+      status: "Planning",
     });
     setIsEdit(false);
     setSelectedId(null);
-  }
+  };
 
   const handleEdit = (item) => {
     setFormData({
       noST: item.surat_tugas?.nomor_surat || "",
       objek_pemeriksaan: item.objek_pemeriksaan || "",
       nama_kegiatan: item.nama_kegiatan || "",
-      tujuan: item.tujuan || "",
-      sasaran: item.sasaran || "",
+      jenis_audit: item.jenis_audit || "Reguler",
       objek_audit: item.objek_audit || "",
-      ruang_lingkup: item.ruang_lingkup || "",
       metodologi: item.metodologi || "",
+      tujuan: item.tujuan || "",
+      ruang_lingkup: item.ruang_lingkup || "",
+      sasaran: item.sasaran || "",
+      area_risiko: item.area_risiko || "",
       tgl_mulai: item.periode_awal ? item.periode_awal.split('T')[0] : "",
       tgl_selesai: item.periode_akhir ? item.periode_akhir.split('T')[0] : "",
       lokasi: item.lokasi || "",
+      estimasi_anggaran: item.estimasi_anggaran || "",
+      sumber_anggaran: item.sumber_anggaran || "",
       ketua: item.ketua?.name || "",
       pengendali_teknis: item.pt?.name || "",
       koordinator: item.koordinator?.name || "",
-      auditor: item.auditor ? [item.auditor.name] : [""], // Backend structure might differ, adjust if needed
+      auditor: item.auditor ? [item.auditor.name] : [""],
       keterangan: item.keterangan || "",
       status: item.status || "Planning",
     });
@@ -261,6 +302,30 @@ const Assurance = () => {
     acc[unit].push(item);
     return acc;
   }, {});
+
+  // Filter list user berdasarkan role secara case-insensitive
+  const koordinatorOptions = usersList.filter(
+    (u) =>
+      u.roles?.[0]?.name?.toLowerCase() === "koordinator" ||
+      u.name === formData.koordinator
+  );
+  const pengendaliTeknisOptions = usersList.filter(
+    (u) =>
+      u.roles?.[0]?.name?.toLowerCase() === "pengendali teknis" ||
+      u.name === formData.pengendali_teknis
+  );
+  const ketuaTimOptions = usersList.filter(
+    (u) =>
+      ["ketua", "ketua tim"].includes(u.roles?.[0]?.name?.toLowerCase()) ||
+      u.name === formData.ketua
+  );
+  const getAuditorOptionsForIndex = (currentVal) => {
+    return usersList.filter(
+      (u) =>
+        u.roles?.[0]?.name?.toLowerCase() === "auditor" ||
+        u.name === currentVal
+    );
+  };
 
   return (
     <div className="min-h-screen px-4 sm:px-8 py-4 font-sans">
@@ -435,21 +500,21 @@ const Assurance = () => {
 
         {/* ================= MODAL FORM ================= */}
         {showModal && (
-          <div className="fixed inset-0 z-[9999] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
-            <div className="bg-white rounded-[2rem] p-8 w-full max-w-4xl shadow-2xl overflow-y-auto max-h-[90vh] animate-in zoom-in-95 duration-200 flex flex-col relative">
+          <div className="fixed inset-0 z-[9999] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-200">
+            <div className="bg-white text-slate-800 rounded-[2rem] p-6 sm:p-8 w-full max-w-5xl shadow-2xl overflow-y-auto max-h-[90vh] border border-blue-100 flex flex-col relative animate-in zoom-in-95 duration-200">
               
               <div className="flex justify-between items-center mb-6 pb-4 border-b border-slate-100 shrink-0">
                 <div>
-                  <h2 className="text-xl font-black uppercase tracking-tight text-slate-800 flex items-center gap-2">
-                    <BsFileText className="text-blue-500" size={24} /> {isEdit ? "Update Registrasi Audit" : "Registrasi Audit"}
+                  <h2 className="text-xl font-extrabold uppercase tracking-tight text-slate-800 flex items-center gap-2.5">
+                    <BsShieldCheck className="text-blue-600 animate-pulse" size={24} /> Registrasi Audit — Parameter Pelaksanaan Pengawasan
                   </h2>
-                  <p className="text-[10px] text-slate-400 font-medium uppercase tracking-widest mt-1">
-                    Parameter pelaksanaan pengawasan
+                  <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">
+                    Berdasarkan IIA Global Standards 2024 · SPAI-AAIPI · IPPF 2017
                   </p>
                 </div>
                 <button
                   onClick={() => setShowModal(false)}
-                  className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-colors"
+                  className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-xl transition-all"
                 >
                   <BsX size={28} />
                 </button>
@@ -458,232 +523,461 @@ const Assurance = () => {
               <form onSubmit={handleSave} className="flex-1 overflow-y-auto pr-2 space-y-6">
                 
                 {/* --- SUMBER SURAT TUGAS --- */}
-                <div className="bg-blue-50/50 p-5 rounded-2xl border border-blue-100">
-                  <label className="block text-[10px] font-black text-blue-600 uppercase tracking-widest mb-2 flex items-center gap-1.5">
-                    <BsClipboardCheck size={14} /> Dasar Pelaksanaan (Surat Tugas)
-                  </label>
-                  <select
-                    required
-                    className="w-full p-4 bg-white border border-blue-200 rounded-xl font-bold text-sm text-slate-700 outline-none focus:ring-2 focus:ring-blue-500 transition-all cursor-pointer shadow-sm"
-                    value={formData.noST}
-                    onChange={(e) => handleSTChange(e.target.value)}
-                  >
-                    <option value="">-- Pilih Nomor Surat Tugas (Auto-Fill Data) --</option>
-                    {suratTugasList.map((st) => (
-                      <option key={st.id} value={st.nomor_surat}>
-                        {st.nomor_surat} - {st.deskripsi?.substring(0, 50)}...
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* --- OBJEK & KEGIATAN --- */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Kategori / Divisi Terperiksa</label>
+                <div>
+                  <div className="bg-blue-50/80 border border-blue-100/50 text-blue-800 font-black text-[10px] uppercase tracking-widest px-4 py-2.5 rounded-xl mb-4 flex items-center gap-2 shadow-sm">
+                    <BsClipboardCheck size={14} className="text-blue-600" /> DASAR PELAKSANAAN (SURAT TUGAS)
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest ml-1 flex items-center justify-between">
+                      <span>Nomor surat tugas <span className="text-rose-500 ml-0.5">*</span></span>
+                      <span className="text-[9px] text-blue-600 border border-blue-200 bg-blue-50 px-2.5 py-0.5 rounded-full font-bold ml-auto uppercase tracking-wide">IIA Std. 2200</span>
+                    </label>
                     <select
-                      className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 font-semibold text-sm transition-all cursor-pointer"
-                      value={formData.objek_pemeriksaan}
-                      onChange={(e) => setFormData({ ...formData, objek_pemeriksaan: e.target.value })}
+                      required
+                      className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-sm text-slate-800 outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 transition-all cursor-pointer shadow-sm"
+                      value={formData.noST}
+                      onChange={(e) => handleSTChange(e.target.value)}
                     >
-                      <option value="">-- Pilih --</option>
-                      {units.map((u) => (
-                        <option key={u.id} value={u.nama}>{u.nama}</option>
+                      <option value="">-- Pilih nomor surat tugas (auto-fill data) --</option>
+                      {suratTugasList.map((st) => (
+                        <option key={st.id} value={st.nomor_surat}>
+                          {st.nomor_surat} - {st.deskripsi?.substring(0, 60)}...
+                        </option>
                       ))}
                     </select>
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Nama Kegiatan Audit</label>
-                    <input
-                      required
-                      className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 font-bold text-sm text-slate-800 transition-all"
-                      value={formData.nama_kegiatan}
-                      onChange={(e) => setFormData({ ...formData, nama_kegiatan: e.target.value })}
-                      placeholder="Contoh: Audit Keuangan Q1..."
-                    />
+                    <span className="text-[10px] text-slate-400 font-medium leading-relaxed block mt-1">
+                      Wajib ada dasar penugasan formal sebelum audit dimulai (IIA Standard 2200 — Engagement Planning)
+                    </span>
                   </div>
                 </div>
 
-                {/* --- TUJUAN & SASARAN --- */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Tujuan</label>
-                    <textarea
-                      required
-                      className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 font-medium text-sm h-28 resize-none transition-all leading-relaxed"
-                      value={formData.tujuan}
-                      onChange={(e) => setFormData({ ...formData, tujuan: e.target.value })}
-                      placeholder="Tujuan spesifik pemeriksaan..."
-                    />
+                {/* --- IDENTITAS PENUGASAN --- */}
+                <div>
+                  <div className="bg-blue-50/80 border border-blue-100/50 text-blue-800 font-black text-[10px] uppercase tracking-widest px-4 py-2.5 rounded-xl mb-4 flex items-center gap-2 shadow-sm">
+                    <BsFileText size={14} className="text-blue-600" /> IDENTITAS PENUGASAN
                   </div>
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Sasaran (Target)</label>
-                    <textarea
-                      required
-                      className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 font-medium text-sm h-28 resize-none transition-all leading-relaxed"
-                      value={formData.sasaran}
-                      onChange={(e) => setFormData({ ...formData, sasaran: e.target.value })}
-                      placeholder="Target yang ingin dicapai..."
-                    />
+
+                  <div className="space-y-5">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                      <div className="space-y-2">
+                        <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest ml-1">
+                          Kategori / divisi terperiksa <span className="text-rose-500">*</span>
+                        </label>
+                        <select
+                          required
+                          className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 font-semibold text-sm text-slate-800 transition-all cursor-pointer shadow-sm"
+                          value={formData.objek_pemeriksaan}
+                          onChange={(e) => setFormData({ ...formData, objek_pemeriksaan: e.target.value })}
+                        >
+                          <option value="">-- Pilih --</option>
+                          {units.map((u) => (
+                            <option key={u.id} value={u.nama}>{u.nama}</option>
+                          ))}
+                        </select>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest ml-1">
+                          Nama kegiatan audit <span className="text-rose-500">*</span>
+                        </label>
+                        <input
+                          required
+                          className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 font-bold text-sm text-slate-800 placeholder-slate-400 transition-all shadow-sm"
+                          value={formData.nama_kegiatan}
+                          onChange={(e) => setFormData({ ...formData, nama_kegiatan: e.target.value })}
+                          placeholder="Contoh: Audit Kesiapan Infrastruktur Q2 2026..."
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest ml-1">
+                            Jenis audit <span className="text-rose-500">*</span>
+                          </label>
+                        </div>
+                        <select
+                          required
+                          className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 font-semibold text-sm text-slate-800 transition-all cursor-pointer shadow-sm"
+                          value={formData.jenis_audit}
+                          onChange={(e) => setFormData({ ...formData, jenis_audit: e.target.value })}
+                        >
+                          <option value="Reguler">Reguler</option>
+                          <option value="Khusus">Khusus</option>
+                          <option value="Investigasi">Investigasi</option>
+                          <option value="Follow-up">Follow-up</option>
+                        </select>
+                        <span className="text-[10px] text-slate-400 font-medium block leading-snug mt-1">
+                          Reguler / Khusus / Investigasi / Follow-up
+                        </span>
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest ml-1">
+                          Objek audit <span className="text-rose-500">*</span>
+                        </label>
+                        <input
+                          required
+                          className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 font-semibold text-sm text-slate-800 placeholder-slate-400 transition-all shadow-sm"
+                          value={formData.objek_audit}
+                          onChange={(e) => setFormData({ ...formData, objek_audit: e.target.value })}
+                          placeholder="Data Center & Server Utama..."
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest ml-1">
+                          Metodologi <span className="text-rose-500">*</span>
+                        </label>
+                        <input
+                          required
+                          className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 font-semibold text-sm text-slate-800 placeholder-slate-400 transition-all shadow-sm"
+                          value={formData.metodologi}
+                          onChange={(e) => setFormData({ ...formData, metodologi: e.target.value })}
+                          placeholder="Observasi, Review Log, Pen-Test..."
+                        />
+                        <span className="text-[10px] text-slate-400 font-medium block leading-snug mt-1">
+                          Sampling, wawancara, analisis dokumen, dll
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest ml-1">Tujuan <span className="text-rose-500">*</span></label>
+                          <span className="text-[9px] text-blue-600 border border-blue-200 bg-blue-50 px-2.5 py-0.5 rounded-full font-bold ml-auto uppercase tracking-wide">IIA Std. 2210</span>
+                        </div>
+                        <textarea
+                          required
+                          className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 font-medium text-sm text-slate-800 placeholder-slate-400 h-28 resize-none transition-all leading-relaxed shadow-sm"
+                          value={formData.tujuan}
+                          onChange={(e) => setFormData({ ...formData, tujuan: e.target.value })}
+                          placeholder="Tujuan spesifik pemeriksaan — apa yang ingin dicapai..."
+                        />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest ml-1">Ruang lingkup <span className="text-rose-500">*</span></label>
+                          <span className="text-[9px] text-blue-600 border border-blue-200 bg-blue-50 px-2.5 py-0.5 rounded-full font-bold ml-auto uppercase tracking-wide">IIA Std. 2220</span>
+                        </div>
+                        <textarea
+                          required
+                          className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 font-medium text-sm text-slate-800 placeholder-slate-400 h-28 resize-none transition-all leading-relaxed shadow-sm"
+                          value={formData.ruang_lingkup}
+                          onChange={(e) => setFormData({ ...formData, ruang_lingkup: e.target.value })}
+                          placeholder="Batasan dan cakupan audit — proses, sistem, periode..."
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                      <div className="space-y-2">
+                        <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest ml-1">Sasaran / target <span className="text-rose-500">*</span></label>
+                        <textarea
+                          required
+                          className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 font-medium text-sm text-slate-800 placeholder-slate-400 h-28 resize-none transition-all leading-relaxed shadow-sm"
+                          value={formData.sasaran}
+                          onChange={(e) => setFormData({ ...formData, sasaran: e.target.value })}
+                          placeholder="Target yang ingin dicapai dari audit ini..."
+                        />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest ml-1">Area risiko yang diaudit</label>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[9px] text-blue-600 border border-blue-200 bg-blue-50 px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wide">IIA Std. 2201</span>
+                          </div>
+                        </div>
+                        <textarea
+                          className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 font-medium text-sm text-slate-800 placeholder-slate-400 h-28 resize-none transition-all leading-relaxed shadow-sm"
+                          value={formData.area_risiko}
+                          onChange={(e) => setFormData({ ...formData, area_risiko: e.target.value })}
+                          placeholder="Risiko utama yang menjadi fokus — operasional, keuangan, kepatuhan, IT..."
+                        />
+                        <span className="text-[10px] text-slate-400 font-medium block leading-snug mt-1">
+                          Risk-based audit approach — IIA Standard 2201
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
-                {/* --- LINGKUP & METODOLOGI --- */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Objek Audit</label>
-                    <input
-                      className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 font-semibold text-sm transition-all"
-                      value={formData.objek_audit}
-                      onChange={(e) => setFormData({ ...formData, objek_audit: e.target.value })}
-                    />
+                {/* --- WAKTU & TEMPAT --- */}
+                <div>
+                  <div className="bg-blue-50/80 border border-blue-100/50 text-blue-800 font-black text-[10px] uppercase tracking-widest px-4 py-2.5 rounded-xl mb-4 flex items-center gap-2 shadow-sm">
+                    <BsClockHistory size={14} className="text-blue-600" /> WAKTU & TEMPAT
                   </div>
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Ruang Lingkup</label>
-                    <input
-                      className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 font-semibold text-sm transition-all"
-                      value={formData.ruang_lingkup}
-                      onChange={(e) => setFormData({ ...formData, ruang_lingkup: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Metodologi</label>
-                    <input
-                      className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 font-semibold text-sm transition-all"
-                      value={formData.metodologi}
-                      onChange={(e) => setFormData({ ...formData, metodologi: e.target.value })}
-                    />
-                  </div>
-                </div>
 
-                {/* --- WAKTU & LOKASI --- */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5 bg-slate-50 p-5 rounded-2xl border border-slate-100">
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1.5"><BsClockHistory size={12}/> Periode Pelaksanaan</label>
-                    <div className="flex items-center gap-2">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div className="space-y-2">
+                      <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest ml-1 gap-1.5">
+                        Periode pelaksanaan <span className="text-rose-500">*</span>
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="date"
+                          required
+                          className="flex-1 p-3.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 font-semibold text-sm text-slate-800 transition-all cursor-text shadow-sm"
+                          value={formData.tgl_mulai}
+                          onChange={(e) => setFormData({ ...formData, tgl_mulai: e.target.value })}
+                        />
+                        <span className="text-slate-400 font-bold text-xs uppercase px-1">s/d</span>
+                        <input
+                          type="date"
+                          required
+                          className="flex-1 p-3.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 font-semibold text-sm text-slate-800 transition-all cursor-text shadow-sm"
+                          value={formData.tgl_selesai}
+                          onChange={(e) => setFormData({ ...formData, tgl_selesai: e.target.value })}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest ml-1">Lokasi pelaksanaan</label>
                       <input
-                        type="date"
-                        required
-                        className="flex-1 p-3.5 bg-white border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 font-semibold text-sm transition-all cursor-text"
-                        value={formData.tgl_mulai}
-                        onChange={(e) => setFormData({ ...formData, tgl_mulai: e.target.value })}
-                      />
-                      <span className="text-slate-400 font-bold text-xs uppercase">s/d</span>
-                      <input
-                        type="date"
-                        required
-                        className="flex-1 p-3.5 bg-white border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 font-semibold text-sm transition-all cursor-text"
-                        value={formData.tgl_selesai}
-                        onChange={(e) => setFormData({ ...formData, tgl_selesai: e.target.value })}
+                        className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 font-semibold text-sm text-slate-800 placeholder-slate-400 transition-all shadow-sm"
+                        value={formData.lokasi}
+                        onChange={(e) => setFormData({ ...formData, lokasi: e.target.value })}
+                        placeholder="Kantor Pusat Lt. 3..."
                       />
                     </div>
                   </div>
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Lokasi Pelaksanaan</label>
-                    <input
-                      className="w-full p-3.5 bg-white border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 font-semibold text-sm transition-all"
-                      value={formData.lokasi}
-                      onChange={(e) => setFormData({ ...formData, lokasi: e.target.value })}
-                      placeholder="Contoh: Kantor Pusat Lt. 3"
-                    />
+                </div>
+
+                {/* --- ANGGARAN --- */}
+                <div>
+                  <div className="bg-blue-50/80 border border-blue-100/50 text-blue-800 font-black text-[10px] uppercase tracking-widest px-4 py-2.5 rounded-xl mb-4 flex items-center gap-2 shadow-sm">
+                    <BsWallet2 size={14} className="text-blue-600" /> ANGGARAN
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest ml-1">Estimasi anggaran (IDR)</label>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[9px] text-blue-600 border border-blue-200 bg-blue-50 px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wide">IIA Std. 2230</span>
+                        </div>
+                      </div>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 font-bold text-sm text-slate-800 transition-all shadow-sm"
+                          value={formData.estimasi_anggaran ? formatRupiah(formData.estimasi_anggaran) : ""}
+                          onChange={(e) => {
+                            const raw = e.target.value.replace(/\D/g, "");
+                            setFormData({ ...formData, estimasi_anggaran: raw });
+                          }}
+                          placeholder="Rp 0"
+                        />
+                      </div>
+                      <span className="text-[10px] text-slate-400 font-medium block leading-snug mt-1">
+                        Resource allocation — IIA Standard 2230
+                      </span>
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest ml-1">Sumber anggaran</label>
+                        <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">opsional</span>
+                      </div>
+                      <select
+                        className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 font-semibold text-sm text-slate-800 transition-all cursor-pointer shadow-sm"
+                        value={formData.sumber_anggaran}
+                        onChange={(e) => setFormData({ ...formData, sumber_anggaran: e.target.value })}
+                      >
+                        <option value="">-- Pilih --</option>
+                        <option value="APBN">APBN</option>
+                        <option value="APBD">APBD</option>
+                        <option value="Internal">Anggaran Internal</option>
+                        <option value="Lainnya">Lainnya</option>
+                      </select>
+                      <span className="text-[10px] text-slate-400 font-medium block leading-snug mt-1">
+                        APBN / APBD / anggaran internal / dll
+                      </span>
+                    </div>
                   </div>
                 </div>
 
                 {/* --- STRUKTUR TIM --- */}
-                <div className="border-t border-slate-100 pt-6">
-                  <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest mb-4 flex items-center gap-2">
-                     <BsCheck2Circle className="text-emerald-500" size={18}/> Struktur Personil
-                  </h3>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-5">
-                    <PersonilDropdown
-                      label="Koordinator"
-                      value={formData.koordinator}
-                      list={usersList}
-                      onChange={(val) => setFormData({ ...formData, koordinator: val })}
-                    />
-                    <PersonilDropdown
-                      label="Pengendali Teknis"
-                      value={formData.pengendali_teknis}
-                      list={usersList}
-                      onChange={(val) => setFormData({ ...formData, pengendali_teknis: val })}
-                    />
-                    <PersonilDropdown
-                      label="Ketua Tim"
-                      value={formData.ketua}
-                      list={usersList}
-                      onChange={(val) => setFormData({ ...formData, ketua: val })}
-                    />
+                <div>
+                  <div className="bg-blue-50/80 border border-blue-100/50 text-blue-800 font-black text-[10px] uppercase tracking-widest px-4 py-2.5 rounded-xl mb-4 flex items-center gap-2 shadow-sm">
+                    <BsCheck2Circle className="text-emerald-600" size={16} /> STRUKTUR PERSONIL — IIA Std. 2230 Resource Allocation
                   </div>
+                  
+                  <div className="space-y-5">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                      <div className="space-y-2">
+                        <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-widest ml-1">
+                          Koordinator <span className="text-rose-500">*</span>
+                        </label>
+                        <select
+                          required
+                          className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 font-semibold text-sm text-slate-800 transition-all cursor-pointer shadow-sm"
+                          value={formData.koordinator}
+                          onChange={(e) => setFormData({ ...formData, koordinator: e.target.value })}
+                        >
+                          <option value="">-- Pilih --</option>
+                          {koordinatorOptions.map((u) => (
+                            <option key={u.id} value={u.name}>
+                              {u.name} ({u.roles?.[0]?.name || "N/A"})
+                            </option>
+                          ))}
+                        </select>
+                      </div>
 
-                  <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
-                    <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3 ml-1">
-                      Anggota Tim / Auditor
-                    </label>
-                    
-                    <div className="space-y-3">
-                      {formData.auditor.map((aud, index) => (
-                        <div key={index} className="flex items-center gap-3">
-                          <div className="w-8 h-10 bg-white border border-slate-200 rounded-lg flex items-center justify-center text-xs font-black text-slate-400 shrink-0 shadow-sm">
-                            {index + 1}
-                          </div>
-                          <select
-                            className="flex-1 p-3 bg-white border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 font-semibold text-sm transition-all shadow-sm"
-                            value={aud}
-                            onChange={(e) => handleAuditorChange(index, e.target.value)}
-                          >
-                            <option value="">-- Pilih Auditor --</option>
-                            {usersList.map((user) => (
-                              <option key={user.id} value={user.name}>
-                                {user.name} ({user.roles?.[0]?.name || "N/A"})
-                              </option>
-                            ))}
-                          </select>
-                          <button
-                            type="button"
-                            onClick={() => removeAuditor(index)}
-                            className="w-10 h-10 bg-red-50 hover:bg-red-500 text-red-500 hover:text-white rounded-lg flex items-center justify-center transition-colors shrink-0 border border-red-100 shadow-sm"
-                            title="Hapus Auditor"
-                          >
-                            <BsTrash size={16} />
-                          </button>
-                        </div>
-                      ))}
+                      <div className="space-y-2">
+                        <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-widest ml-1">
+                          Pengendali Teknis <span className="text-rose-500">*</span>
+                        </label>
+                        <select
+                          required
+                          className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 font-semibold text-sm text-slate-800 transition-all cursor-pointer shadow-sm"
+                          value={formData.pengendali_teknis}
+                          onChange={(e) => setFormData({ ...formData, pengendali_teknis: e.target.value })}
+                        >
+                          <option value="">-- Pilih --</option>
+                          {pengendaliTeknisOptions.map((u) => (
+                            <option key={u.id} value={u.name}>
+                              {u.name} ({u.roles?.[0]?.name || "N/A"})
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-widest ml-1">
+                          Ketua Tim <span className="text-rose-500">*</span>
+                        </label>
+                        <select
+                          required
+                          className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 font-semibold text-sm text-slate-800 transition-all cursor-pointer shadow-sm"
+                          value={formData.ketua}
+                          onChange={(e) => setFormData({ ...formData, ketua: e.target.value })}
+                        >
+                          <option value="">-- Pilih --</option>
+                          {ketuaTimOptions.map((u) => (
+                            <option key={u.id} value={u.name}>
+                              {u.name} ({u.roles?.[0]?.name || "N/A"})
+                            </option>
+                          ))}
+                        </select>
+                      </div>
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={addAuditor}
-                      className="mt-4 px-4 py-2 bg-white border border-blue-200 text-blue-600 rounded-lg text-xs font-bold uppercase tracking-wider hover:bg-blue-50 transition-colors shadow-sm flex items-center gap-1.5"
-                    >
-                      <BsPlusLg size={12}/> Tambah Auditor Baru
-                    </button>
+                    <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100">
+                      <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-4 ml-1">
+                        Anggota Tim / Auditor
+                      </label>
+                      
+                      <div className="space-y-3.5">
+                        {formData.auditor.map((aud, index) => (
+                          <div key={index} className="flex items-center gap-3.5 animate-in slide-in-from-bottom-2 duration-150">
+                            <div className="w-10 h-11 bg-white border border-slate-200 rounded-xl flex items-center justify-center text-xs font-black text-slate-400 shrink-0 shadow-sm">
+                              {index + 1}
+                            </div>
+                            <select
+                              className="flex-1 p-3 bg-white border border-slate-200 rounded-xl outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 font-semibold text-sm text-slate-800 transition-all shadow-sm cursor-pointer"
+                              value={aud}
+                              onChange={(e) => handleAuditorChange(index, e.target.value)}
+                            >
+                              <option value="">-- Pilih auditor (hanya tim terdaftar) --</option>
+                              {getAuditorOptionsForIndex(aud).map((user) => (
+                                <option key={user.id} value={user.name}>
+                                  {user.name} ({user.roles?.[0]?.name || "N/A"})
+                                </option>
+                              ))}
+                            </select>
+                            <button
+                              type="button"
+                              onClick={() => removeAuditor(index)}
+                              className="w-11 h-11 bg-rose-550 bg-rose-50 hover:bg-rose-500 text-rose-500 hover:text-white rounded-xl flex items-center justify-center transition-all shrink-0 border border-rose-100 shadow-sm active:scale-95"
+                              title="Hapus Auditor"
+                            >
+                              <BsTrash size={16} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={addAuditor}
+                        className="mt-4 px-4 py-2.5 bg-white text-slate-700 border border-slate-200 rounded-lg text-xs font-bold uppercase tracking-wider hover:bg-slate-50 transition-colors shadow-sm flex items-center gap-1.5"
+                      >
+                        <BsPlusLg size={12}/> Tambah Auditor Baru
+                      </button>
+                    </div>
                   </div>
                 </div>
 
-                {/* --- KETERANGAN --- */}
-                <div className="space-y-1.5 pt-2">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Keterangan Tambahan</label>
-                  <input
-                    className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 font-semibold text-sm transition-all"
-                    value={formData.keterangan}
-                    onChange={(e) => setFormData({ ...formData, keterangan: e.target.value })}
-                    placeholder="Opsional..."
-                  />
+                {/* --- INFORMASI TAMBAHAN --- */}
+                <div>
+                  <div className="bg-blue-50/80 border border-blue-100/50 text-blue-800 font-black text-[10px] uppercase tracking-widest px-4 py-2.5 rounded-xl mb-4 flex items-center gap-2 shadow-sm">
+                    <BsFileText size={14} className="text-blue-600" /> INFORMASI TAMBAHAN
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest ml-1">Keterangan tambahan</label>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">opsional</span>
+                        </div>
+                      </div>
+                      <textarea
+                        className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 font-semibold text-sm text-slate-800 placeholder-slate-400 h-24 resize-none transition-all shadow-sm"
+                        value={formData.keterangan}
+                        onChange={(e) => setFormData({ ...formData, keterangan: e.target.value })}
+                        placeholder="Catatan atau informasi lain yang perlu diketahui tim..."
+                      />
+                    </div>
+
+                    {/* --- REFERENSI STANDAR --- */}
+                    <div className="bg-blue-50/40 border border-blue-100 p-5 rounded-2xl text-xs text-slate-500 space-y-3 mt-4 leading-relaxed">
+                      <div className="font-bold text-slate-800 uppercase tracking-wider text-[11px] border-b border-blue-100 pb-1.5 flex items-center gap-1.5">
+                         Referensi standar yang dipakai
+                      </div>
+                      <ul className="space-y-2">
+                        <li className="flex items-start gap-2.5">
+                          <div className="w-1.5 h-1.5 rounded-full bg-blue-500 mt-1.5 shrink-0"></div>
+                          <span>
+                            <strong className="text-slate-700 font-bold">IIA Global Standards 2024</strong> — Std. 2200 (Engagement Planning), 2201 (Risk Consideration), 2210 (Objectives), 2220 (Scope), 2230 (Resource Allocation)
+                          </span>
+                        </li>
+                        <li className="flex items-start gap-2.5">
+                          <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 mt-1.5 shrink-0"></div>
+                          <span>
+                            <strong className="text-slate-700 font-bold">SPAI-AAIPI</strong> — Standar Audit Intern Pemerintah Indonesia: Standar Perencanaan Audit, Penugasan, dan Dokumentasi
+                          </span>
+                        </li>
+                        <li className="flex items-start gap-2.5">
+                          <div className="w-1.5 h-1.5 rounded-full bg-purple-500 mt-1.5 shrink-0"></div>
+                          <span>
+                            <strong className="text-slate-700 font-bold">IPPF 2017</strong> — International Professional Practices Framework, IIA: Standar Kinerja 2000-2600
+                          </span>
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
                 </div>
 
                 {/* FOOTER BUTTONS */}
-                <div className="flex gap-3 pt-6 mt-4 border-t border-slate-100 shrink-0">
+                <div className="flex gap-4 pt-6 mt-4 border-t border-slate-100 shrink-0">
                   <button
                     type="button"
                     onClick={() => setShowModal(false)}
-                    className="flex-1 py-4 text-slate-500 bg-red-100 hover:bg-red-200 rounded-xl font-bold transition-all text-sm uppercase tracking-wider"
+                    className="flex-1 py-4 text-slate-500 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl font-bold transition-all text-sm uppercase tracking-wider active:scale-[0.98]"
                   >
                     Batal
                   </button>
                   <button
                     type="submit"
-                    className="flex-2 w-[60%] py-4 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition-all shadow-xl active:scale-[0.98] uppercase text-xs tracking-widest flex items-center justify-center gap-2"
+                    className="flex-2 w-[60%] py-4 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all shadow-xl shadow-blue-100 active:scale-[0.98] uppercase text-xs tracking-widest flex items-center justify-center gap-2"
                   >
                     <BsCheckCircleFill size={18} /> {isEdit ? "Update Data Assurance" : "Simpan Data Assurance"}
                   </button>

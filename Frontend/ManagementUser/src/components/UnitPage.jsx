@@ -10,7 +10,7 @@ import {
 import DeleteConfirmationModal from "../components/common/DeleteModal";
 import { notifySuccess, notifyError } from "../../../Shared/utils/notifier";
 import apiClient from "../../../Shared/api/apiClient";
-// import apiClient from "../../../Shared/api/axios";
+import useRealTime from "../hooks/useRealTime";
 
 const UnitPage = () => {
     const [units, setUnits] = useState([]);
@@ -26,8 +26,14 @@ const UnitPage = () => {
         fetchUnits();
     }, []);
 
-const fetchUnits = async () => {
-  setIsLoading(true);
+    // Sinkronisasi Real-Time untuk Unit
+    useRealTime("units", () => {
+        console.log("⚡ RealTime event: updating Units data silently...");
+        fetchUnits(true);
+    });
+
+const fetchUnits = async (silent = false) => {
+  if (!silent) setIsLoading(true);
   try {
     const res = await apiClient.get("/api/units");
     const dataResult = res.data?.data || [];

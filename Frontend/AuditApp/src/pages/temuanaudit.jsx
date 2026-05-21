@@ -117,7 +117,8 @@ const AuditFindings = () => {
   };
 
   return (
-    <div className="p-6 animate-in fade-in duration-300">
+    <div className="px-4 sm:px-8 py-4 font-sans">
+      <div className="w-full animate-in fade-in duration-300">
       {/* Header */}
       <div className="flex justify-between items-end mb-8">
         <div>
@@ -240,6 +241,7 @@ const AuditFindings = () => {
             </tbody>
           </table>
         </div>
+      </div>
       </div>
     </div>
   );

@@ -117,7 +117,8 @@ const PeriodeAudit = () => {
   const activePeriod = data.find(d => d.is_active);
 
   return (
-    <div className="p-6">
+    <div className="px-4 sm:px-8 py-4 font-sans">
+      <div className="w-full">
       {/* ── HEADER ── */}
       <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
@@ -392,6 +393,7 @@ const PeriodeAudit = () => {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 };

@@ -142,7 +142,7 @@ const DocumentRepository = () => {
                   {previewFile.title || previewFile.file_name}
                 </h3>
                 <div className="flex items-center gap-2 mt-0.5">
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${CATEGORY_COLORS[previewFile.category] || 'bg-slate-100 text-slate-500 border-slate-200'}`}>
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${THEME_STYLES[CATEGORY_THEMES[previewFile.category]?.color] || THEME_STYLES.slate}`}>
                     {previewFile.category}
                   </span>
                   <span className="text-[10px] text-slate-400 font-medium">{previewFile.sub_category}</span>
@@ -256,7 +256,8 @@ const DocumentRepository = () => {
   // RENDER UTAMA
   // =====================================================================
   return (
-    <div className="p-6">
+    <div className="px-4 sm:px-8 py-4 font-sans">
+      <div className="w-full">
       {/* ---- HEADER ---- */}
       <div className="mb-8">
         <div className="flex items-start justify-between gap-4 flex-wrap">
@@ -459,6 +460,7 @@ const DocumentRepository = () => {
 
       {/* ---- PREVIEW MODAL ---- */}
       {renderPreview()}
+      </div>
     </div>
   );
 };

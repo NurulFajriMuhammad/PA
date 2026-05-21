@@ -39,14 +39,18 @@ class BiayaController extends Controller
             'kka_id' => 'required|exists:perencanaan_kkas,id',
             'nama' => 'required|string',
             'jenis_akomodasi' => 'required|string',
-            'nilai_realisasi' => 'required|numeric'
+            'nilai_realisasi' => 'required|numeric',
+            'pelaksana' => 'nullable|string',
+            'tgl_realisasi' => 'nullable|string'
         ]);
 
         $data = Biaya::create([
             'kka_id' => $request->kka_id,
             'nama' => $request->nama,
             'jenis_akomodasi' => $request->jenis_akomodasi,
-            'nilai_realisasi' => $request->nilai_realisasi
+            'nilai_realisasi' => $request->nilai_realisasi,
+            'pelaksana' => $request->pelaksana,
+            'tgl_realisasi' => $request->tgl_realisasi
         ]);
 
         return response()->json([
@@ -65,7 +69,9 @@ class BiayaController extends Controller
         $data->update([
             'nama' => $request->nama,
             'jenis_akomodasi' => $request->jenis_akomodasi,
-            'nilai_realisasi' => $request->nilai_realisasi
+            'nilai_realisasi' => $request->nilai_realisasi,
+            'pelaksana' => $request->pelaksana,
+            'tgl_realisasi' => $request->tgl_realisasi
         ]);
 
         return response()->json([

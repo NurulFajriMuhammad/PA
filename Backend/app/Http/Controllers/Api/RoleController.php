@@ -48,6 +48,10 @@ class RoleController extends Controller
 
             $role->load('permissions');
 
+            broadcast(new \App\Events\EntityUpdated('roles', 'created', [
+                'id' => $role->id
+            ]))->toOthers();
+
             return response()->json([
                 'success' => true,
                 'message' => 'Role created successfully',
@@ -83,6 +87,10 @@ class RoleController extends Controller
 
             $role->load('permissions');
 
+            broadcast(new \App\Events\EntityUpdated('roles', 'updated', [
+                'id' => $role->id
+            ]))->toOthers();
+
             return response()->json([
                 'success' => true,
                 'message' => 'Role updated successfully',
@@ -99,7 +107,13 @@ class RoleController extends Controller
     public function destroy(Role $role)
     {
         try {
+            $roleId = $role->id;
             $role->delete();
+
+            broadcast(new \App\Events\EntityUpdated('roles', 'deleted', [
+                'id' => $roleId
+            ]))->toOthers();
+
             return response()->json([
                 'success' => true,
                 'message' => 'Role deleted successfully'

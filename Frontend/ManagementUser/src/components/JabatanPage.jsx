@@ -7,6 +7,7 @@ import {
 import DeleteConfirmationModal from "../components/common/DeleteModal";
 import { notifySuccess, notifyError } from "../../../Shared/utils/notifier";
 import apiClient from "../../../Shared/api/apiClient";
+import useRealTime from "../hooks/useRealTime";
 
 const ITEMS_PER_PAGE = 10;
 
@@ -29,6 +30,13 @@ const JabatanPage = () => {
     fetchUnits();
   }, []);
 
+  // Sinkronisasi Real-Time untuk Jabatan & Unit
+  useRealTime(["jabatans", "units"], () => {
+    console.log("⚡ RealTime event: updating Jabatans & Units silently...");
+    fetchJabatans(true);
+    fetchUnits();
+  });
+
   const fetchUnits = async () => {
     try {
       const res = await apiClient.get("/api/units");
@@ -36,8 +44,8 @@ const JabatanPage = () => {
     } catch (err) { console.error(err); }
   };
 
-  const fetchJabatans = async () => {
-    setIsLoading(true);
+  const fetchJabatans = async (silent = false) => {
+    if (!silent) setIsLoading(true);
     try {
       const res = await apiClient.get("/api/jabatans");
       setJabatans(Array.isArray(res.data) ? res.data : (res.data?.data || []));

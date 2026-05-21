@@ -16,6 +16,7 @@ import ApiRoutePage from "../components/RouteApi/ApiRoutePage.jsx";
 import Header from "../components/Header.jsx";
 import axios from "../../../Shared/api/apiClient.js";
 import JabatanPage from "../components/JabatanPage.jsx";
+import useRealTime from "../hooks/useRealTime";
 
 // Fungsi helper untuk mengambil array data dari respons API
 // Ini menangani format { data: [...] } atau array langsung
@@ -52,7 +53,16 @@ const NavButton = ({
 // MAIN COMPONENT
 // ----------------------------------------
 export default function DashboardApp() {
-  const [currentPage, setCurrentPage] = useState("users");
+  const [currentPageState, setCurrentPageState] = useState(() => {
+    return localStorage.getItem("mgmt_user_current_page") || "users";
+  });
+
+  const setCurrentPage = useCallback((page) => {
+    setCurrentPageState(page);
+    localStorage.setItem("mgmt_user_current_page", page);
+  }, []);
+
+  const currentPage = currentPageState;
   const [users, setUsers] = useState([]);
   const [roles, setRoles] = useState([]);
   const [permissions, setPermissions] = useState([]);
@@ -67,8 +77,8 @@ export default function DashboardApp() {
   // ----------------------------------------
   // FETCH DATA - MENGGUNAKAN PANGGILAN TERPISAH (KRITIS & NON-KRITIS)
   // ----------------------------------------
-  const fetchData = useCallback(async () => {
-    setLoadingData(true);
+  const fetchData = useCallback(async (silent = false) => {
+    if (!silent) setLoadingData(true);
     let criticalDataLoaded = false;
 
     // 1. Panggilan Data Kritis (Users, Roles, Permissions)
@@ -142,6 +152,14 @@ export default function DashboardApp() {
   }, [fetchData]);
 
   // ----------------------------------------
+  // SINKRONISASI REAL-TIME (Users, Roles, API Routes)
+  // ----------------------------------------
+  useRealTime(["users", "roles", "api_routes"], () => {
+    console.log("⚡ RealTime event received: updating Dashboard data seamlessly...");
+    fetchData(true);
+  });
+
+  // ----------------------------------------
   // NOTIFICATION HANDLER (Tidak berubah)
   // ----------------------------------------
   const handleSetNotification = useCallback((notif) => {
@@ -206,13 +224,6 @@ export default function DashboardApp() {
             page="jabatan"
             label="Jabatan"
             icon={BriefcaseIcon}
-            currentPage={currentPage}
-            setCurrentPage={setCurrentPage}
-          />
-          <NavButton
-            page="permissions"
-            label="Izin"
-            icon={KeyIcon}
             currentPage={currentPage}
             setCurrentPage={setCurrentPage}
           />

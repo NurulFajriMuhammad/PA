@@ -12,7 +12,9 @@ class Biaya extends Model
         'kka_id',
         'nama',
         'jenis_akomodasi',
-        'nilai_realisasi'
+        'nilai_realisasi',
+        'pelaksana',
+        'tgl_realisasi'
     ];
 
     public function kka()

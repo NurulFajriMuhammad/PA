@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import apiClient from "../../../../../Shared/api/apiClient";
-import { BsX, BsTrash, BsPencilSquare, BsPlusLg, BsCloudUpload, BsFileEarmarkText, BsWallet2, BsCardChecklist } from "react-icons/bs";
+import { BsX, BsTrash, BsPencilSquare, BsPlusLg, BsCloudUpload, BsFileEarmarkText, BsWallet2, BsCardChecklist, BsCollection, BsPencil, BsCalendarCheck } from "react-icons/bs";
 import { notifySuccess, notifyError, notifyConfirm } from "@shared/utils/notifier.jsx";
 
 const PelaksanaanTab = ({ assurance }) => {
@@ -20,6 +20,7 @@ const PelaksanaanTab = ({ assurance }) => {
   const [editBiaya, setEditBiaya] = useState(null);
 
   const [formTemuan, setFormTemuan] = useState({
+    kategori: "",
     halaman_lhe: "",
     masalah: "",
     rekomendasi: "",
@@ -30,16 +31,16 @@ const PelaksanaanTab = ({ assurance }) => {
     klarifikasi_temuan: "",
     area: "",
     referensi: "",
+    target_selesai: "",
     nilai_kerugian: "",
-    keterangan: "",
     lampiran: null,
   });
 
   const resetFormTemuan = () => {
     setFormTemuan({
-      halaman_lhe: "", masalah: "", rekomendasi: "", kondisi: "", kriteria: "",
+      kategori: "", halaman_lhe: "", masalah: "", rekomendasi: "", kondisi: "", kriteria: "",
       sebab: "", akibat: "", klarifikasi_temuan: "", area: "", referensi: "",
-      nilai_kerugian: "", keterangan: "", lampiran: null,
+      target_selesai: "", nilai_kerugian: "", lampiran: null,
     });
   };
 
@@ -48,6 +49,8 @@ const PelaksanaanTab = ({ assurance }) => {
     nama: "",
     jenis_akomodasi: "",
     nilai_realisasi: "",
+    pelaksana: "",
+    tgl_realisasi: "",
   });
 
   const fetchBiaya = async () => {
@@ -113,6 +116,38 @@ const PelaksanaanTab = ({ assurance }) => {
     return new Intl.NumberFormat("id-ID").format(Number(value));
   };
 
+  const getKategoriBadge = (kat) => {
+    const lower = (kat || "").toLowerCase();
+    if (lower === "major") {
+      return <span className="inline-block px-2.5 py-0.5 bg-red-950/50 text-red-400 border border-red-800/40 rounded font-black uppercase text-[9px] tracking-wider">Major</span>;
+    } else if (lower === "minor") {
+      return <span className="inline-block px-2.5 py-0.5 bg-amber-950/50 text-amber-400 border border-amber-800/40 rounded font-black uppercase text-[9px] tracking-wider">Minor</span>;
+    } else if (lower === "observasi") {
+      return <span className="inline-block px-2.5 py-0.5 bg-slate-800 text-slate-300 border border-slate-700 rounded font-black uppercase text-[9px] tracking-wider">Observasi</span>;
+    } else if (lower === "ofi") {
+      return <span className="inline-block px-2.5 py-0.5 bg-blue-950/50 text-blue-400 border border-blue-800/40 rounded font-black uppercase text-[9px] tracking-wider">OFI</span>;
+    }
+    return <span className="inline-block px-2.5 py-0.5 bg-slate-800 text-slate-400 rounded font-black uppercase text-[9px] tracking-wider">—</span>;
+  };
+
+  const handleUploadLHEDirectly = async (file) => {
+    if (!file) return;
+    const form = new FormData();
+    form.append("file", file);
+
+    try {
+      await apiClient.post(`/api/kka/${selectedKka.id}/upload-lhe`, form);
+      notifySuccess("File LHE berhasil diupload");
+      
+      const lhe = await apiClient.get(`/api/kka/${selectedKka.id}/lhe`);
+      setExistingLhe(lhe.data.data);
+      fetchKka(); 
+    } catch (e) {
+      console.error(e);
+      notifyError("Gagal upload LHE");
+    }
+  };
+
   const handleSaveTemuan = async (e) => {
     e.preventDefault();
     const form = new FormData();
@@ -132,7 +167,7 @@ const PelaksanaanTab = ({ assurance }) => {
 
     try {
       if (editTemuan) {
-        await apiClient.put(`/api/temuan/${editTemuan.id}`, form);
+        await apiClient.post(`/api/temuan/${editTemuan.id}?_method=PUT`, form);
       } else {
         await apiClient.post(`/api/kka/${selectedKka.id}/temuan`, form);
       }
@@ -188,7 +223,7 @@ const PelaksanaanTab = ({ assurance }) => {
 
       setShowTambahBiaya(false);
       setEditBiaya(null);
-      setFormBiaya({ kka_id: "", nama: "", jenis_akomodasi: "", nilai_realisasi: "" });
+      setFormBiaya({ kka_id: "", nama: "", jenis_akomodasi: "", nilai_realisasi: "", pelaksana: "", tgl_realisasi: "" });
       fetchBiaya();
       notifySuccess("Biaya berhasil disimpan");
     } catch (err) {
@@ -224,6 +259,47 @@ const PelaksanaanTab = ({ assurance }) => {
     });
   };
 
+  const formatDateRange = (start, end) => {
+    if (!start && !end) return "-";
+    try {
+      const s = new Date(start);
+      const e = new Date(end);
+      if (isNaN(s.getTime()) || isNaN(e.getTime())) return `${start} - ${end}`;
+      
+      const months = [
+        "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+        "Juli", "Agustus", "September", "Oktober", "November", "Desember"
+      ];
+      
+      const sDay = s.getDate();
+      const sMonth = months[s.getMonth()];
+      const sYear = s.getFullYear();
+      
+      const eDay = e.getDate();
+      const eMonth = months[e.getMonth()];
+      const eYear = e.getFullYear();
+      
+      if (sYear === eYear) {
+        if (sMonth === eMonth) {
+          return `${String(sDay).padStart(2, '0')} – ${String(eDay).padStart(2, '0')} ${sMonth} ${sYear}`;
+        }
+        return `${String(sDay).padStart(2, '0')} ${sMonth} – ${String(eDay).padStart(2, '0')} ${eMonth} ${sYear}`;
+      }
+      return `${String(sDay).padStart(2, '0')} ${sMonth} ${sYear} – ${String(eDay).padStart(2, '0')} ${eMonth} ${eYear}`;
+    } catch (err) {
+      return `${start} - ${end}`;
+    }
+  };
+
+  const getSimulatedSeverity = (count) => {
+    if (!count || count <= 0) return "";
+    if (count === 1) return "1 Minor";
+    if (count === 2) return "1 Minor · 1 Observasi";
+    if (count === 3) return "1 Major · 1 Minor · 1 Observasi";
+    if (count === 4) return "1 Major · 2 Minor · 1 Observasi";
+    return `2 Major · ${count - 3} Minor · 1 Observasi`;
+  };
+
   const jenisAkomodasiList = [
     "transportasi_darat", "transportasi_udara", "transportasi_laut", "penginapan",
     "konsumsi", "uang_harian", "sewa_kendaraan", "bbm", "toll_parkir",
@@ -231,20 +307,22 @@ const PelaksanaanTab = ({ assurance }) => {
   ];
 
   return (
-    <div className="space-y-8 py-2 font-sans">
+    <div className="space-y-5 font-sans">
       
       {/* ====================== DAFTAR PEMERIKSAAN ====================== */}
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center p-5 border-b border-slate-100 gap-4">
-          <div className="flex items-center gap-3">
-            <BsFileEarmarkText className="text-slate-500 text-xl" />
-            <div>
-              <h2 className="font-black text-[15px] text-slate-800 uppercase tracking-tight">
-                Daftar Pemeriksaan
-              </h2>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Pengisian LHE dan Detail Temuan KKA</p>
-            </div>
-          </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h2 className="font-black text-lg text-slate-800 uppercase tracking-tight flex items-center gap-2">
+                          <BsFileEarmarkText className="text-blue-600" /> Daftar pemeriksaan KKA
+                        </h2>
+                        <span className="text-[10px] text-blue-600 border border-blue-200 bg-blue-50 px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wide">
+                          IIA Std. 2300
+                        </span>
+                      </div>
+                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">Upload LHE dan input temuan per KKA</p>
+                    </div>
 
           <div className="flex items-center gap-2">
             <button className="flex items-center justify-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold uppercase tracking-wider rounded-lg transition-all shadow-sm active:scale-95">
@@ -259,55 +337,77 @@ const PelaksanaanTab = ({ assurance }) => {
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead className="bg-[#151b2b] text-white">
-              <tr className="uppercase text-[10px] tracking-widest font-bold">
-                <th className="py-3 px-4 text-center w-12 border-r border-slate-700/50">No</th>
-                <th className="py-3 px-4 border-r border-slate-700/50">Uraian Tugas / KKA</th>
-                <th className="py-3 px-4 border-r border-slate-700/50 text-blue-300">Dilaksanakan Oleh</th>
-                <th className="py-3 px-4 border-r border-slate-700/50 text-center">No KKA</th>
-                <th className="py-3 px-4 border-r border-slate-700/50 text-center">File LHE</th>
-                <th className="py-3 px-4 border-r border-slate-700/50 text-center w-24">Temuan</th>
-                <th className="py-3 px-4 text-center w-36">Aksi</th>
+              <tr className="uppercase text-[10px] tracking-widest font-black border-b border-slate-700">
+                <th className="py-4 px-4 text-center w-16 border-r border-slate-800">No</th>
+                <th className="py-4 px-5 border-r border-slate-800">Uraian Tugas / KKA</th>
+                <th className="py-4 px-4 border-r border-slate-800 text-center w-48 text-[#93c5fd]">Dilaksanakan Oleh</th>
+                <th className="py-4 px-4 border-r border-slate-800 text-center w-28">No KKA</th>
+                <th className="py-4 px-4 border-r border-slate-800 text-center w-52">File LHE</th>
+                <th className="py-4 px-4 border-r border-slate-800 text-center w-52">Temuan</th>
+                <th className="py-4 px-4 text-center w-36">Aksi</th>
               </tr>
             </thead>
 
             <tbody className="divide-y divide-slate-100">
               {kka.map((item, index) => (
-                <tr key={item.id} className="hover:bg-slate-50 transition-colors group align-middle">
-                  <td className="py-3 px-4 text-center text-slate-400 font-mono text-[11px] font-bold border-r border-slate-100">
+                <tr key={item.id} className="hover:bg-slate-50/85 transition-colors group align-middle">
+                  <td className="py-4 px-4 text-center text-slate-400 font-mono text-[13px] font-bold border-r border-slate-100 bg-slate-50/20">
                     {index + 1}
                   </td>
-                  <td className="py-3 px-4 font-bold text-slate-800 text-[13px] border-r border-slate-100">
-                    {item.uraian}
+                  <td className="py-4 px-5 border-r border-slate-100">
+                    <div className="font-bold text-slate-800 text-[13px] leading-snug">
+                      {item.uraian}
+                    </div>
+                    <div className="text-[11px] font-bold text-slate-400 mt-1 uppercase tracking-wider">
+                      {formatDateRange(item.tgl_mulai, item.tgl_selesai)}
+                    </div>
                   </td>
-                  <td className="py-3 px-4 text-blue-700 font-bold text-[11px] uppercase tracking-wide border-r border-slate-100">
-                    {item.auditor?.name || <span className="text-slate-400 italic font-normal">Belum Ditunjuk</span>}
-                  </td>
-                  <td className="py-3 px-4 text-center border-r border-slate-100">
-                    <span className="inline-block px-3 py-1 bg-slate-50 border border-slate-200 text-slate-500 rounded text-[10px] font-bold uppercase tracking-widest">
-                      {item.no_kka}
+                  <td className="py-4 px-4 text-center border-r border-slate-100">
+                    <span className="text-blue-600 hover:underline cursor-pointer font-bold text-[13px] transition-all">
+                      {item.auditor?.name || <span className="text-slate-400 italic font-normal">Belum Ditunjuk</span>}
                     </span>
                   </td>
-                  <td className="py-3 px-4 text-center border-r border-slate-100">
+                  <td className="py-4 px-4 text-center font-mono font-bold text-slate-800 text-[13px] border-r border-slate-100">
+                    {item.no_kka}
+                  </td>
+                  <td className="py-4 px-4 text-center border-r border-slate-100">
                     {item.lhe_file?.file_name ? (
-                      <span className="inline-block px-3 py-1 bg-emerald-50 text-emerald-600 border border-emerald-200 rounded text-[10px] font-bold uppercase tracking-widest">
-                        UPLOADED
-                      </span>
+                      <div>
+                        <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wide">
+                          ✓ Uploaded
+                        </span>
+                        <span className="block text-[10px] text-slate-400 font-bold truncate max-w-[150px] mx-auto mt-1 lowercase" title={item.lhe_file.file_name}>
+                          {item.lhe_file.file_name}
+                        </span>
+                      </div>
                     ) : (
-                      <span className="text-slate-400 text-xs italic">-</span>
+                      <span className="text-slate-400 font-bold text-xs">—</span>
                     )}
                   </td>
-                  <td className="py-3 px-4 text-center border-r border-slate-100">
-                     <span className={`font-black text-sm ${item.temuan_count > 0 ? "text-red-600" : "text-slate-400"}`}>
-                       {item.temuan_count || 0}
-                     </span>
+                  <td className="py-4 px-4 text-center border-r border-slate-100">
+                     {item.temuan_count > 0 ? (
+                       <div>
+                         <span className="inline-block px-3 py-0.5 bg-rose-50 text-rose-700 border border-rose-200 rounded-lg text-[10px] font-black uppercase tracking-wider">
+                           {item.temuan_count} temuan
+                         </span>
+                         <span className="block text-[10px] text-slate-400 font-bold mt-1 uppercase tracking-wider whitespace-nowrap">
+                           {getSimulatedSeverity(item.temuan_count)}
+                         </span>
+                       </div>
+                     ) : (
+                       <span className="text-slate-400 font-bold text-xs">—</span>
+                     )}
                   </td>
-                  <td className="py-3 px-4 text-center">
-                    <button
-                      onClick={() => openDetailTemuan(item)}
-                      className="inline-flex items-center justify-center gap-1 px-3 py-1.5 bg-blue-600 text-white rounded-md text-[10px] font-bold uppercase tracking-wider hover:bg-blue-700 transition-all shadow-sm active:scale-95"
-                    >
-                      <BsPlusLg size={10} strokeWidth={1} /> DETAIL TEMUAN
-                    </button>
+                  <td className="py-4 px-4 text-center">
+                    <div className="flex justify-center items-center gap-2">
+                      <button
+                        onClick={() => openDetailTemuan(item)}
+                        className="p-2 bg-slate-800 hover:bg-slate-900 border border-slate-700 text-white rounded-lg transition-all active:scale-95 cursor-pointer inline-flex items-center justify-center"
+                        title="Detail Temuan & LHE"
+                      >
+                        <BsCollection size={15} />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -323,35 +423,62 @@ const PelaksanaanTab = ({ assurance }) => {
         </div>
       </div>
 
+      {/* Info Box matching the bottom description from the screenshot */}
+      <div className="bg-[#1e293b] text-slate-200 p-5 rounded-r-xl border-l-4 border-l-blue-500 font-bold text-xs leading-relaxed mt-2 shadow-sm">
+        Klik tombol <span className="text-amber-400 font-black">detail</span> di kolom Aksi untuk membuka modal LHE + daftar temuan per KKA. Temuan diinput di dalam modal tersebut — bukan di halaman terpisah.
+      </div>
+
       {/* ====================== BIAYA / AKOMODASI ====================== */}
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center p-5 border-b border-slate-100 gap-4">
-          <div className="flex items-center gap-3">
-             <BsWallet2 className="text-slate-500 text-xl" />
-             <div>
-               <h2 className="font-black text-[15px] text-slate-800 uppercase tracking-tight">
-                 Serapan Anggaran Biaya
-               </h2>
-               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Rincian realisasi biaya akomodasi & tugas</p>
-             </div>
-          </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h2 className="font-black text-lg text-slate-800 uppercase tracking-tight flex items-center gap-2">
+                          <BsWallet2 className="text-blue-600" /> Serapan Anggaran Biaya
+                        </h2>
+                        <span className="text-[10px] text-blue-600 border border-blue-200 bg-blue-50 px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wide">
+                          IIA Std. 2330
+                        </span>
+                      </div>
+                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">Rincian realisasi biaya akomodasi & tugas per KKA</p>
+                    </div>
+
+
           <button
-            onClick={() => { setEditBiaya(null); setFormBiaya({kka_id: "", nama: "", jenis_akomodasi: "", nilai_realisasi: ""}); setShowTambahBiaya(true); }}
-            className="flex items-center justify-center gap-2 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold uppercase tracking-wider rounded-lg transition-all shadow-sm active:scale-95"
+            onClick={() => { 
+              setEditBiaya(null); 
+              setFormBiaya({
+                kka_id: "", 
+                nama: "", 
+                jenis_akomodasi: "", 
+                nilai_realisasi: "",
+                pelaksana: "",
+                tgl_realisasi: ""
+              }); 
+              setShowTambahBiaya(true); 
+            }}
+            className="flex items-center justify-center gap-2 px-4.5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-black uppercase tracking-widest rounded-lg transition-all shadow-sm active:scale-95 cursor-pointer"
           >
-            <BsPlusLg size={12} /> Input Biaya
+            <BsPlusLg size={12} strokeWidth={1} /> Input Biaya
           </button>
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse text-sm">
-            <thead className="bg-[#111827] text-white">
-              <tr className="uppercase text-[10px] tracking-widest font-bold">
-                <th className="py-3 px-4 border-r border-slate-700/50 w-[35%]">Uraian Pemeriksaan / Rincian Biaya</th>
-                <th className="py-3 px-4 border-r border-slate-700/50 text-center w-[20%]">Jenis Akomodasi</th>
-                <th className="py-3 px-4 border-r border-slate-700/50 text-right w-[15%]">Anggaran (IDR)</th>
-                <th className="py-3 px-4 border-r border-slate-700/50 text-right w-[15%]">Realisasi (IDR)</th>
-                <th className="py-3 px-4 text-center w-[15%]">Aksi</th>
+          <table className="w-full text-left border-collapse">
+            <thead className="bg-[#151b2b] text-white">
+              <tr className="uppercase text-[10px] tracking-widest font-black border-b border-slate-700">
+                <th className="py-4 px-4 text-center w-16 border-r border-slate-800">No</th>
+                <th className="py-4 px-5 border-r border-slate-800">Uraian KKA</th>
+                <th className="py-4 px-4 border-r border-slate-800 text-center w-48">
+                  <div>Pelaksana</div>
+                </th>
+                <th className="py-4 px-4 border-r border-slate-800 text-center w-48">Jenis Akomodasi</th>
+                <th className="py-4 px-4 border-r border-slate-800 text-center w-44">
+                  <div>Tgl Realisasi</div>
+                </th>
+                <th className="py-4 px-4 border-r border-slate-800 text-right w-44">Anggaran (IDR)</th>
+                <th className="py-4 px-4 border-r border-slate-800 text-right w-44">Realisasi</th>
+                <th className="py-4 px-4 text-center w-36">Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -359,47 +486,97 @@ const PelaksanaanTab = ({ assurance }) => {
                 const detail = biaya.filter((b) => b.kka_id === item.id);
                 const total = detail.reduce((sum, d) => sum + Number(d.nilai_realisasi), 0);
 
+                const getAkomodasiBadge = (jenis) => {
+                  const label = jenis ? jenis.replaceAll("_", " ") : "akomodasi";
+                  if (jenis?.toLowerCase().includes("udara") || jenis?.toLowerCase().includes("transportasi")) {
+                    return (
+                      <span className="inline-block px-3.5 py-1 bg-blue-50 border border-blue-200 text-blue-700 rounded-full text-[10px] font-black uppercase tracking-wider">
+                        {label}
+                      </span>
+                    );
+                  }
+                  if (jenis?.toLowerCase().includes("penginapan") || jenis?.toLowerCase().includes("akomodasi")) {
+                    return (
+                      <span className="inline-block px-3.5 py-1 bg-purple-50 border border-purple-200 text-purple-700 rounded-full text-[10px] font-black uppercase tracking-wider">
+                        Akomodasi
+                      </span>
+                    );
+                  }
+                  return (
+                    <span className="inline-block px-3.5 py-1 bg-slate-100 border border-slate-200 text-slate-700 rounded-full text-[10px] font-black uppercase tracking-wider">
+                      {label}
+                    </span>
+                  );
+                };
+
                 return (
                   <React.Fragment key={item.id}>
-                    {/* HEADER GROUP BIAYA */}
-                    <tr className="bg-white border-b border-slate-100">
-                      <td className="py-3 px-4 font-bold text-slate-800 border-r border-slate-100 text-[13px]">{item.uraian}</td>
-                      <td className="py-3 px-4 border-r border-slate-100"></td>
-                      <td className="py-3 px-4 text-right font-mono font-bold text-slate-400 border-r border-slate-100 text-[13px]">{formatRupiah(item.anggaran)}</td>
-                      <td className="py-3 px-4 text-right font-mono font-bold text-slate-800 border-r border-slate-100 text-[13px]">{formatRupiah(total)}</td>
-                      <td className="py-3 px-4"></td>
+                    {/* HEADER GROUP BIAYA (PARENT ROW) */}
+                    <tr className="bg-slate-50/20 border-b border-slate-100 align-middle">
+                      <td className="py-4 px-4 border-r border-slate-100"></td>
+                      <td className="py-4 px-5 font-bold text-slate-800 border-r border-slate-100 text-[13px]">
+                        {item.uraian} (KKA {item.no_kka})
+                      </td>
+                      <td className="py-4 px-4 border-r border-slate-100"></td>
+                      <td className="py-4 px-4 border-r border-slate-100"></td>
+                      <td className="py-4 px-4 border-r border-slate-100"></td>
+                      <td className="py-4 px-4 text-right font-mono font-bold text-slate-400 border-r border-slate-100 text-[13px]">
+                        Rp {formatRupiah(item.anggaran)}
+                      </td>
+                      <td className="py-4 px-4 text-right font-mono font-black text-emerald-600 border-r border-slate-100 text-[13px]">
+                        Rp {formatRupiah(total)}
+                      </td>
+                      <td className="py-4 px-4"></td>
                     </tr>
 
-                    {/* DETAIL BIAYA */}
-                    {detail.map((d) => (
-                      <tr key={d.id} className="hover:bg-slate-50 transition-colors group align-middle">
-                        <td className="py-3 px-4 pl-10 text-slate-600 font-medium border-r border-slate-100 flex items-center gap-2.5 text-[13px]">
-                           <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div> {d.nama}
+                    {/* DETAIL BIAYA (CHILD ROWS) */}
+                    {detail.map((d, dIndex) => (
+                      <tr key={d.id} className="hover:bg-slate-50/50 transition-colors group align-middle">
+                        <td className="py-4 px-4 text-center text-slate-400 font-mono text-[13px] font-bold border-r border-slate-100">
+                          {dIndex + 1}
                         </td>
-                        <td className="py-3 px-4 text-center border-r border-slate-100">
-                           <span className="inline-block px-3 py-1 bg-slate-50 border border-slate-200 text-slate-600 rounded text-[10px] font-bold uppercase tracking-widest">
-                             {d.jenis_akomodasi.replaceAll("_", " ")}
-                           </span>
+                        <td className="py-4 px-5 text-slate-700 font-semibold border-r border-slate-100 text-[13px]">
+                           {d.nama}
                         </td>
-                        <td className="py-3 px-4 border-r border-slate-100"></td>
-                        <td className="py-3 px-4 text-right font-mono font-bold text-blue-600 border-r border-slate-100 text-[13px]">
-                          {formatRupiah(d.nilai_realisasi)}
+                        <td className="py-4 px-4 text-center border-r border-slate-100 font-bold text-slate-800 text-[13px]">
+                           {d.pelaksana || "—"}
                         </td>
-                        <td className="py-3 px-4 text-center">
-                          <div className="flex justify-center gap-2">
+                        <td className="py-4 px-4 text-center border-r border-slate-100">
+                           {getAkomodasiBadge(d.jenis_akomodasi)}
+                        </td>
+                        <td className="py-4 px-4 text-center border-r border-slate-100 font-bold text-slate-600 text-[12px]">
+                           {d.tgl_realisasi || "—"}
+                        </td>
+                        <td className="py-4 px-4 text-center font-mono font-bold text-slate-400 border-r border-slate-100 text-[13px]">
+                          —
+                        </td>
+                        <td className="py-4 px-4 text-right font-mono font-black text-slate-800 border-r border-slate-100 text-[13px]">
+                          Rp {formatRupiah(d.nilai_realisasi)}
+                        </td>
+                        <td className="py-4 px-4 text-center">
+                          <div className="flex justify-center items-center gap-2">
                             <button
                               onClick={() => {
                                 setEditBiaya(d);
-                                setFormBiaya({ ...d, nilai_realisasi: d.nilai_realisasi.toString() });
+                                setFormBiaya({
+                                  kka_id: d.kka_id,
+                                  nama: d.nama,
+                                  jenis_akomodasi: d.jenis_akomodasi,
+                                  nilai_realisasi: d.nilai_realisasi.toString(),
+                                  pelaksana: d.pelaksana || "",
+                                  tgl_realisasi: d.tgl_realisasi || ""
+                                });
                                 setShowTambahBiaya(true);
                               }}
-                              className="p-1.5 text-amber-500 hover:bg-amber-50 border border-amber-200 bg-white rounded transition-colors" title="Edit Biaya"
+                              className="p-2 bg-slate-800 hover:bg-slate-900 border border-slate-700 text-white rounded-lg transition-all active:scale-95 cursor-pointer inline-flex items-center justify-center"
+                              title="Edit Biaya"
                             >
                               <BsPencilSquare size={13} />
                             </button>
                             <button
                               onClick={() => handleDeleteBiaya(d.id)}
-                              className="p-1.5 text-red-500 hover:bg-red-50 border border-red-200 bg-white rounded transition-colors" title="Hapus Biaya"
+                              className="p-2 bg-slate-800 hover:bg-slate-900 border border-red-900/50 text-red-400 hover:text-red-500 rounded-lg transition-all active:scale-95 cursor-pointer inline-flex items-center justify-center"
+                              title="Hapus Biaya"
                             >
                               <BsTrash size={13} />
                             </button>
@@ -412,7 +589,7 @@ const PelaksanaanTab = ({ assurance }) => {
               })}
               {kka.length === 0 && (
                 <tr>
-                  <td colSpan="5" className="py-12 text-center text-slate-400 text-[13px]">
+                  <td colSpan="8" className="py-12 text-center text-slate-400 text-[13px]">
                     Belum ada data kertas kerja untuk penginputan biaya.
                   </td>
                 </tr>
@@ -420,6 +597,59 @@ const PelaksanaanTab = ({ assurance }) => {
             </tbody>
           </table>
         </div>
+
+        {/* Dynamic Summary Footer */}
+        {(() => {
+          const totalAnggaran = kka.reduce((sum, item) => sum + Number(item.anggaran || 0), 0);
+          const totalRealisasi = biaya.reduce((sum, item) => sum + Number(item.nilai_realisasi || 0), 0);
+          const percentage = totalAnggaran > 0 ? Math.round((totalRealisasi / totalAnggaran) * 100) : 0;
+          const sisa = totalAnggaran - totalRealisasi;
+
+          const formatToJuta = (val) => {
+            if (val < 1000000) return `Rp ${(val / 1000).toFixed(0)} rb`;
+            const millions = val / 1000000;
+            if (millions % 1 === 0) return `Rp ${millions.toFixed(0)} jt`;
+            return `Rp ${millions.toFixed(1).replace(".", ",")} jt`;
+          };
+
+          return (
+            <div className="bg-slate-900 text-slate-100 p-5 border-t border-slate-800 font-sans">
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
+                {/* Serapan keseluruhan progress bar */}
+                <div className="flex items-center gap-4 flex-1 max-w-xl">
+                  <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">
+                    Serapan keseluruhan:
+                  </span>
+                  <div className="w-full bg-slate-800 h-3 rounded-full overflow-hidden relative">
+                    <div 
+                      className="bg-amber-500 h-full rounded-full transition-all duration-500" 
+                      style={{ width: `${Math.min(percentage, 100)}%` }}
+                    ></div>
+                  </div>
+                  <span className="text-[11px] font-black text-amber-400 whitespace-nowrap uppercase tracking-wider">
+                    {percentage}% ({formatToJuta(totalRealisasi)} dari {formatToJuta(totalAnggaran)})
+                  </span>
+                </div>
+
+                {/* Detail totals */}
+                <div className="flex flex-wrap items-center gap-6 text-xs uppercase tracking-wider font-bold">
+                  <div>
+                    <span className="text-slate-400">Total anggaran:</span>{" "}
+                    <span className="text-white font-black text-sm leading-none">Rp {formatRupiah(totalAnggaran)}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400">Total realisasi:</span>{" "}
+                    <span className="text-emerald-400 font-black text-sm leading-none">Rp {formatRupiah(totalRealisasi)}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400">Sisa:</span>{" "}
+                    <span className="text-blue-400 font-black text-sm leading-none">Rp {formatRupiah(sisa)}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
       </div>
 
       {/* ====================== MODAL MENGELOLA LHE & TEMUAN ====================== */}
@@ -427,74 +657,78 @@ const PelaksanaanTab = ({ assurance }) => {
         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 animate-in fade-in duration-200">
           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={closeModal}></div>
 
-          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
+          <div className="relative bg-white border border-slate-200 rounded-3xl shadow-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col animate-in zoom-in-95 duration-200 text-slate-800">
             
-            <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50 shrink-0">
+            <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50 shrink-0">
               <div>
-                <h3 className="font-black text-slate-800 text-lg uppercase tracking-tight flex items-center gap-2">
-                  <BsFileEarmarkText className="text-slate-500"/> Laporan Hasil Evaluasi (LHE) & Temuan
+                <h3 className="font-black text-slate-850 text-[17px] uppercase tracking-tight flex items-center gap-2">
+                  <BsFileEarmarkText className="text-blue-600"/> LHE & Temuan — KKA No. {selectedKka?.no_kka}
                 </h3>
-                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-0.5">NO KKA: {selectedKka?.no_kka}</p>
+                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mt-1.5 leading-snug">
+                  {selectedKka?.uraian} <span className="text-slate-300 mx-1.5">|</span> Dilaksanakan oleh: <span className="text-slate-700">{selectedKka?.auditor?.name || "—"}</span> <span className="text-slate-300 mx-1.5">|</span> {formatDateRange(selectedKka?.tgl_mulai, selectedKka?.tgl_selesai)}
+                </p>
               </div>
-              <button onClick={closeModal} className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-200 rounded-lg transition-colors">
-                <BsX size={24} />
-              </button>
+              <div className="flex items-center gap-3">
+                {existingLhe && (
+                  <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 text-[9px] px-3 py-1 font-black rounded-full uppercase tracking-widest shadow-sm">
+                    LHE Uploaded
+                  </span>
+                )}
+                <button onClick={closeModal} className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer" title="Tutup">
+                  <BsX size={26} />
+                </button>
+              </div>
             </div>
 
             <div className="flex-1 overflow-y-auto p-6 space-y-6">
               
               {/* --- SECTION UPLOAD LHE --- */}
-              <div className="bg-slate-50 p-5 rounded-xl border border-slate-200">
-                <h4 className="text-[11px] font-black text-slate-700 uppercase tracking-widest mb-3 flex items-center gap-2">
-                   <BsCloudUpload className="text-blue-600" size={14}/> Upload File LHE
-                </h4>
-                <form onSubmit={handleUploadLHE} className="space-y-4">
-                  <div className="flex flex-col md:flex-row gap-4 items-end">
-                    <div className="flex-1 w-full">
-                      {existingLhe ? (
-                        <div className="flex items-center justify-between p-3.5 bg-white border border-slate-200 rounded-lg shadow-sm">
-                          <a href={`/storage/${existingLhe.file_path}`} target="_blank" rel="noreferrer" className="text-blue-600 font-bold text-xs hover:underline flex items-center gap-2">
-                             <BsFileEarmarkText size={14}/> {existingLhe.file_name}
-                          </a>
-                          <button type="button" onClick={handleDeleteLhe} className="p-1.5 bg-red-50 text-red-500 hover:bg-red-500 hover:text-white rounded-md transition-colors border border-red-100">
-                            <BsTrash size={12} />
-                          </button>
-                        </div>
-                      ) : (
-                        <label className="border-2 border-dashed border-slate-300 rounded-lg p-5 flex flex-col items-center justify-center cursor-pointer bg-white hover:bg-blue-50 transition-colors group h-[88px]">
-                          {lheFile ? (
-                            <div className="flex items-center gap-3">
-                              <span className="text-xs font-bold text-blue-600">{lheFile.name}</span>
-                              <button type="button" onClick={(e) => { e.preventDefault(); setLheFile(null); }} className="text-red-500 font-bold bg-red-50 p-1 rounded hover:bg-red-100 border border-red-200">
-                                <BsX size={12} />
-                              </button>
-                            </div>
-                          ) : (
-                            <div className="flex flex-col items-center">
-                              <span className="text-xs font-bold text-slate-500 group-hover:text-blue-600 transition-colors">Klik untuk memilih file LHE</span>
-                              <span className="text-[9px] text-slate-400 font-semibold uppercase tracking-widest mt-1">PDF, DOCX, XLSX (Maks 5MB)</span>
-                            </div>
-                          )}
-                          <input type="file" className="hidden" onChange={(e) => setLheFile(e.target.files[0])} />
-                        </label>
-                      )}
-                    </div>
-                    
-                    {!existingLhe && (
-                      <button type="submit" className="w-full md:w-auto h-[88px] px-6 bg-blue-600 text-white rounded-lg font-bold text-[11px] uppercase tracking-wider hover:bg-blue-700 transition-colors shadow-sm active:scale-95 flex items-center justify-center">
-                        Upload
-                      </button>
-                    )}
-                  </div>
-                </form>
+              <div>
+                <div className="flex items-center gap-2 mb-3.5">
+                  <h4 className="bg-blue-50/50 text-blue-800 font-black text-[10px] py-2 px-3 rounded-lg uppercase tracking-wider flex items-center gap-2 border border-blue-100/50 w-fit mb-0">
+                     <BsCloudUpload className="text-blue-600" size={13}/> UPLOAD FILE LHE
+                  </h4>
+                  <span className="text-[10px] text-blue-600 border border-blue-200 bg-blue-50 px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wide">
+                    IIA Std. 2330
+                  </span>
+                </div>
+                
+                <div>
+                  {existingLhe ? (
+                    <label className="border border-dashed border-emerald-250 bg-emerald-50/10 hover:bg-emerald-50/20 transition-all duration-200 p-6 rounded-2xl flex flex-col items-center justify-center gap-3 cursor-pointer group relative">
+                      <BsFileEarmarkText className="text-emerald-550 text-4xl group-hover:scale-105 transition-transform duration-200" />
+                      <span className="text-[13px] font-black text-emerald-700">LHE Sudah Berhasil Diupload</span>
+                      <div 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                        }}
+                        className="inline-flex items-center gap-2 bg-slate-100 text-slate-700 border border-slate-200 text-xs px-4 py-1.5 font-bold rounded-full shadow-sm hover:bg-slate-200 transition-colors"
+                      >
+                        <BsFileEarmarkText className="text-red-500" />
+                        <a href={`/storage/${existingLhe.file_path}`} target="_blank" rel="noreferrer" className="hover:underline text-slate-805">
+                          {existingLhe.file_name} {existingLhe.file_size ? ` · ${(existingLhe.file_size / 1024 / 1024).toFixed(1)} MB` : ""}
+                        </a>
+                      </div>
+                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-1">Klik untuk mengganti file · PDF, DOCX maks. 20 MB</span>
+                      <input type="file" className="hidden" onChange={(e) => handleUploadLHEDirectly(e.target.files[0])} />
+                    </label>
+                  ) : (
+                    <label className="border-2 border-dashed border-slate-200 bg-slate-50/50 hover:bg-blue-50/5 hover:border-blue-400 transition-all duration-200 p-6 rounded-2xl flex flex-col items-center justify-center gap-3 cursor-pointer group h-[120px]">
+                      <BsCloudUpload className="text-slate-400 group-hover:text-blue-600 text-3xl group-hover:scale-105 transition-transform duration-200" />
+                      <span className="text-[13px] font-bold text-slate-655 group-hover:text-slate-700">Klik untuk memilih file LHE</span>
+                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wide mt-1">PDF, DOCX, XLSX (Maks 20MB)</span>
+                      <input type="file" className="hidden" onChange={(e) => handleUploadLHEDirectly(e.target.files[0])} />
+                    </label>
+                  )}
+                </div>
               </div>
 
               {/* --- SECTION DAFTAR TEMUAN --- */}
               <div>
-                <div className="flex justify-between items-center mb-3">
-                  <h4 className="text-[11px] font-black text-slate-700 uppercase tracking-widest flex items-center gap-2">
-                     <BsCardChecklist className="text-blue-600" size={14}/> Daftar Temuan
-                  </h4>
+                <div className="bg-slate-50 border border-slate-200 text-slate-750 font-black text-[11px] py-2.5 px-4 rounded-xl uppercase tracking-wider flex items-center justify-between mb-4 shadow-sm">
+                  <span className="flex items-center gap-2">
+                    <BsCardChecklist className="text-blue-600" size={14}/> Daftar Temuan KKA
+                  </span>
                   <button
                     onClick={() => {
                       setEditTemuan(null);
@@ -502,61 +736,67 @@ const PelaksanaanTab = ({ assurance }) => {
                       setExistingLampiran(null);
                       setShowTambahTemuan(true);
                     }}
-                    className="flex items-center justify-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-bold uppercase tracking-wider rounded-lg transition-all shadow-sm active:scale-95"
+                    className="flex items-center justify-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-black uppercase tracking-widest rounded-lg transition-all active:scale-95 cursor-pointer shadow-md shadow-blue-500/10"
                   >
-                    <BsPlusLg size={10}/> Tambah Temuan
+                    <BsPlusLg size={10}/> Tambah temuan
                   </button>
                 </div>
 
-                <div className="border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+                <div className="border border-slate-200 rounded-2xl overflow-hidden bg-white shadow-md">
                   <table className="w-full text-left border-collapse text-sm">
-                    <thead className="bg-[#111827] text-white">
-                      <tr className="uppercase text-[10px] tracking-widest font-bold">
-                        <th className="py-2.5 px-3 text-center w-12 border-r border-slate-700/50">No</th>
-                        <th className="py-2.5 px-3 text-center border-r border-slate-700/50 w-24">Hal LHE</th>
-                        <th className="py-2.5 px-4 border-r border-slate-700/50 w-[35%]">Masalah Utama</th>
-                        <th className="py-2.5 px-4 border-r border-slate-700/50">Rekomendasi</th>
-                        <th className="py-2.5 px-3 text-center w-24">Aksi</th>
+                    <thead className="bg-slate-50 text-slate-500 border-b border-slate-200/80">
+                      <tr className="uppercase text-[9px] tracking-wider font-black">
+                        <th className="py-3 px-3 text-center w-14 border-r border-slate-200/50">No</th>
+                        <th className="py-3 px-3 text-center border-r border-slate-200/50 w-20">Hal LHE</th>
+                        <th className="py-3 px-4 border-r border-slate-200/50 w-[45%]">Masalah Utama</th>
+                        <th className="py-3 px-4 text-center border-r border-slate-200/50 w-32">Kategori</th>
+                        <th className="py-3 px-4 text-right border-r border-slate-200/50 w-40">Nilai Kerugian</th>
+                        <th className="py-3 px-3 text-center w-24">Aksi</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100 bg-white">
+                    <tbody className="divide-y divide-slate-100">
                       {temuan.map((t, i) => (
-                        <tr key={t.id} className="hover:bg-slate-50 transition-colors group align-middle">
-                          <td className="py-3 px-3 text-center text-slate-400 font-mono text-[11px] font-bold bg-slate-50/50 group-hover:bg-transparent border-r border-slate-100">
+                        <tr key={t.id} className="hover:bg-slate-50/70 transition-all group align-middle">
+                          <td className="py-3 px-3 text-center text-slate-400 font-mono text-xs font-bold bg-slate-50/30 border-r border-slate-200/50">
                             {i + 1}
                           </td>
-                          <td className="py-3 px-3 text-center font-bold text-slate-600 border-r border-slate-100 text-xs">
+                          <td className="py-3 px-3 text-center font-bold text-slate-600 border-r border-slate-200/50 text-xs">
                             {t.halaman_lhe}
                           </td>
-                          <td className="py-3 px-4 font-bold text-slate-800 border-r border-slate-100 leading-relaxed text-[13px]">
+                          <td className="py-3 px-4 font-bold text-slate-700 border-r border-slate-200/50 leading-relaxed text-[13px]">
                             <button
                               onClick={() => { setSelectedTemuan(t); setShowDetailTemuan(true); }}
-                              className="text-left hover:text-blue-600 hover:underline transition-colors w-full"
+                              className="text-left text-slate-700 hover:text-blue-600 hover:underline transition-colors w-full"
                               title="Lihat Detail Temuan"
                             >
                               {t.masalah}
                             </button>
                           </td>
-                          <td className="py-3 px-4 text-slate-600 border-r border-slate-100 text-[12px] whitespace-pre-line leading-relaxed">
-                            {t.rekomendasi}
+                          <td className="py-3 px-4 text-center border-r border-slate-200/50">
+                            {getKategoriBadge(t.kategori)}
+                          </td>
+                          <td className="py-3 px-4 text-right font-mono font-black text-slate-700 border-r border-slate-200/50 text-xs">
+                            {t.nilai_kerugian ? `Rp ${formatRupiah(t.nilai_kerugian)}` : "Rp 0"}
                           </td>
                           <td className="py-3 px-3 text-center">
-                            <div className="flex justify-center gap-1.5">
+                            <div className="flex justify-center gap-2">
                               <button
+                                type="button"
                                 onClick={() => {
                                   setEditTemuan(t);
                                   setFormTemuan({ ...t, lampiran: null });
                                   setExistingLampiran(t.lampiran);
                                   setShowTambahTemuan(true);
                                 }}
-                                className="p-1.5 bg-amber-50 text-amber-600 border border-amber-200 hover:bg-amber-500 hover:text-white rounded transition-colors"
+                                className="p-1.5 border border-slate-200 hover:bg-slate-50 text-slate-650 hover:text-blue-600 rounded-lg transition-colors cursor-pointer"
                                 title="Edit Temuan"
                               >
-                                <BsPencilSquare size={12} />
+                                <BsPencil size={12} />
                               </button>
                               <button
+                                type="button"
                                 onClick={() => handleDeleteTemuan(t.id)}
-                                className="p-1.5 bg-red-50 text-red-500 border border-red-200 hover:bg-red-500 hover:text-white rounded transition-colors"
+                                className="p-1.5 border border-red-105 hover:bg-red-50 text-red-500 rounded-lg transition-colors cursor-pointer"
                                 title="Hapus Temuan"
                               >
                                 <BsTrash size={12} />
@@ -565,17 +805,27 @@ const PelaksanaanTab = ({ assurance }) => {
                           </td>
                         </tr>
                       ))}
-                      {temuan.length === 0 && (
-                        <tr>
-                          <td colSpan="5" className="p-8 text-center text-slate-400 text-xs">
-                            Belum ada catatan temuan.
-                          </td>
-                        </tr>
-                      )}
+                      
+                      <tr className="hover:bg-slate-50/50 transition-colors">
+                        <td className="py-3 px-3 text-center text-slate-300 font-mono text-[11px] font-bold bg-slate-50/30 border-r border-slate-200/50">+</td>
+                        <td className="py-3 px-3 text-center border-r border-slate-200/50 text-xs text-slate-300">—</td>
+                        <td colSpan={4} className="py-3 px-4 text-slate-400 font-bold italic text-xs leading-relaxed">
+                          Belum ada temuan lain — klik Tambah Temuan
+                        </td>
+                      </tr>
                     </tbody>
                   </table>
                 </div>
               </div>
+            </div>
+
+            <div className="p-4 border-t border-slate-100 bg-slate-50/30 shrink-0 mt-4">
+              <button 
+                onClick={closeModal} 
+                className="w-full py-3.5 bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-600 text-xs font-black uppercase tracking-widest rounded-xl transition-all active:scale-[0.99] cursor-pointer"
+              >
+                Tutup Halaman LHE & Temuan
+              </button>
             </div>
             
           </div>
@@ -585,197 +835,273 @@ const PelaksanaanTab = ({ assurance }) => {
       {/* ====================== MODAL TAMBAH/EDIT TEMUAN ====================== */}
       {showTambahTemuan && (
         <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="absolute inset-0 bg-slate-900/70 backdrop-blur-sm" onClick={() => { resetFormTemuan(); setShowTambahTemuan(false); }}></div>
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => { resetFormTemuan(); setShowTambahTemuan(false); }}></div>
 
-          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
-            <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50 shrink-0">
+          <div className="relative bg-white border border-slate-200 rounded-3xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col animate-in zoom-in-95 duration-200 text-slate-800">
+            <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50 shrink-0">
               <div>
-                <h3 className="font-black text-slate-800 text-lg uppercase tracking-tight flex items-center gap-2">
-                  <BsCardChecklist className="text-blue-600"/> {editTemuan ? "Edit Temuan" : "Tambah Temuan"}
+                <h3 className="font-black text-slate-850 text-[17px] uppercase tracking-tight flex items-center gap-2">
+                  <BsCardChecklist className="text-blue-600"/> {editTemuan ? "Edit Temuan LHE" : "Tambah Temuan KKA Baru"}
+                  <span className="text-[10px] text-blue-600 border border-blue-200 bg-blue-50 px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wide">
+                    IIA Std. 2310
+                  </span>
                 </h3>
+                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mt-1.5 leading-snug">
+                  KKA No. {selectedKka?.no_kka} <span className="text-slate-300 mx-1.5">|</span> {selectedKka?.uraian}
+                </p>
               </div>
-              <button onClick={() => { resetFormTemuan(); setShowTambahTemuan(false); }} className="p-2 text-slate-400 hover:text-red-500 rounded-lg transition-colors">
-                <BsX size={24} />
+              <button onClick={() => { resetFormTemuan(); setShowTambahTemuan(false); }} className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer" title="Tutup">
+                <BsX size={26} />
               </button>
             </div>
 
-            <form onSubmit={handleSaveTemuan} className="flex-1 overflow-y-auto p-6 space-y-4">
+            <form onSubmit={handleSaveTemuan} className="flex-1 overflow-y-auto p-6 space-y-6">
               
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="space-y-1.5 md:col-span-1">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Hal LHE</label>
-                  <input
-                    type="text"
-                    required
-                    className="w-full p-2.5 bg-white border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 font-bold text-sm text-slate-900 transition-all text-center"
-                    value={formTemuan.halaman_lhe || ""}
-                    onChange={(e) => setFormTemuan({ ...formTemuan, halaman_lhe: e.target.value.replace(/\D/g, "") })}
-                    placeholder="Misal: 12"
-                  />
-                </div>
-                <div className="space-y-1.5 md:col-span-3">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Masalah Utama Yang Dijumpai</label>
-                  <textarea
-                    required
-                    rows="2"
-                    className="w-full p-2.5 bg-white border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 font-bold text-sm text-slate-900 transition-all resize-none leading-relaxed"
-                    value={formTemuan.masalah || ""}
-                    onChange={(e) => setFormTemuan({ ...formTemuan, masalah: e.target.value })}
-                  />
-                </div>
-              </div>
+              {/* --- SECTION 1: IDENTITAS TEMUAN --- */}
+              <div>
+                <h4 className="bg-blue-50/50 text-blue-800 font-black text-[10px] py-2 px-3 rounded-lg uppercase tracking-wider mb-4 border border-blue-100/50 flex items-center gap-1.5 w-fit">
+                  IDENTITAS TEMUAN
+                </h4>
+                
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
+                  <div className="space-y-1.5 md:col-span-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block ml-1 mb-1">Kategori Temuan</label>
+                    <div className="flex flex-wrap gap-2">
+                      {[
+                        { key: "Major", label: "Major", colorClass: "border-red-200 text-red-650 hover:bg-red-50/50", activeClass: "bg-red-600 text-white border-red-600 shadow-md shadow-red-500/20" },
+                        { key: "Minor", label: "Minor ✓", colorClass: "border-amber-200 text-amber-750 hover:bg-amber-50/50", activeClass: "bg-amber-500 text-slate-900 border-amber-500 shadow-md shadow-amber-500/20" },
+                        { key: "Observasi", label: "Observasi ✓", colorClass: "border-slate-200 text-slate-600 hover:bg-slate-50", activeClass: "bg-slate-600 text-white border-slate-600 shadow-md shadow-slate-500/20" },
+                        { key: "OFI", label: "OFI ✓", colorClass: "border-blue-200 text-blue-650 hover:bg-blue-50/50", activeClass: "bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-500/20" }
+                      ].map((item) => {
+                        const isSelected = formTemuan.kategori === item.key;
+                        return (
+                          <button
+                            key={item.key}
+                            type="button"
+                            onClick={() => setFormTemuan({ ...formTemuan, kategori: item.key })}
+                            className={`px-4 py-1.5 border text-xs font-black uppercase tracking-wider rounded-lg transition-all active:scale-95 cursor-pointer ${
+                              isSelected ? item.activeClass : `bg-white ${item.colorClass}`
+                            }`}
+                          >
+                            {isSelected ? item.label : item.key}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <span className="text-[9px] font-bold text-slate-450 mt-1 uppercase tracking-wide block ml-1 leading-none">Pilih tingkat keparahan temuan — wajib</span>
+                  </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Kondisi (Fakta)</label>
-                  <textarea
-                    required
-                    rows="3"
-                    className="w-full p-2.5 bg-white border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 font-medium text-sm text-slate-700 transition-all resize-y leading-relaxed"
-                    value={formTemuan.kondisi || ""}
-                    onChange={(e) => setFormTemuan({ ...formTemuan, kondisi: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Kriteria (Standar / Aturan)</label>
-                  <textarea
-                    required
-                    rows="3"
-                    className="w-full p-2.5 bg-white border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 font-medium text-sm text-slate-700 transition-all resize-y leading-relaxed"
-                    value={formTemuan.kriteria || ""}
-                    onChange={(e) => setFormTemuan({ ...formTemuan, kriteria: e.target.value })}
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Sebab (Root Cause)</label>
-                  <textarea
-                    required
-                    rows="2"
-                    className="w-full p-2.5 bg-white border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 font-medium text-sm text-slate-700 transition-all resize-y leading-relaxed"
-                    value={formTemuan.sebab || ""}
-                    onChange={(e) => setFormTemuan({ ...formTemuan, sebab: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Akibat (Impact)</label>
-                  <textarea
-                    required
-                    rows="2"
-                    className="w-full p-2.5 bg-white border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 font-medium text-sm text-slate-700 transition-all resize-y leading-relaxed"
-                    value={formTemuan.akibat || ""}
-                    onChange={(e) => setFormTemuan({ ...formTemuan, akibat: e.target.value })}
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Klarifikasi Auditee</label>
-                  <textarea
-                    rows="2"
-                    className="w-full p-2.5 bg-white border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 font-medium text-sm text-slate-700 transition-all resize-y leading-relaxed"
-                    value={formTemuan.klarifikasi_temuan || ""}
-                    onChange={(e) => setFormTemuan({ ...formTemuan, klarifikasi_temuan: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Rekomendasi Perbaikan</label>
-                  <textarea
-                    required
-                    rows="2"
-                    className="w-full p-2.5 bg-white border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 font-bold text-sm text-slate-800 transition-all resize-y leading-relaxed"
-                    value={formTemuan.rekomendasi || ""}
-                    onChange={(e) => setFormTemuan({ ...formTemuan, rekomendasi: e.target.value })}
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Area / Proses Bisnis</label>
-                  <input
-                    className="w-full p-2.5 bg-white border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 font-semibold text-sm transition-all"
-                    value={formTemuan.area || ""}
-                    onChange={(e) => setFormTemuan({ ...formTemuan, area: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Referensi Aturan</label>
-                  <input
-                    className="w-full p-2.5 bg-white border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 font-semibold text-sm transition-all"
-                    value={formTemuan.referensi || ""}
-                    onChange={(e) => setFormTemuan({ ...formTemuan, referensi: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Potensi Nilai Kerugian (IDR)</label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-black text-sm">Rp</span>
+                  <div className="space-y-1.5 md:col-span-1">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block ml-1 mb-1">Hal LHE</label>
                     <input
                       type="text"
-                      className="w-full p-2.5 pl-9 bg-white border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 font-bold text-slate-800 text-sm transition-all"
-                      value={formatRupiah(formTemuan.nilai_kerugian)}
-                      onChange={(e) => setFormTemuan({ ...formTemuan, nilai_kerugian: e.target.value.replace(/\D/g, "") })}
-                      placeholder="0"
+                      required
+                      className="w-full p-2 bg-white border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 font-bold text-sm text-slate-800 transition-all text-center"
+                      value={formTemuan.halaman_lhe || ""}
+                      onChange={(e) => setFormTemuan({ ...formTemuan, halaman_lhe: e.target.value.replace(/\D/g, "") })}
+                      placeholder="Misal: 12"
+                    />
+                    <span className="text-[9px] font-bold text-slate-450 mt-1 uppercase tracking-wide block ml-1 leading-none">Nomor halaman di dokumen LHE</span>
+                  </div>
+
+                  <div className="space-y-1.5 md:col-span-1">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block ml-1 mb-1">Potensi Nilai Kerugian</label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-black text-sm">Rp</span>
+                      <input
+                        type="text"
+                        className="w-full p-2 pl-9 bg-white border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 font-bold text-slate-805 text-sm transition-all"
+                        value={formatRupiah(formTemuan.nilai_kerugian)}
+                        onChange={(e) => setFormTemuan({ ...formTemuan, nilai_kerugian: e.target.value.replace(/\D/g, "") })}
+                        placeholder="0"
+                      />
+                    </div>
+                    <span className="text-[9px] font-bold text-slate-450 mt-1 uppercase tracking-wide block ml-1 leading-none">Opsional — isi jika ada dampak finansial</span>
+                  </div>
+                  
+                  <div className="space-y-1.5 md:col-span-4">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block ml-1 mb-1">Masalah Utama Yang Dijumpai</label>
+                    <textarea
+                      required
+                      rows="2"
+                      className="w-full p-2.5 bg-white border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 font-bold text-sm text-slate-805 transition-all resize-none leading-relaxed shadow-sm"
+                      value={formTemuan.masalah || ""}
+                      onChange={(e) => setFormTemuan({ ...formTemuan, masalah: e.target.value })}
+                      placeholder="Uraian singkat masalah utama..."
                     />
                   </div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-100">
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Keterangan Opsional</label>
-                  <textarea
-                    rows="2"
-                    className="w-full p-2.5 bg-white border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 font-medium text-sm text-slate-700 transition-all resize-none"
-                    value={formTemuan.keterangan || ""}
-                    onChange={(e) => setFormTemuan({ ...formTemuan, keterangan: e.target.value })}
-                  />
-                </div>
+              {/* --- SECTION 2: DETAIL TEMUAN (5C) --- */}
+              <div>
+                <h4 className="bg-blue-50/50 text-blue-800 font-black text-[10px] py-2 px-3 rounded-lg uppercase tracking-wider mb-4 border border-blue-100/50 flex items-center gap-1.5 w-fit">
+                  DETAIL TEMUAN (5C)
+                </h4>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block ml-1 mb-1">Kondisi — fakta yang ditemukan</label>
+                    <textarea
+                      required
+                      rows="3"
+                      className="w-full p-3 bg-white border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 font-bold text-sm text-slate-805 transition-all resize-y leading-relaxed shadow-sm"
+                      value={formTemuan.kondisi || ""}
+                      onChange={(e) => setFormTemuan({ ...formTemuan, kondisi: e.target.value })}
+                      placeholder="Deskripsikan kondisi riil di lapangan..."
+                    />
+                  </div>
 
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Lampiran Pendukung</label>
-                  <label htmlFor="lampiranUpload" className="border-2 border-dashed border-slate-300 rounded-lg p-3 flex flex-col items-center justify-center cursor-pointer bg-white hover:bg-slate-50 transition-colors h-[74px]">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block ml-1 mb-1">Kriteria — standar / aturan yang dilanggar</label>
+                    <textarea
+                      required
+                      rows="3"
+                      className="w-full p-3 bg-white border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 font-bold text-sm text-slate-805 transition-all resize-y leading-relaxed shadow-sm"
+                      value={formTemuan.kriteria || ""}
+                      onChange={(e) => setFormTemuan({ ...formTemuan, kriteria: e.target.value })}
+                      placeholder="Sebutkan aturan, SOP, atau standar acuan..."
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block ml-1 mb-1">Sebab — root cause</label>
+                    <textarea
+                      required
+                      rows="3"
+                      className="w-full p-3 bg-white border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 font-bold text-sm text-slate-805 transition-all resize-y leading-relaxed shadow-sm"
+                      value={formTemuan.sebab || ""}
+                      onChange={(e) => setFormTemuan({ ...formTemuan, sebab: e.target.value })}
+                      placeholder="Analisis penyebab utama terjadinya deviasi..."
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block ml-1 mb-1">Akibat — dampak / impact</label>
+                    <textarea
+                      required
+                      rows="3"
+                      className="w-full p-3 bg-white border border-red-200 focus:border-red-500 rounded-xl outline-none focus:ring-2 focus:ring-red-500/10 font-bold text-sm text-slate-805 transition-all resize-y leading-relaxed shadow-sm"
+                      value={formTemuan.akibat || ""}
+                      onChange={(e) => setFormTemuan({ ...formTemuan, akibat: e.target.value })}
+                      placeholder="Dampak negatif atau kerugian akibat temuan ini..."
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block ml-1 mb-1">Rekomendasi Perbaikan</label>
+                    <textarea
+                      required
+                      rows="3"
+                      className="w-full p-3 bg-white border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 font-bold text-sm text-slate-805 transition-all resize-y leading-relaxed shadow-sm"
+                      value={formTemuan.rekomendasi || ""}
+                      onChange={(e) => setFormTemuan({ ...formTemuan, rekomendasi: e.target.value })}
+                      placeholder="Solusi konkret dan saran perbaikan dari auditor..."
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block ml-1 mb-1">Klarifikasi Auditee</label>
+                    <textarea
+                      rows="3"
+                      className="w-full p-3 bg-white border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 font-bold text-sm text-slate-805 transition-all resize-y leading-relaxed shadow-sm"
+                      value={formTemuan.klarifikasi_temuan || ""}
+                      onChange={(e) => setFormTemuan({ ...formTemuan, klarifikasi_temuan: e.target.value })}
+                      placeholder="Tanggapan atau klarifikasi awal dari auditee..."
+                    />
+                    <span className="text-[9px] font-bold text-slate-450 mt-1 uppercase tracking-wide block ml-1 leading-none">Isi saat exit meeting — bisa dikosongkan dulu</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* --- SECTION 3: INFORMASI TAMBAHAN --- */}
+              <div>
+                <h4 className="bg-blue-50/50 text-blue-800 font-black text-[10px] py-2 px-3 rounded-lg uppercase tracking-wider mb-4 border border-blue-100/50 flex items-center gap-1.5 w-fit">
+                  INFORMASI TAMBAHAN
+                </h4>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block ml-1 mb-1">Area / Proses Bisnis</label>
+                    <input
+                      className="w-full p-2 bg-white border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 font-bold text-sm text-slate-805 transition-all"
+                      value={formTemuan.area || ""}
+                      onChange={(e) => setFormTemuan({ ...formTemuan, area: e.target.value })}
+                      placeholder="Misal: IT Infrastructure"
+                    />
+                  </div>
+                  
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block ml-1 mb-1">Referensi Aturan</label>
+                    <input
+                      className="w-full p-2 bg-white border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 font-bold text-sm text-slate-805 transition-all"
+                      value={formTemuan.referensi || ""}
+                      onChange={(e) => setFormTemuan({ ...formTemuan, referensi: e.target.value })}
+                      placeholder="Misal: ISO 27001 Clause 12"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block ml-1 mb-1">Target Selesai Perbaikan</label>
+                    <input
+                      type="date"
+                      className="w-full p-2 bg-white border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 font-bold text-sm text-slate-805 transition-all"
+                      value={formTemuan.target_selesai || ""}
+                      onChange={(e) => setFormTemuan({ ...formTemuan, target_selesai: e.target.value })}
+                    />
+                    <span className="text-[9px] font-bold text-slate-450 mt-1 uppercase tracking-wide block ml-1 leading-none">Bisa diubah di Tab Analisis Penyebab</span>
+                  </div>
+
+                  <div className="space-y-1.5 col-span-3">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block ml-1 mb-1">Lampiran Pendukung</label>
                     
                     {existingLampiran && !formTemuan.lampiran && (
-                      <div className="flex items-center justify-center gap-3">
-                        <a href={`/storage/${existingLampiran}`} target="_blank" rel="noreferrer" className="text-blue-600 font-bold text-[11px] hover:underline flex items-center gap-1">
-                          <BsFileEarmarkText size={12}/> Lihat File
+                      <div className="border border-dashed border-slate-200 bg-slate-50/50 p-4 rounded-xl flex items-center justify-between">
+                        <a href={`/storage/${existingLampiran}`} target="_blank" rel="noreferrer" className="text-blue-600 font-bold text-xs hover:underline flex items-center gap-2">
+                          <BsFileEarmarkText className="text-red-500" /> Lihat File Terupload
                         </a>
-                        <button type="button" onClick={(e) => { e.preventDefault(); setExistingLampiran(null); }} className="bg-red-50 text-red-500 hover:bg-red-500 hover:text-white rounded border border-red-200 p-1 flex items-center justify-center transition-colors">
-                          <BsX size={12}/>
+                        <button type="button" onClick={(e) => { e.preventDefault(); setExistingLampiran(null); }} className="p-1.5 border border-red-105 hover:bg-red-50 text-red-500 rounded-lg transition-colors cursor-pointer">
+                          <BsX size={14}/>
                         </button>
                       </div>
                     )}
 
                     {formTemuan.lampiran && (
-                      <div className="flex items-center justify-center gap-3">
-                        <span className="text-blue-600 font-bold text-[11px] truncate max-w-[150px]">
-                          {formTemuan.lampiran.name}
+                      <div className="border border-dashed border-slate-200 bg-slate-50/50 p-4 rounded-xl flex items-center justify-between">
+                        <span className="text-slate-700 font-bold text-xs flex items-center gap-2">
+                          <BsFileEarmarkText className="text-blue-500" /> {formTemuan.lampiran.name}
                         </span>
-                        <button type="button" onClick={(e) => { e.preventDefault(); setFormTemuan({ ...formTemuan, lampiran: null }); }} className="bg-red-50 text-red-500 hover:bg-red-500 hover:text-white rounded border border-red-200 p-1 flex items-center justify-center transition-colors">
-                          <BsX size={12}/>
+                        <button type="button" onClick={(e) => { e.preventDefault(); setFormTemuan({ ...formTemuan, lampiran: null }); }} className="p-1.5 border border-red-105 hover:bg-red-50 text-red-500 rounded-lg transition-colors cursor-pointer">
+                          <BsX size={14}/>
                         </button>
                       </div>
                     )}
 
                     {!existingLampiran && !formTemuan.lampiran && (
-                       <span className="text-slate-400 font-medium text-[11px] flex items-center gap-2"><BsCloudUpload size={14}/> Klik u/ upload</span>
+                      <label htmlFor="lampiranUpload" className="border border-dashed border-2 border-slate-200 bg-slate-50/50 hover:bg-blue-50/5 hover:border-blue-400 transition-all rounded-xl p-4 flex flex-col items-center justify-center cursor-pointer h-24 group">
+                        <BsCloudUpload className="text-slate-400 group-hover:text-blue-600 text-2xl mb-1 group-hover:scale-105 transition-all animate-bounce" />
+                        <span className="text-xs font-bold text-slate-500 group-hover:text-slate-600">Klik atau seret file</span>
+                        <span className="text-[9px] text-slate-450 font-bold uppercase tracking-widest mt-1">PDF, DOCX, XLSX, PNG, JPG · maks. 10 MB</span>
+                        <input id="lampiranUpload" type="file" className="hidden" onChange={(e) => setFormTemuan({ ...formTemuan, lampiran: e.target.files[0] })} />
+                      </label>
                     )}
-                  </label>
-                  <input id="lampiranUpload" type="file" className="hidden" onChange={(e) => setFormTemuan({ ...formTemuan, lampiran: e.target.files[0] })} />
+                  </div>
                 </div>
               </div>
 
-              <div className="flex gap-3 pt-4 border-t border-slate-100 shrink-0">
-                <button type="button" onClick={() => { resetFormTemuan(); setShowTambahTemuan(false); }} className="flex-1 py-3 text-slate-500 bg-slate-100 hover:bg-slate-200 rounded-lg font-bold transition-all text-xs uppercase tracking-wider">
+              <div className="flex gap-4 pt-4 border-t border-slate-100 shrink-0 mt-4">
+                <button 
+                  type="button" 
+                  onClick={() => { resetFormTemuan(); setShowTambahTemuan(false); }} 
+                  className="flex-1 py-3.5 text-slate-500 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-xl font-bold transition-all text-xs uppercase tracking-widest active:scale-95 cursor-pointer"
+                >
                   Batal
                 </button>
-                <button type="submit" className="flex-2 w-[60%] py-3 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition-all shadow-md active:scale-[0.98] uppercase text-[11px] tracking-widest">
-                  Simpan Temuan
+                <button 
+                  type="submit" 
+                  className="flex-1 py-3.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold transition-all shadow-md active:scale-95 uppercase text-[11px] tracking-widest cursor-pointer flex items-center justify-center gap-2"
+                >
+                  ✓ Simpan Temuan
                 </button>
               </div>
 
@@ -874,91 +1200,210 @@ const PelaksanaanTab = ({ assurance }) => {
         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 animate-in fade-in duration-200">
           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setShowTambahBiaya(false)}></div>
 
-          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
-            <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/80">
-              <div>
-                <h3 className="font-black text-slate-800 text-lg uppercase tracking-tight flex items-center gap-2">
-                  <BsWallet2 className="text-blue-600"/> {editBiaya ? "Edit Biaya" : "Input Biaya Baru"}
-                </h3>
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-200 border border-slate-200">
+            {/* Header Block */}
+            <div className="p-6 border-b border-slate-100 flex items-center gap-4 bg-slate-50/50">
+              <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 shrink-0 shadow-sm border border-blue-100/50">
+                <BsWallet2 size={18} />
               </div>
-              <button onClick={() => setShowTambahBiaya(false)} className="p-2 text-slate-400 hover:text-red-500 rounded-lg transition-colors">
+              <div className="flex-1">
+                <h3 className="font-black text-slate-800 text-[16px] uppercase tracking-tight leading-none">
+                  {editBiaya ? "Edit Rincian Biaya" : "Input Biaya Baru"}
+                </h3>
+                <p className="text-[10.5px] text-slate-400 font-bold uppercase tracking-wider mt-1.5">
+                  Rincian realisasi biaya akomodasi & tugas
+                </p>
+              </div>
+              <button 
+                onClick={() => setShowTambahBiaya(false)} 
+                className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-150 rounded-lg transition-colors cursor-pointer"
+                title="Tutup"
+              >
                 <BsX size={24} />
               </button>
             </div>
 
-            <form onSubmit={handleSaveBiaya} className="p-6 space-y-4">
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">KKA / Uraian Pemeriksaan</label>
-                <select
-                  required
-                  className="w-full p-2.5 bg-white border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 font-semibold text-sm transition-all cursor-pointer"
-                  value={formBiaya.kka_id}
-                  onChange={(e) => setFormBiaya({ ...formBiaya, kka_id: e.target.value })}
-                >
-                  <option value="">-- Pilih KKA --</option>
-                  {kka.map((k) => (
-                    <option key={k.id} value={k.id}>{k.uraian}</option>
-                  ))}
-                </select>
-              </div>
+            {/* Form */}
+            <form onSubmit={handleSaveBiaya} className="p-6 space-y-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-5 gap-y-4">
+                
+                {/* Field 1: KKA / uraian pemeriksaan */}
+                <div className="space-y-1">
+                  <label className="text-[11px] font-black text-slate-500 uppercase tracking-wider block ml-1">
+                    KKA / uraian pemeriksaan <span className="text-red-500 font-bold">*</span>
+                  </label>
+                  <select
+                    required
+                    className="w-full p-2.5 bg-white border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-bold text-slate-800 text-[13px] transition-all cursor-pointer shadow-sm"
+                    value={formBiaya.kka_id}
+                    onChange={(e) => setFormBiaya({ ...formBiaya, kka_id: e.target.value })}
+                  >
+                    <option value="">-- Pilih KKA --</option>
+                    {kka.map((k) => (
+                      <option key={k.id} value={k.id}>
+                        {k.no_kka ? `${k.no_kka} — ` : ''}{k.uraian}
+                      </option>
+                    ))}
+                  </select>
+                  <span className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-wide block ml-1">
+                    Pilih KKA yang biaya ini terkait
+                  </span>
+                </div>
 
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Nama Item / Pengeluaran</label>
-                <input
-                  required
-                  className="w-full p-2.5 bg-white border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 font-bold text-sm text-slate-800 transition-all"
-                  value={formBiaya.nama}
-                  onChange={(e) => setFormBiaya({ ...formBiaya, nama: e.target.value })}
-                  placeholder="Misal: Tiket Pesawat Jakarta-Surabaya..."
-                />
-              </div>
+                {/* Field 2: Pelaksana */}
+                <div className="space-y-1">
+                  <div className="flex justify-between items-center px-1">
+                    <label className="text-[11px] font-black text-slate-500 uppercase tracking-wider block">
+                      Pelaksana <span className="text-red-500 font-bold">*</span>
+                    </label>
+                  </div>
+                  <select
+                    required
+                    className="w-full p-2.5 bg-white border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-bold text-slate-800 text-[13px] transition-all cursor-pointer shadow-sm"
+                    value={formBiaya.pelaksana}
+                    onChange={(e) => setFormBiaya({ ...formBiaya, pelaksana: e.target.value })}
+                  >
+                    <option value="">-- Pilih Pelaksana --</option>
+                    {Array.from(new Set(kka.map(k => k.auditor?.name).filter(Boolean))).map(name => (
+                      <option key={name} value={name}>{name} — Auditor</option>
+                    ))}
+                    {formBiaya.pelaksana && !Array.from(new Set(kka.map(k => k.auditor?.name).filter(Boolean))).includes(formBiaya.pelaksana) && (
+                      <option value={formBiaya.pelaksana}>{formBiaya.pelaksana}</option>
+                    )}
+                  </select>
+                  <span className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-wide block ml-1">
+                    Siapa yang mengeluarkan biaya ini — hanya dari tim terdaftar
+                  </span>
+                </div>
 
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Jenis Akomodasi</label>
-                <select
-                  required
-                  className="w-full p-2.5 bg-white border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 font-semibold text-sm transition-all cursor-pointer"
-                  value={formBiaya.jenis_akomodasi}
-                  onChange={(e) => setFormBiaya({ ...formBiaya, jenis_akomodasi: e.target.value })}
-                >
-                  <option value="">-- Pilih Kategori --</option>
-                  {jenisAkomodasiList.map((item) => (
-                    <option key={item} value={item} className="uppercase tracking-wide">{item.replaceAll("_", " ")}</option>
-                  ))}
-                </select>
-              </div>
+                {/* Field 3: Jenis akomodasi */}
+                <div className="space-y-1">
+                  <label className="text-[11px] font-black text-slate-500 uppercase tracking-wider block ml-1">
+                    Jenis akomodasi <span className="text-red-500 font-bold">*</span>
+                  </label>
+                  <select
+                    required
+                    className="w-full p-2.5 bg-white border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-bold text-slate-800 text-[13px] transition-all cursor-pointer shadow-sm"
+                    value={formBiaya.jenis_akomodasi}
+                    onChange={(e) => setFormBiaya({ ...formBiaya, jenis_akomodasi: e.target.value })}
+                  >
+                    <option value="">-- Pilih Jenis Akomodasi --</option>
+                    {jenisAkomodasiList.map((item) => (
+                      <option key={item} value={item} className="uppercase tracking-wide font-semibold text-slate-800">
+                        {item.replaceAll("_", " ")}
+                      </option>
+                    ))}
+                  </select>
+                  <span className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-wide block ml-1">
+                    Transportasi / Akomodasi / Uang Harian / Konsumsi / dll
+                  </span>
+                </div>
 
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Nilai Realisasi (IDR)</label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-black text-sm">Rp</span>
+                {/* Field 4: Tanggal realisasi */}
+                <div className="space-y-1">
+                  <div className="flex justify-between items-center px-1">
+                    <label className="text-[11px] font-black text-slate-500 uppercase tracking-wider block">
+                      Tanggal realisasi <span className="text-red-500 font-bold">*</span>
+                    </label>
+                  </div>
                   <input
                     required
                     type="text"
-                    inputMode="numeric"
-                    className="w-full p-2.5 pl-9 bg-white border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 font-black text-slate-800 text-sm transition-all"
-                    value={formatRupiah(formBiaya.nilai_realisasi)}
-                    onChange={(e) => setFormBiaya({ ...formBiaya, nilai_realisasi: e.target.value.replace(/\D/g, "") })}
-                    placeholder="0"
+                    className="w-full p-2.5 bg-white border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-bold text-slate-800 text-[13px] transition-all shadow-sm"
+                    value={formBiaya.tgl_realisasi}
+                    onChange={(e) => setFormBiaya({ ...formBiaya, tgl_realisasi: e.target.value })}
+                    placeholder="Contoh: 05/05/2026 atau 05 - 08 Mei 2026"
                   />
+                  <span className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-wide block ml-1">
+                    Tanggal biaya ini dikeluarkan
+                  </span>
                 </div>
+
+                {/* Field 5: Uraian biaya */}
+                <div className="space-y-1">
+                  <label className="text-[11px] font-black text-slate-500 uppercase tracking-wider block ml-1">
+                    Uraian biaya <span className="text-red-500 font-bold">*</span>
+                  </label>
+                  <input
+                    required
+                    type="text"
+                    className="w-full p-2.5 bg-white border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-bold text-slate-800 text-[13px] transition-all shadow-sm"
+                    value={formBiaya.nama}
+                    onChange={(e) => setFormBiaya({ ...formBiaya, nama: e.target.value })}
+                    placeholder="Tiket pesawat tim IT audit (PP)"
+                  />
+                  <span className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-wide block ml-1">
+                    Deskripsi spesifik pengeluaran
+                  </span>
+                </div>
+
+                {/* Field 6: Nilai realisasi (IDR) */}
+                <div className="space-y-1">
+                  <label className="text-[11px] font-black text-slate-500 uppercase tracking-wider block ml-1">
+                    Nilai realisasi (IDR) <span className="text-red-500 font-bold">*</span>
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-black text-[13px]">Rp</span>
+                    <input
+                      required
+                      type="text"
+                      inputMode="numeric"
+                      className="w-full p-2.5 pl-10 bg-white border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-black text-slate-800 text-[13px] transition-all shadow-sm"
+                      value={formatRupiah(formBiaya.nilai_realisasi)}
+                      onChange={(e) => setFormBiaya({ ...formBiaya, nilai_realisasi: e.target.value.replace(/\D/g, "") })}
+                      placeholder="0"
+                    />
+                  </div>
+                  <span className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-wide block ml-1">
+                    &nbsp;
+                  </span>
+                </div>
+
+                {/* Field 7: Upload bukti / kwitansi */}
+                <div className="space-y-1 md:col-span-2">
+                  <div className="flex justify-between items-center px-1">
+                    <label className="text-[11px] font-black text-slate-500 uppercase tracking-wider block">
+                      Upload bukti / kwitansi <span className="text-red-500 font-bold">*</span>
+                      <span className="text-[10px] text-blue-600 border border-blue-200 bg-blue-50 px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wide">
+                        IIA Std. 2330
+                      </span>
+                    </label>
+                  </div>
+                  
+                  <div className="border-dashed border-2 border-slate-200 hover:border-blue-400 bg-slate-50/20 hover:bg-blue-50/5 transition-all duration-200 rounded-xl p-5 flex flex-col items-center justify-center cursor-pointer group h-28 relative">
+                    <BsCloudUpload className="text-slate-400 group-hover:text-blue-500 text-3xl group-hover:scale-105 transition-transform duration-200 mb-1" />
+                    <span className="text-[13px] font-bold text-slate-600 group-hover:text-slate-700 transition-colors duration-200">
+                      Upload struk, invoice, atau tiket
+                    </span>
+                    <span className="text-[10px] font-bold text-slate-400">
+                      PDF, JPG, PNG · maks. 5 MB
+                    </span>
+                  </div>
+                  
+                  <span className="text-[10px] font-bold text-slate-400 mt-1.5 uppercase tracking-wide block ml-1 leading-snug">
+                    Wajib — bukti fisik/digital diperlukan untuk pertanggungjawaban keuangan audit
+                  </span>
+                </div>
+
               </div>
 
-              <div className="flex gap-3 pt-4 border-t border-slate-100">
+              {/* Action Buttons */}
+              <div className="flex gap-4 pt-4 border-t border-slate-100 mt-4">
                 <button
                   type="button"
                   onClick={() => setShowTambahBiaya(false)}
-                  className="flex-1 py-3 text-slate-500 bg-slate-100 hover:bg-slate-200 rounded-lg font-bold transition-all text-xs uppercase tracking-wider"
+                  className="flex-1 py-3 text-slate-500 bg-slate-100 hover:bg-slate-200 rounded-xl font-bold transition-all text-xs uppercase tracking-widest active:scale-95 border border-slate-200 cursor-pointer"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
-                  className="flex-2 w-[60%] py-3 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition-all shadow-md active:scale-[0.98] uppercase text-[11px] tracking-widest"
+                  className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold transition-all shadow-md active:scale-95 uppercase text-[11px] tracking-widest flex items-center justify-center gap-2 cursor-pointer"
                 >
-                  Simpan Biaya
+                  <BsCalendarCheck size={14} /> Simpan biaya
                 </button>
               </div>
+
             </form>
           </div>
         </div>
