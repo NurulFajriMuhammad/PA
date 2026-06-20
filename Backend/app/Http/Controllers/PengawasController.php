@@ -53,7 +53,8 @@ public function store(Request $request)
             'keahlian' => $request->specialty,
             'pendidikan' => $request->education,
             'email' => $request->email,
-            'bio' => $request->bio
+            'bio' => $request->bio,
+            'created_by' => auth()->id()
         ];
 
         if ($request->hasFile('image')) {
@@ -73,9 +74,12 @@ public function store(Request $request)
 
         $pengawas = PengawasSpi::create($data);
 
+        $addedByUser = auth()->user() ? auth()->user()->name : 'Unknown';
+
         return response()->json([
             'success'=>true,
-            'data'=>$pengawas
+            'data'=>$pengawas,
+            'added_by_user'=>$addedByUser
         ],201);
 
     } catch (\Exception $e) {

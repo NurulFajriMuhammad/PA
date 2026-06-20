@@ -7,8 +7,8 @@ import { BrowserRouter } from 'react-router-dom'
 import { getCsrfCookie } from "../../Shared/api/axios.js";
 import { Toaster } from 'react-hot-toast';
 
-getCsrfCookie().then(() => {
-
+// ✅ Render app LANGSUNG tanpa menunggu CSRF — halaman tampil instan
+// CSRF tetap di-fetch di background agar request API berikutnya tetap valid
 ReactDOM.createRoot(document.getElementById('root')).render(
     <BrowserRouter>   
       <AuthProvider>   
@@ -35,4 +35,8 @@ ReactDOM.createRoot(document.getElementById('root')).render(
       </AuthProvider>
     </BrowserRouter>
 );
+
+// Fetch CSRF di background setelah app sudah di-render
+getCsrfCookie().catch(() => {
+  console.warn('[CSRF] Gagal mengambil CSRF cookie. Request API mungkin memerlukan retry.');
 });

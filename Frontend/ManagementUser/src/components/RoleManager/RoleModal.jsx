@@ -130,7 +130,7 @@ const RoleModal = ({
             </div>
 
             {/* Permission Section */}
-            <div className="space-y-3">
+            <div className="space-y-3 hidden">
               <div className="flex items-center justify-between">
                 <label className="text-sm font-semibold text-gray-700">Permissions</label>
                 <button type="button" onClick={handleSelectAll} className="text-[10px] px-2 py-1 bg-purple-50 text-purple-700 rounded border border-purple-200 hover:bg-purple-100">

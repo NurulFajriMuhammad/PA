@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import apiClient from "../../../../../Shared/api/apiClient";
 import { BsX, BsTrash, BsPencilSquare, BsPlusLg, BsCloudUpload, BsFileEarmarkText, BsWallet2, BsCardChecklist, BsCollection, BsPencil, BsCalendarCheck } from "react-icons/bs";
 import { notifySuccess, notifyError, notifyConfirm } from "@shared/utils/notifier.jsx";
+import { useAuth } from "../../../../../Shared/hooks/useAuth.jsx";
 
-const PelaksanaanTab = ({ assurance }) => {
+const PelaksanaanTab = ({ assurance, onRefresh }) => {
   const [kka, setKka] = useState([]);
   const [selectedKka, setSelectedKka] = useState(null);
   const [showTemuanModal, setShowTemuanModal] = useState(false);
@@ -18,6 +19,8 @@ const PelaksanaanTab = ({ assurance }) => {
   const [showDetailTemuan, setShowDetailTemuan] = useState(false);
   const [selectedTemuan, setSelectedTemuan] = useState(null);
   const [editBiaya, setEditBiaya] = useState(null);
+  const [buktiFile, setBuktiFile] = useState(null);
+  const buktiInputRef = useRef(null);
 
   const [formTemuan, setFormTemuan] = useState({
     kategori: "",
@@ -51,6 +54,7 @@ const PelaksanaanTab = ({ assurance }) => {
     nilai_realisasi: "",
     pelaksana: "",
     tgl_realisasi: "",
+    bukti: "",
   });
 
   const fetchBiaya = async () => {
@@ -62,9 +66,25 @@ const PelaksanaanTab = ({ assurance }) => {
     }
   };
 
+  const [availableTransitions, setAvailableTransitions] = useState([]);
+  const { user: authData } = useAuth();
+  const userRole = authData?.user?.roles?.[0]?.name || "";
+  const isPengendaliTeknis = userRole.toLowerCase() === "pengendali teknis";
+  const isAuditor = userRole.toLowerCase() === "auditor" || userRole.toLowerCase() === "administrator audit";
+
+  const fetchTransitions = async () => {
+    try {
+      const res = await apiClient.get(`/api/assurance/${assurance?.id}/transitions`);
+      setAvailableTransitions(res.data.data || []);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   useEffect(() => {
     fetchKka();
     fetchBiaya();
+    fetchTransitions();
   }, [assurance]);
 
   const fetchKka = async () => {
@@ -212,23 +232,58 @@ const PelaksanaanTab = ({ assurance }) => {
     });
   };
 
+  const handleBuktiChange = (e) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      if (file.size > 5 * 1024 * 1024) {
+        notifyError("Ukuran file maksimal 5 MB");
+        return;
+      }
+      setBuktiFile(file);
+    }
+  };
+
   const handleSaveBiaya = async (e) => {
     e.preventDefault();
+
+    if (!editBiaya && !buktiFile) {
+      notifyError("Bukti / kwitansi wajib diupload (IIA Std. 2330)");
+      return;
+    }
+
+    const form = new FormData();
+    form.append("kka_id", formBiaya.kka_id);
+    form.append("nama", formBiaya.nama);
+    form.append("jenis_akomodasi", formBiaya.jenis_akomodasi);
+    form.append("nilai_realisasi", formBiaya.nilai_realisasi);
+    form.append("pelaksana", formBiaya.pelaksana);
+    form.append("tgl_realisasi", formBiaya.tgl_realisasi);
+
+    if (buktiFile) {
+      form.append("bukti", buktiFile);
+    }
+
     try {
       if (editBiaya) {
-        await apiClient.put(`/api/biaya/${editBiaya.id}`, formBiaya);
+        form.append("_method", "PUT");
+        await apiClient.post(`/api/biaya/${editBiaya.id}`, form, {
+          headers: { "Content-Type": "multipart/form-data" }
+        });
       } else {
-        await apiClient.post(`/api/biaya`, formBiaya);
+        await apiClient.post(`/api/biaya`, form, {
+          headers: { "Content-Type": "multipart/form-data" }
+        });
       }
 
       setShowTambahBiaya(false);
       setEditBiaya(null);
-      setFormBiaya({ kka_id: "", nama: "", jenis_akomodasi: "", nilai_realisasi: "", pelaksana: "", tgl_realisasi: "" });
+      setBuktiFile(null);
+      setFormBiaya({ kka_id: "", nama: "", jenis_akomodasi: "", nilai_realisasi: "", pelaksana: "", tgl_realisasi: "", bukti: "" });
       fetchBiaya();
       notifySuccess("Biaya berhasil disimpan");
     } catch (err) {
       console.error(err);
-      notifyError("Gagal simpan biaya");
+      notifyError(err.response?.data?.message || "Gagal simpan biaya");
     }
   };
 
@@ -325,12 +380,55 @@ const PelaksanaanTab = ({ assurance }) => {
                     </div>
 
           <div className="flex items-center gap-2">
-            <button className="flex items-center justify-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold uppercase tracking-wider rounded-lg transition-all shadow-sm active:scale-95">
-              <BsCardChecklist size={14} /> Checklist Penyelesaian
-            </button>
-            <button className="flex items-center justify-center gap-2 px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold uppercase tracking-wider rounded-lg transition-all shadow-sm active:scale-95">
-              <BsCardChecklist size={14} /> Checklist Laporan
-            </button>
+            {(() => {
+              const allLheApproved = kka.length > 0 && kka.every(item => item.lhe_status === "disetujui");
+              return (
+                <>
+                  {availableTransitions.map((tr, index) => {
+                    const isApprove = tr.action === "approve";
+                    const isDisabled = isApprove && !allLheApproved;
+                    return (
+                      <button 
+                        key={index}
+                        disabled={isDisabled}
+                        onClick={async () => {
+                          if (isDisabled) return;
+                          notifyConfirm(`Apakah Anda yakin ingin menyelesaikan pelaksanaan dan ${tr.label}?`, async () => {
+                            try {
+                              const res = await apiClient.post(`/api/assurance/${assurance.id}/transition`, {
+                                action: tr.action,
+                                next_status_id: tr.next_status_id
+                              });
+                              if (res.data.success) {
+                                notifySuccess(res.data.message);
+                                if (onRefresh) onRefresh();
+                              }
+                            } catch (err) {
+                              notifyError(err.response?.data?.message || "Gagal melakukan transisi");
+                            }
+                          });
+                        }}
+                        className={`flex items-center justify-center gap-2 px-4 py-2 text-white text-xs font-bold uppercase tracking-wider rounded-lg transition-all shadow-sm active:scale-95 ${
+                          isDisabled 
+                            ? "bg-slate-400 text-white cursor-not-allowed opacity-50 shadow-none" 
+                            : isApprove 
+                              ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-200 cursor-pointer" 
+                              : "bg-rose-600 hover:bg-rose-700 text-white shadow-rose-200 cursor-pointer"
+                        }`}
+                        title={isDisabled ? "Semua LHE harus disetujui terlebih dahulu" : tr.label}
+                      >
+                        <BsCardChecklist size={14} /> {tr.label}
+                      </button>
+                    );
+                  })}
+                  {availableTransitions.length === 0 && (
+                    <span className="text-[10px] font-bold text-rose-500 bg-rose-50 border border-rose-200 px-3 py-1.5 rounded-lg uppercase tracking-wider">
+                      Menunggu checklist dari role berwenang
+                    </span>
+                  )}
+                </>
+              );
+            })()}
           </div>
         </div>
 
@@ -372,16 +470,40 @@ const PelaksanaanTab = ({ assurance }) => {
                   </td>
                   <td className="py-4 px-4 text-center border-r border-slate-100">
                     {item.lhe_file?.file_name ? (
-                      <div>
+                      <div className="flex flex-col items-center gap-1">
                         <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wide">
                           ✓ Uploaded
                         </span>
+                        {(() => {
+                          const status = item.lhe_status || "menunggu_review";
+                          if (status === "disetujui") {
+                            return (
+                              <span className="inline-flex items-center bg-emerald-100 text-emerald-800 border border-emerald-200 px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider">
+                                Disetujui
+                              </span>
+                            );
+                          } else if (status === "perlu_revisi") {
+                            return (
+                              <span className="inline-flex items-center bg-rose-100 text-rose-800 border border-rose-200 px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider">
+                                Perlu Revisi
+                              </span>
+                            );
+                          } else {
+                            return (
+                              <span className="inline-flex items-center bg-amber-100 text-amber-800 border border-amber-200 px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider">
+                                Menunggu Review
+                              </span>
+                            );
+                          }
+                        })()}
                         <span className="block text-[10px] text-slate-400 font-bold truncate max-w-[150px] mx-auto mt-1 lowercase" title={item.lhe_file.file_name}>
                           {item.lhe_file.file_name}
                         </span>
                       </div>
                     ) : (
-                      <span className="text-slate-400 font-bold text-xs">—</span>
+                      <span className="inline-flex items-center bg-slate-100 text-slate-600 border border-slate-200 px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider">
+                        Belum Upload
+                      </span>
                     )}
                   </td>
                   <td className="py-4 px-4 text-center border-r border-slate-100">
@@ -453,8 +575,10 @@ const PelaksanaanTab = ({ assurance }) => {
                 jenis_akomodasi: "", 
                 nilai_realisasi: "",
                 pelaksana: "",
-                tgl_realisasi: ""
+                tgl_realisasi: "",
+                bukti: ""
               }); 
+              setBuktiFile(null);
               setShowTambahBiaya(true); 
             }}
             className="flex items-center justify-center gap-2 px-4.5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-black uppercase tracking-widest rounded-lg transition-all shadow-sm active:scale-95 cursor-pointer"
@@ -536,7 +660,19 @@ const PelaksanaanTab = ({ assurance }) => {
                           {dIndex + 1}
                         </td>
                         <td className="py-4 px-5 text-slate-700 font-semibold border-r border-slate-100 text-[13px]">
-                           {d.nama}
+                           <div className="flex flex-col gap-1">
+                             <span>{d.nama}</span>
+                             {d.bukti && (
+                               <a 
+                                 href={`${import.meta.env.VITE_BACKEND_URL}/storage/${d.bukti}`} 
+                                 target="_blank" 
+                                 rel="noopener noreferrer" 
+                                 className="inline-flex items-center gap-1 text-[10px] font-black text-blue-600 hover:text-blue-850 hover:underline w-fit uppercase tracking-wider bg-blue-50 border border-blue-100 px-2 py-0.5 rounded transition-all"
+                               >
+                                 <BsFileEarmarkText size={10} className="text-red-500" /> Lihat Bukti
+                               </a>
+                             )}
+                           </div>
                         </td>
                         <td className="py-4 px-4 text-center border-r border-slate-100 font-bold text-slate-800 text-[13px]">
                            {d.pelaksana || "—"}
@@ -564,8 +700,10 @@ const PelaksanaanTab = ({ assurance }) => {
                                   jenis_akomodasi: d.jenis_akomodasi,
                                   nilai_realisasi: d.nilai_realisasi.toString(),
                                   pelaksana: d.pelaksana || "",
-                                  tgl_realisasi: d.tgl_realisasi || ""
+                                  tgl_realisasi: d.tgl_realisasi || "",
+                                  bukti: d.bukti || ""
                                 });
+                                setBuktiFile(null);
                                 setShowTambahBiaya(true);
                               }}
                               className="p-2 bg-slate-800 hover:bg-slate-900 border border-slate-700 text-white rounded-lg transition-all active:scale-95 cursor-pointer inline-flex items-center justify-center"
@@ -721,6 +859,108 @@ const PelaksanaanTab = ({ assurance }) => {
                     </label>
                   )}
                 </div>
+
+                {existingLhe && (
+                  <div className="mt-4 p-5 border border-slate-200 bg-slate-50/50 rounded-2xl flex flex-col gap-3.5 shadow-sm">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
+                        🛡️ Review Pengendali Teknis (Std. 2340)
+                      </span>
+                      {(() => {
+                        const status = selectedKka?.lhe_status || "menunggu_review";
+                        if (status === "disetujui") {
+                          return (
+                            <span className="bg-emerald-100 text-emerald-800 border border-emerald-200 px-2.5 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider">
+                              LHE Disetujui
+                            </span>
+                          );
+                        } else if (status === "perlu_revisi") {
+                          return (
+                            <span className="bg-rose-100 text-rose-800 border border-rose-200 px-2.5 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider animate-pulse">
+                              Perlu Revisi
+                            </span>
+                          );
+                        } else {
+                          return (
+                            <span className="bg-amber-100 text-amber-800 border border-amber-200 px-2.5 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider animate-pulse">
+                              Menunggu Review
+                            </span>
+                          );
+                        }
+                      })()}
+                    </div>
+
+                    {selectedKka?.lhe_catatan_review && (
+                      <div className="bg-white border border-slate-100 p-3.5 rounded-xl text-xs font-semibold text-slate-700 shadow-sm leading-relaxed">
+                        <span className="font-black text-slate-400 block mb-1 uppercase tracking-widest text-[9px]">Catatan PT:</span>
+                        {selectedKka.lhe_catatan_review}
+                      </div>
+                    )}
+
+                    {isPengendaliTeknis && (
+                      <div className="flex flex-col gap-2.5 border-t border-slate-200/60 pt-3.5 mt-1">
+                        <textarea
+                          placeholder="Tulis catatan review LHE di sini (Catatan wajib diisi jika meminta revisi)..."
+                          className="w-full p-3 bg-white border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 font-semibold text-xs text-slate-800 transition-all resize-y leading-relaxed shadow-sm"
+                          rows="2"
+                          id="review-catatan-input"
+                        />
+                        <div className="flex justify-end gap-2">
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              const catatan = document.getElementById("review-catatan-input")?.value || "";
+                              if (!catatan.trim()) {
+                                notifyError("Catatan review wajib diisi jika meminta revisi!");
+                                        return;
+                                      }
+                                      try {
+                                        const res = await apiClient.post(`/api/kka/${selectedKka.id}/review-lhe`, {
+                                          status: "perlu_revisi",
+                                          catatan
+                                        });
+                                        if (res.data.success) {
+                                          notifySuccess(res.data.message);
+                                          fetchKka();
+                                          setSelectedKka(prev => ({ ...prev, lhe_status: "perlu_revisi", lhe_catatan_review: catatan }));
+                                          document.getElementById("review-catatan-input").value = "";
+                                        }
+                                      } catch (e) {
+                                        notifyError(e.response?.data?.message || "Gagal menyimpan review");
+                                      }
+                            }}
+                            className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all active:scale-95 shadow-md shadow-rose-250 cursor-pointer"
+                          >
+                            Minta Revisi
+                          </button>
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              const catatan = document.getElementById("review-catatan-input")?.value || "";
+                              try {
+                                const res = await apiClient.post(`/api/kka/${selectedKka.id}/review-lhe`, {
+                                  status: "disetujui",
+                                  catatan
+                                });
+                                if (res.data.success) {
+                                  notifySuccess(res.data.message);
+                                  fetchKka();
+                                  setSelectedKka(prev => ({ ...prev, lhe_status: "disetujui", lhe_catatan_review: catatan }));
+                                  document.getElementById("review-catatan-input").value = "";
+                                }
+                              } catch (e) {
+                                notifyError(e.response?.data?.message || "Gagal menyimpan review");
+                              }
+                            }}
+                            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all active:scale-95 shadow-md shadow-emerald-250 cursor-pointer"
+                          >
+                            Setujui LHE
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* --- SECTION DAFTAR TEMUAN --- */}
@@ -1364,20 +1604,44 @@ const PelaksanaanTab = ({ assurance }) => {
                   <div className="flex justify-between items-center px-1">
                     <label className="text-[11px] font-black text-slate-500 uppercase tracking-wider block">
                       Upload bukti / kwitansi <span className="text-red-500 font-bold">*</span>
-                      <span className="text-[10px] text-blue-600 border border-blue-200 bg-blue-50 px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wide">
+                      <span className="text-[10px] text-blue-600 border border-blue-200 bg-blue-50 px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wide ml-2">
                         IIA Std. 2330
                       </span>
                     </label>
                   </div>
                   
-                  <div className="border-dashed border-2 border-slate-200 hover:border-blue-400 bg-slate-50/20 hover:bg-blue-50/5 transition-all duration-200 rounded-xl p-5 flex flex-col items-center justify-center cursor-pointer group h-28 relative">
+                  <input 
+                    type="file" 
+                    ref={buktiInputRef} 
+                    onChange={handleBuktiChange} 
+                    className="hidden" 
+                    accept="image/*,application/pdf"
+                  />
+
+                  <div 
+                    onClick={() => buktiInputRef.current?.click()}
+                    className="border-dashed border-2 border-slate-200 hover:border-blue-400 bg-slate-50/20 hover:bg-blue-50/5 transition-all duration-200 rounded-xl p-5 flex flex-col items-center justify-center cursor-pointer group h-28 relative"
+                  >
                     <BsCloudUpload className="text-slate-400 group-hover:text-blue-500 text-3xl group-hover:scale-105 transition-transform duration-200 mb-1" />
-                    <span className="text-[13px] font-bold text-slate-600 group-hover:text-slate-700 transition-colors duration-200">
-                      Upload struk, invoice, atau tiket
+                    <span className="text-[13px] font-bold text-slate-600 group-hover:text-slate-700 transition-colors duration-200 text-center px-4 truncate max-w-full">
+                      {buktiFile ? buktiFile.name : (formBiaya.bukti ? "Ganti bukti / kwitansi terupload" : "Upload struk, invoice, atau tiket")}
                     </span>
                     <span className="text-[10px] font-bold text-slate-400">
-                      PDF, JPG, PNG · maks. 5 MB
+                      {buktiFile ? `${(buktiFile.size / 1024 / 1024).toFixed(2)} MB` : "PDF, JPG, PNG · maks. 5 MB"}
                     </span>
+                    {formBiaya.bukti && !buktiFile && (
+                      <div className="mt-1">
+                        <a 
+                          href={`${import.meta.env.VITE_BACKEND_URL}/storage/${formBiaya.bukti}`} 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          onClick={(e) => e.stopPropagation()}
+                          className="text-[10px] font-black text-blue-600 hover:underline flex items-center gap-1 uppercase tracking-wider"
+                        >
+                          <BsFileEarmarkText size={10} className="text-red-500" /> Lihat File Terupload
+                        </a>
+                      </div>
+                    )}
                   </div>
                   
                   <span className="text-[10px] font-bold text-slate-400 mt-1.5 uppercase tracking-wide block ml-1 leading-snug">

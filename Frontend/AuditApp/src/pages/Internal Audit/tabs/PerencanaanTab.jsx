@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from "react";
 import apiClient from "../../../../../Shared/api/apiClient";
 import { BsX, BsPrinter, BsFileEarmarkCheck, BsPlusLg, BsCloudUpload, BsFileEarmarkText, BsFolder2Open, BsTrash, BsEye, BsCheckCircle } from "react-icons/bs";
-import { notifySuccess, notifyError } from "../../../../../Shared/utils/notifier.jsx";
+import { notifySuccess, notifyError, notifyConfirm } from "../../../../../Shared/utils/notifier.jsx";
+import { useAuth } from "../../../../../Shared/hooks/useAuth.jsx";
 
-const PerencanaanTab = ({ assurance }) => {
+const PerencanaanTab = ({ assurance, onRefresh }) => {
   const [kka, setKka] = useState([]);
   const [docs, setDocs] = useState([]);
 
@@ -31,10 +32,23 @@ const PerencanaanTab = ({ assurance }) => {
   const [docKka, setDocKka] = useState("");
   const [docKeterangan, setDocKeterangan] = useState("");
 
+  const [availableTransitions, setAvailableTransitions] = useState([]);
+  const { user: authData } = useAuth();
+
+  const fetchTransitions = async () => {
+    try {
+      const res = await apiClient.get(`/api/assurance/${assurance?.id}/transitions`);
+      setAvailableTransitions(res.data.data || []);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   useEffect(() => {
     if (assurance?.id) {
       fetchKka();
       fetchDocs();
+      fetchTransitions();
     }
 
     fetchUsers();
@@ -90,16 +104,29 @@ const PerencanaanTab = ({ assurance }) => {
     }
   };
 
-  const handleDeleteKka = async (id) => {
-    if (!window.confirm("Apakah Anda yakin ingin menghapus data KKA ini?")) return;
-    try {
-      await apiClient.delete(`/api/kka-perencanaan/${id}`);
-      fetchKka();
-      notifySuccess("Data KKA berhasil dihapus!");
-    } catch (e) {
-      console.error(e);
-      notifyError("Gagal menghapus data KKA");
-    }
+  const handleDeleteKka = (id) => {
+    notifyConfirm(
+      "Apakah Anda yakin ingin menghapus data KKA ini?",
+      async () => {
+        try {
+          await apiClient.delete(`/api/kka-perencanaan/${id}`);
+          fetchKka();
+          notifySuccess("Data KKA berhasil dihapus!");
+        } catch (e) {
+          console.error(e);
+          notifyError("Gagal menghapus data KKA");
+        }
+      },
+      null,
+      {
+        title: "Hapus KKA",
+        confirmText: "Hapus",
+        confirmColor: "bg-rose-600",
+        confirmHoverColor: "hover:bg-rose-700",
+        iconColor: "bg-rose-500",
+        iconShadow: "shadow-rose-100",
+      }
+    );
   };
 
   const handleUploadDoc = async (e) => {
@@ -132,16 +159,29 @@ const PerencanaanTab = ({ assurance }) => {
     }
   };
 
-  const handleDeleteDoc = async (id) => {
-    if (!window.confirm("Apakah Anda yakin ingin menghapus dokumen ini?")) return;
-    try {
-      await apiClient.delete(`/api/documents/${id}`);
-      fetchDocs();
-      notifySuccess("Dokumen berhasil dihapus!");
-    } catch (e) {
-      console.error(e);
-      notifyError("Gagal menghapus dokumen");
-    }
+  const handleDeleteDoc = (id) => {
+    notifyConfirm(
+      "Apakah Anda yakin ingin menghapus dokumen ini?",
+      async () => {
+        try {
+          await apiClient.delete(`/api/documents/${id}`);
+          fetchDocs();
+          notifySuccess("Dokumen berhasil dihapus!");
+        } catch (e) {
+          console.error(e);
+          notifyError("Gagal menghapus dokumen");
+        }
+      },
+      null,
+      {
+        title: "Hapus Dokumen",
+        confirmText: "Hapus",
+        confirmColor: "bg-rose-600",
+        confirmHoverColor: "hover:bg-rose-700",
+        iconColor: "bg-rose-500",
+        iconShadow: "shadow-rose-100",
+      }
+    );
   };
 
   const formatCurrency = (amount) => {
@@ -199,6 +239,10 @@ const PerencanaanTab = ({ assurance }) => {
     addToList(assurance?.koordinator);
     addToList(assurance?.pengendali_teknis);
     addToList(assurance?.ketua);
+    
+    if (assurance?.auditors && Array.isArray(assurance.auditors)) {
+      assurance.auditors.forEach(a => addToList(a));
+    }
     
     if (assurance?.auditor) {
       if (Array.isArray(assurance.auditor)) {
@@ -512,34 +556,96 @@ const PerencanaanTab = ({ assurance }) => {
       </div>
 
       {/* ================= SECTION: CHECKLIST PENYELESAIAN ================= */}
-      <div className="bg-slate-50/50 border-2 border-dashed border-slate-300 rounded-2xl p-6 text-slate-700 shadow-sm mt-6 transition-colors">
-        <h3 className="font-bold flex items-center gap-2 mb-4 text-slate-800 text-sm uppercase tracking-tight">
-          <BsFileEarmarkCheck size={18} className="text-blue-600" /> Checklist Penyelesaian — syarat sebelum aktif
-        </h3>
-        <ul className="space-y-3 mb-6">
-          <li className="flex items-center gap-3 text-sm font-medium text-slate-700">
-            {isKkaLengkap ? <BsCheckCircle size={18} className="text-emerald-500" /> : <div className="w-[18px] h-[18px] rounded-full border-[2.5px] border-amber-500" />}
-            Minimal 1 KKA sudah diisi lengkap (uraian + auditor + periode)
-          </li>
-          <li className="flex items-center gap-3 text-sm font-medium text-slate-700">
-            {isAnggaranSesuai ? <BsCheckCircle size={18} className="text-emerald-500" /> : <div className="w-[18px] h-[18px] rounded-full border-[2.5px] border-amber-500" />}
-            Total anggaran KKA tidak melebihi estimasi registrasi
-          </li>
-          <li className="flex items-center gap-3 text-sm font-medium text-slate-700">
-            {isDocUploaded ? <BsCheckCircle size={18} className="text-emerald-500" /> : <div className="w-[18px] h-[18px] rounded-full border-[2.5px] border-amber-500" />}
-            Minimal 1 dokumen auditee sudah diupload
-          </li>
-        </ul>
-        <div className="pt-5 border-t border-slate-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">{fulfilledCount} dari 3 syarat terpenuhi</span>
-          <button 
-            disabled={fulfilledCount < 3}
-            className="flex items-center justify-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-xl font-bold uppercase tracking-wider text-xs shadow-md shadow-blue-200 hover:bg-blue-700 transition-all disabled:opacity-50 disabled:bg-slate-400 disabled:shadow-none disabled:cursor-not-allowed"
-          >
-            <BsFileEarmarkCheck size={15} /> Checklist Penyelesaian
-          </button>
+      {Number(assurance.id_status_pemeriksaan) === 1 ? (
+        <div className="bg-slate-50/50 border-2 border-dashed border-slate-300 rounded-2xl p-6 text-slate-700 shadow-sm mt-6 transition-colors">
+          <h3 className="font-bold flex items-center gap-2 mb-4 text-slate-800 text-sm uppercase tracking-tight">
+            <BsFileEarmarkCheck size={18} className="text-blue-600" /> Checklist Penyelesaian — syarat sebelum aktif
+          </h3>
+          <ul className="space-y-3 mb-6">
+            <li className="flex items-center gap-3 text-sm font-medium text-slate-700">
+              {isKkaLengkap ? <BsCheckCircle size={18} className="text-emerald-500" /> : <div className="w-[18px] h-[18px] rounded-full border-[2.5px] border-amber-500" />}
+              Minimal 1 KKA sudah diisi lengkap (uraian + auditor + periode)
+            </li>
+            <li className="flex items-center gap-3 text-sm font-medium text-slate-700">
+              {isAnggaranSesuai ? <BsCheckCircle size={18} className="text-emerald-500" /> : <div className="w-[18px] h-[18px] rounded-full border-[2.5px] border-amber-500" />}
+              Total anggaran KKA tidak melebihi estimasi registrasi
+            </li>
+            <li className="flex items-center gap-3 text-sm font-medium text-slate-700">
+              {isDocUploaded ? <BsCheckCircle size={18} className="text-emerald-500" /> : <div className="w-[18px] h-[18px] rounded-full border-[2.5px] border-amber-500" />}
+              Minimal 1 dokumen auditee sudah diupload
+            </li>
+          </ul>
+          <div className="pt-5 border-t border-slate-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">{fulfilledCount} dari 3 syarat terpenuhi</span>
+            
+            <div className="flex gap-2">
+              {availableTransitions.map((tr, index) => {
+                const isApprove = tr.action === "approve";
+                const isDisabled = isApprove && fulfilledCount < 3;
+                return (
+                  <button 
+                    key={index}
+                    disabled={isDisabled}
+                    onClick={() => {
+                      if (isDisabled) return;
+                      notifyConfirm(
+                        `Apakah Anda yakin ingin menyelesaikan perencanaan dan ${tr.label}?`,
+                        async () => {
+                          try {
+                            const res = await apiClient.post(`/api/assurance/${assurance.id}/transition`, {
+                              action: tr.action,
+                              next_status_id: tr.next_status_id
+                            });
+                            if (res.data.success) {
+                              notifySuccess(res.data.message);
+                              if (onRefresh) onRefresh();
+                            }
+                          } catch (err) {
+                            notifyError(err.response?.data?.message || "Gagal melakukan transisi");
+                          }
+                        },
+                        null,
+                        {
+                          title: "Konfirmasi Pengajuan",
+                          confirmText: tr.label,
+                          confirmColor: isApprove ? "bg-emerald-600" : "bg-rose-600",
+                          confirmHoverColor: isApprove ? "hover:bg-emerald-700" : "hover:bg-rose-700",
+                          iconColor: isApprove ? "bg-emerald-500" : "bg-rose-500",
+                          iconShadow: isApprove ? "shadow-emerald-100" : "shadow-rose-100",
+                        }
+                      );
+                    }}
+                    className={`flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-bold uppercase tracking-wider text-xs shadow-md transition-all active:scale-95 ${
+                      isDisabled 
+                        ? "bg-slate-400 text-white cursor-not-allowed opacity-50 shadow-none" 
+                        : isApprove 
+                          ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-200 cursor-pointer" 
+                          : "bg-rose-600 hover:bg-rose-700 text-white shadow-rose-200 cursor-pointer"
+                    }`}
+                  >
+                    <BsFileEarmarkCheck size={15} /> {tr.label}
+                  </button>
+                );
+              })}
+              {availableTransitions.length === 0 && (
+                <span className="text-xs font-bold text-rose-500 bg-rose-50 border border-rose-200 px-3 py-1.5 rounded-lg uppercase tracking-wider">
+                  Menunggu Checklist dari Kepala SPI
+                </span>
+              )}
+            </div>
+          </div>
         </div>
-      </div>
+      ) : (
+        <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-6 text-emerald-800 shadow-sm mt-6 flex items-center gap-4 animate-in fade-in duration-300">
+          <BsCheckCircle size={24} className="text-emerald-500 flex-shrink-0" />
+          <div>
+            <h4 className="font-bold text-sm uppercase tracking-wider">Perencanaan Telah Diselesaikan</h4>
+            <p className="text-xs text-emerald-600 mt-1">
+              Tahap perencanaan untuk kegiatan ini telah rampung dan disetujui. Saat ini penugasan sedang berjalan di tahap pemeriksaan lapangan.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* ================= MODAL TAMBAH KKA ================= */}
       {showModalKka && (

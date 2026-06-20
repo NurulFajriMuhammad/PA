@@ -15,9 +15,9 @@ const StrukturSpiPage = () => {
       icon: <User className="text-blue-600" />,
       tasks: [
         "Mengkoordinasikan seluruh kegiatan pengawasan internal di lingkungan organisasi.",
-        "Menyusun dan menetapkan rencana kerja audit tahunan (PKPT).",
-        "Melaporkan hasil pengawasan secara langsung kepada pimpinan tertinggi (Rektor).",
-        "Memantau tindak lanjut hasil temuan audit."
+        "Menyusun dan menetapkan Rencana Program Kerja Pengawasan Tahunan (PKPT).",
+        "Melaporkan hasil pemeriksaan dan evaluasi secara langsung kepada pimpinan tertinggi.",
+        "Memberikan rekomendasi strategis untuk perbaikan tata kelola, manajemen risiko, dan pengendalian."
       ]
     },
     {
@@ -25,37 +25,50 @@ const StrukturSpiPage = () => {
       role: "Sekretaris SPI",
       icon: <ClipboardList className="text-blue-600" />,
       tasks: [
-        "Mengelola administrasi dan persuratan Satuan Pengawas Internal.",
-        "Menyusun laporan realisasi anggaran dan kegiatan SPI.",
-        "Mengkoordinasikan penyusunan laporan periodik SPI.",
-        "Mendokumentasikan seluruh kertas kerja audit (KKA)."
+        "Mengelola administrasi, persuratan, dan kearsipan Satuan Pengawas Internal.",
+        "Menyusun laporan realisasi anggaran, kinerja, dan kegiatan operasional SPI.",
+        "Mengkoordinasikan penyusunan laporan hasil audit dan laporan periodik.",
+        "Mendokumentasikan seluruh Kertas Kerja Audit (KKA) dan database pemeriksaan."
       ]
     },
     {
       id: 3,
-      role: "Bidang Audit Keuangan & Sarpras",
+      role: "Bidang Audit Keuangan & Aset",
       icon: <Briefcase className="text-blue-600" />,
       tasks: [
-        "Melakukan pemeriksaan atas kewajaran laporan keuangan.",
-        "Melakukan audit kepatuhan terhadap pengelolaan aset dan sarana prasarana.",
-        "Memberikan saran perbaikan atas efisiensi penggunaan anggaran."
+        "Melakukan pemeriksaan atas kewajaran dan kepatuhan penyajian laporan keuangan.",
+        "Melakukan audit kepatuhan terhadap pengelolaan aset, inventaris, dan sarana prasarana.",
+        "Memberikan saran perbaikan atas efisiensi dan efektivitas penggunaan anggaran.",
+        "Mengevaluasi sistem pengendalian internal atas pelaporan keuangan."
       ]
     },
     {
       id: 4,
-      role: "Bidang Audit Akademik & SDM",
+      role: "Bidang Audit Operasional & Kinerja",
       icon: <GraduationCap className="text-blue-600" />,
       tasks: [
-        "Melakukan evaluasi atas kepatuhan standar akademik.",
-        "Melakukan audit terhadap proses rekrutmen dan pengembangan SDM.",
-        "Memastikan kegiatan tridharma berjalan sesuai prosedur yang ditetapkan."
+        "Melakukan evaluasi atas efektivitas dan efisiensi program kerja tiap unit operasional/akademik.",
+        "Melakukan audit terhadap proses rekrutmen, kompensasi, dan pengembangan SDM.",
+        "Memastikan kegiatan inti organisasi berjalan sesuai Standard Operating Procedure (SOP).",
+        "Mengevaluasi pencapaian Key Performance Indicators (KPI) manajemen."
+      ]
+    },
+    {
+      id: 5,
+      role: "Bidang Audit Sistem Informasi & Investigasi",
+      icon: <ShieldCheck className="text-blue-600" />,
+      tasks: [
+        "Melakukan audit terhadap keamanan, keandalan, dan efektivitas tata kelola Teknologi Informasi.",
+        "Melakukan pemeriksaan khusus (investigasi) atas indikasi kecurangan (fraud) atau pelanggaran berat.",
+        "Memberikan dukungan forensik digital dan analisis data audit.",
+        "Mengawasi kepatuhan terhadap kebijakan perlindungan data."
       ]
     }
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4">
-      <div className="max-w-6xl mx-auto">
+    <div className="w-full pb-8">
+      <div className="w-full">
         
         {/* --- SECTION 1: STRUKTUR ORGANISASI (VISUAL) --- */}
         <div className="text-center mb-16">
@@ -65,46 +78,63 @@ const StrukturSpiPage = () => {
           <div className="h-1.5 w-20 bg-blue-600 mx-auto rounded-full mb-12"></div>
           
           {/* Bagan Sederhana Modern */}
-          <div className="flex flex-col items-center gap-8">
-            {/* Top Level */}
-            <div className="bg-blue-600 text-white p-6 rounded-2xl shadow-xl w-64 transform transition-hover hover:scale-105">
+          <div className="flex flex-col items-center gap-0">
+            {/* Pimpinan Tertinggi */}
+            <div className="bg-slate-800 text-white p-4 rounded-xl shadow-xl w-64 transform transition-hover hover:scale-105 z-10">
+              <p className="text-xs uppercase font-bold tracking-widest opacity-80 mb-1">Pimpinan Tertinggi</p>
+              <h4 className="font-bold text-lg leading-tight">Direktur Utama / Rektor</h4>
+            </div>
+
+            {/* Line Down */}
+            <div className="h-8 w-1 bg-gray-300"></div>
+
+            {/* Top Level SPI */}
+            <div className="bg-blue-600 text-white p-6 rounded-2xl shadow-xl w-64 transform transition-hover hover:scale-105 z-10 relative">
               <ShieldCheck className="mx-auto mb-2" size={32} />
               <p className="text-xs uppercase font-bold tracking-widest opacity-80">Ketua SPI</p>
-              <h4 className="font-bold text-lg leading-tight">Dr. Nama Ketua, M.Si.</h4>
+              <h4 className="font-bold text-lg leading-tight mt-1">Nama Ketua SPI</h4>
             </div>
 
-            {/* Line */}
-            <div className="h-8 w-1 bg-gray-300"></div>
+            {/* Line Down */}
+            <div className="h-8 w-1 bg-gray-300 relative z-0"></div>
 
-            {/* Mid Level */}
-            <div className="bg-white border-2 border-blue-600 text-blue-600 p-4 rounded-xl shadow-md w-56">
+            {/* Sekretaris */}
+            <div className="bg-white border-2 border-blue-600 text-blue-600 p-4 rounded-xl shadow-md w-56 z-10 relative">
               <p className="text-[10px] uppercase font-bold tracking-widest">Sekretaris</p>
-              <h4 className="font-bold">Nama Sekretaris, S.E.</h4>
+              <h4 className="font-bold text-sm mt-1">Nama Sekretaris SPI</h4>
             </div>
 
-            {/* Line Splitter */}
+            {/* Line Down */}
             <div className="h-8 w-1 bg-gray-300"></div>
-            <div className="w-full max-w-2xl h-1 bg-gray-300 rounded-full relative">
-               <div className="absolute left-0 top-0 h-8 w-1 bg-gray-300 mx-auto translate-x-[-50%] left-[0%]"></div>
-               <div className="absolute right-0 top-0 h-8 w-1 bg-gray-300 mx-auto translate-x-[50%] right-[0%]"></div>
+
+            {/* Line Splitter Horizontal */}
+            <div className="w-full max-w-4xl border-t-[3px] border-gray-300 relative">
+               {/* 3 vertical lines */}
+               <div className="absolute left-[15%] md:left-[16.6%] top-0 h-8 w-1 bg-gray-300 -translate-x-1/2"></div>
+               <div className="absolute left-[50%] top-0 h-8 w-1 bg-gray-300 -translate-x-1/2"></div>
+               <div className="absolute left-[85%] md:left-[83.3%] top-0 h-8 w-1 bg-gray-300 -translate-x-1/2"></div>
             </div>
 
             {/* Bottom Level */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-12 w-full max-w-3xl mt-4">
-              <div className="bg-gray-100 p-4 rounded-xl border border-gray-200">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-5xl mt-8 px-4">
+              <div className="bg-gray-100 p-5 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
                 <p className="text-[10px] uppercase font-black text-gray-500 tracking-widest mb-1">Audit Bidang I</p>
-                <h4 className="font-bold text-gray-800">Keuangan & Sarpras</h4>
+                <h4 className="font-bold text-gray-800 text-sm md:text-base">Keuangan & Aset</h4>
               </div>
-              <div className="bg-gray-100 p-4 rounded-xl border border-gray-200">
+              <div className="bg-gray-100 p-5 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
                 <p className="text-[10px] uppercase font-black text-gray-500 tracking-widest mb-1">Audit Bidang II</p>
-                <h4 className="font-bold text-gray-800">Akademik & SDM</h4>
+                <h4 className="font-bold text-gray-800 text-sm md:text-base">Operasional & Kinerja</h4>
+              </div>
+              <div className="bg-gray-100 p-5 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+                <p className="text-[10px] uppercase font-black text-gray-500 tracking-widest mb-1">Audit Bidang III</p>
+                <h4 className="font-bold text-gray-800 text-sm md:text-base">Sistem Informasi & Investigasi</h4>
               </div>
             </div>
           </div>
         </div>
 
         {/* --- SECTION 2: TUGAS & FUNGSI (ACCORDION) --- */}
-        <div className="mt-24">
+        <div className="mt-24 px-4 sm:px-8">
           <div className="flex items-center gap-4 mb-10">
             <Users className="text-blue-600 w-8 h-8" />
             <h2 className="text-3xl font-black text-gray-900 uppercase tracking-tighter">Tugas dan Fungsi</h2>

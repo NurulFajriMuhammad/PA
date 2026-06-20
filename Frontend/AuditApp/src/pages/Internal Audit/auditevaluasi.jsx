@@ -277,7 +277,7 @@ const AuditEvaluasi = () => {
         {/* ================= MODAL FORM ================= */}
         {openModal && (
           <div className="fixed inset-0 z-[9999] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
-            <div className="bg-white rounded-[2rem] p-8 w-full max-w-3xl shadow-2xl overflow-y-auto max-h-[90vh] animate-in zoom-in-95 duration-200">
+            <div className="bg-white rounded-[2rem] p-8 w-full max-w-3xl shadow-2xl overflow-y-auto max-h-[90vh] [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] animate-in zoom-in-95 duration-200">
               
               <div className="flex justify-between items-center mb-6 pb-4 border-b border-slate-100">
                 <div>

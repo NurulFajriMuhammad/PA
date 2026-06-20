@@ -27,7 +27,8 @@ import {
   BsFlag,
   BsPeople,
   BsExclamationTriangle,
-  BsStar
+  BsStar,
+  BsLock
 } from 'react-icons/bs';
 import { notifySuccess, notifyError, notifyConfirm } from "../../../Shared/utils/notifier.jsx";
 import apiClient from "../../../Shared/api/apiClient";
@@ -90,6 +91,19 @@ const DetailTindakLanjut = ({
   formatDate, 
   getMonthLabel 
 }) => {
+  const isOverdue = (targetDate, status) => {
+    if (!targetDate) return false;
+    const lowerStatus = (status || "").toLowerCase();
+    if (lowerStatus === "close" || lowerStatus === "closed" || lowerStatus === "selesai") return false;
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const target = new Date(targetDate);
+    target.setHours(0, 0, 0, 0);
+    
+    return target < today;
+  };
+
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [reviewItem, setReviewItem] = useState(null);
   const [createForm, setCreateForm] = useState(EMPTY_CREATE_FORM);
@@ -552,6 +566,11 @@ const DetailTindakLanjut = ({
             <BsCalendar size={13} className="text-slate-400" />
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Target:</span>
             <span className="text-[11px] font-black text-slate-700">{formatDate(selectedItem.target_penyelesaian || selectedItem.target_selesai)}</span>
+            {isOverdue(selectedItem.target_penyelesaian || selectedItem.target_selesai, selectedItem.status) && (
+              <span className="inline-flex items-center gap-1 bg-red-100 border border-red-200 text-red-700 px-2.5 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider animate-pulse ml-2">
+                ⚠️ Terlewat (IIA 2500)
+              </span>
+            )}
           </div>
 
           <div className="flex items-center gap-2">
@@ -765,7 +784,7 @@ const DetailTindakLanjut = ({
                 <button
                   onClick={() => !isLocked && setShowCreateModal(true)}
                   disabled={!selectedItem.rtl_submitted_at}
-                  className={`flex items-center justify-center gap-2 px-5 py-2.5 text-xs font-bold uppercase tracking-wider rounded-xl transition-all shadow-md active:scale-95 ${
+                  className={`flex items-center justify-center gap-2 px-5 h-[42px] text-xs font-bold uppercase tracking-wider rounded-xl transition-all shadow-md active:scale-95 ${
                     !selectedItem.rtl_submitted_at || isLocked
                       ? "bg-slate-200 text-slate-400 cursor-not-allowed shadow-none" 
                       : "bg-blue-600 hover:bg-blue-700 text-white shadow-blue-200"
@@ -784,7 +803,7 @@ const DetailTindakLanjut = ({
 
             {/* Info Status: Close (Tampil untuk semua role) */}
             {(selectedItem.status || "").toLowerCase() === "close" && (
-              <div className="flex items-center gap-2.5 px-5 py-2.5 bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-black uppercase tracking-widest rounded-xl shadow-sm animate-in fade-in slide-in-from-right-4 duration-300">
+              <div className="flex items-center gap-2.5 px-5 h-[42px] bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-black uppercase tracking-widest rounded-xl shadow-sm animate-in fade-in slide-in-from-right-4 duration-300">
                 <div className="p-1 bg-emerald-100 rounded-lg">
                   <BsCheckCircleFill size={14} className="text-emerald-600" />
                 </div>

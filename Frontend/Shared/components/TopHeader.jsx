@@ -25,6 +25,10 @@ export default function TopHeader({ isSidebarOpen }) {
   const userName = user.name || "Pengguna";
   const userRole = user.roles && user.roles.length > 0 ? user.roles[0].name : "User";
 
+  const isAdministratorAudit = user?.role?.toLowerCase() === "administrator audit" || 
+                               user?.roles?.some(r => r.name?.toLowerCase() === "administrator audit") ||
+                               (typeof user?.role === 'string' && user.role.toLowerCase() === "administrator audit");
+
   const handleGoToManagementUser = () => {
     setIsAppSwitcherOpen(false);
     const host = window.location.hostname;
@@ -214,6 +218,42 @@ export default function TopHeader({ isSidebarOpen }) {
              background-color: #FFF0F0;
              color: #D93025;
           }
+
+          /* --- RESPONSIVE MOBILE --- */
+          @media (max-width: 768px) {
+            .top-header-container {
+              padding: 10px 16px;
+              height: 60px;
+            }
+            
+            .header-title {
+              font-size: 1.2em;
+            }
+            
+            .header-actions {
+              gap: 12px;
+            }
+            
+            .header-icons {
+              gap: 8px;
+              font-size: 1.1em;
+            }
+            
+            .user-profile {
+              padding: 4px;
+              gap: 0;
+            }
+            
+            .user-info {
+              display: none; /* Hide name & role on mobile to save space */
+            }
+            
+            .user-avatar {
+              width: 32px;
+              height: 32px;
+              font-size: 1em;
+            }
+          }
         `}
       </style>
 
@@ -224,31 +264,33 @@ export default function TopHeader({ isSidebarOpen }) {
         <div className="header-actions">
           <div className="header-icons">
             {/* Grid App Switcher */}
-            <div className="relative" ref={appSwitcherRef}>
-              <span title="Aplikasi Lain" onClick={() => setIsAppSwitcherOpen((prev) => !prev)}>
-                <BsGridFill />
-              </span>
-              {isAppSwitcherOpen && (
-                <div className="absolute top-[calc(100%+8px)] right-0 bg-white border border-slate-200 rounded-xl shadow-xl p-2 w-[120px] z-[1100] transition-all animate-in fade-in slide-in-from-top-2 duration-150">
-                  <div 
-                    onClick={handleGoToManagementUser}
-                    className="flex flex-col items-center justify-center p-2 hover:bg-slate-50 rounded-lg transition-all cursor-pointer border border-transparent hover:border-slate-100 group"
-                  >
-                    {/* AKSARA Stylized Logo (Dikecilkan) */}
-                    <div className="relative w-10 h-10 flex items-center justify-center bg-slate-50 border border-slate-150 rounded-lg shadow-inner mb-1.5 group-hover:scale-105 transition-transform duration-200">
-                      <svg width="22" height="22" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M25 80L48 25H52L75 80" stroke="#1e293b" strokeWidth="12" strokeLinecap="round" strokeLinejoin="round"/>
-                        <path d="M33 60H67" stroke="#1e293b" strokeWidth="10" strokeLinecap="round"/>
-                        <path d="M45 55L55 70L85 30" stroke="#10b981" strokeWidth="12" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
+            {isAdministratorAudit && (
+              <div className="relative" ref={appSwitcherRef}>
+                <span title="Aplikasi Lain" onClick={() => setIsAppSwitcherOpen((prev) => !prev)}>
+                  <BsGridFill />
+                </span>
+                {isAppSwitcherOpen && (
+                  <div className="absolute top-[calc(100%+8px)] right-0 bg-white border border-slate-200 rounded-xl shadow-xl p-2 w-[120px] z-[1100] transition-all animate-in fade-in slide-in-from-top-2 duration-150">
+                    <div 
+                      onClick={handleGoToManagementUser}
+                      className="flex flex-col items-center justify-center p-2 hover:bg-slate-50 rounded-lg transition-all cursor-pointer border border-transparent hover:border-slate-100 group"
+                    >
+                      {/* ManajemenUser Logo */}
+                      <div className="relative w-10 h-10 flex items-center justify-center bg-indigo-50 border border-indigo-100 rounded-lg shadow-inner mb-1.5 group-hover:scale-105 transition-transform duration-200">
+                        <img
+                          src="/management-logo.png"
+                          alt="Manajemen User"
+                          className="w-7 h-7 object-contain"
+                        />
+                      </div>
+                      <span className="text-[10px] font-black text-slate-800 mt-1 text-center leading-snug">
+                        Manajemen User
+                      </span>
                     </div>
-                    <span className="text-[10px] font-black text-slate-800 mt-1 text-center leading-snug">
-                      Manajemen User
-                    </span>
                   </div>
-                </div>
-              )}
-            </div>
+                )}
+              </div>
+            )}
             <span title="Notifications"><BsBellFill /></span>
             <span title="Help"><BsQuestionCircleFill /></span>
           </div>

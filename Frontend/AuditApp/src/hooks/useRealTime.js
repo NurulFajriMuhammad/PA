@@ -1,35 +1,52 @@
-import { useEffect } from "react";
-import echo from "../echo";
+import { useEffect, useRef } from "react";
 
 /**
  * Hook untuk sinkronisasi data real-time.
- * @param {string|string[]} tables - Nama tabel atau array nama tabel yang ingin dipantau.
- * @param {Function} onUpdate - Callback yang dijalankan saat ada perubahan data.
+ * Echo/Pusher di-load secara lazy setelah komponen mount,
+ * sehingga tidak memblokir initial render.
+ * @param {string|string[]} tables - Nama tabel atau '*' untuk semua.
+ * @param {Function} onUpdate - Callback saat ada perubahan data.
  */
 const useRealTime = (tables, onUpdate) => {
+  const channelRef = useRef(null);
+
   useEffect(() => {
-    const channel = echo.channel("public-data-updates");
+    let cancelled = false;
 
-    channel.listen(".entity.updated", (e) => {
-      // Jika tables adalah '*', pantau semua
-      if (tables === "*") {
-        onUpdate(e);
-        return;
-      }
+    // ✅ Dynamic import: pusher-js + laravel-echo hanya dimuat setelah
+    // komponen selesai render pertama kali (tidak memblokir FCP/LCP)
+    import("../echo").then(({ default: echo }) => {
+      if (cancelled) return;
 
-      // Pastikan tables dalam bentuk array
-      const targetTables = Array.isArray(tables) ? tables : [tables];
+      const channel = echo.channel("public-data-updates");
+      channelRef.current = channel;
 
-      if (targetTables.includes(e.table)) {
-        console.log(`[RealTime] Data updated on table: ${e.table}`, e);
-        onUpdate(e);
-      }
+      channel.listen(".entity.updated", (e) => {
+        // Jika tables adalah '*', pantau semua
+        if (tables === "*") {
+          onUpdate(e);
+          return;
+        }
+
+        // Pastikan tables dalam bentuk array
+        const targetTables = Array.isArray(tables) ? tables : [tables];
+
+        if (targetTables.includes(e.table)) {
+          console.log(`[RealTime] Data updated on table: ${e.table}`, e);
+          onUpdate(e);
+        }
+      });
     });
 
     return () => {
-      channel.stopListening(".entity.updated");
+      cancelled = true;
+      if (channelRef.current) {
+        channelRef.current.stopListening(".entity.updated");
+        channelRef.current = null;
+      }
     };
   }, [tables, onUpdate]);
 };
 
 export default useRealTime;
+

@@ -167,12 +167,17 @@ Route::middleware('auth:sanctum')->group(function () {
      Route::put('/surat-tugas/{id}', [surattugascontroller::class, 'update']);
      Route::delete('/surat-tugas/{id}', [surattugascontroller::class, 'destroy']);
      Route::get('/users-list', [UserController::class, 'getUsersForDropdown']);
-     Route::apiResource('assurane', assurancecontroller::class);
-     Route::get('/assurance', [assurancecontroller::class, 'index']);      // Ambil semua data
-     Route::post('/assurance', [assurancecontroller::class, 'store']);     // Tambah data
-     Route::get('/assurance/{id}', [assurancecontroller::class, 'show']);  // Detail data
-     Route::put('/assurance/{id}', [assurancecontroller::class, 'update']); // Update data
-     Route::delete('/assurance/{id}', [assurancecontroller::class, 'destroy']); // Hapus data
+      Route::apiResource('assurane', assurancecontroller::class);
+      Route::get('/assurance', [assurancecontroller::class, 'index']);      // Ambil semua data
+      Route::post('/assurance', [assurancecontroller::class, 'store']);     // Tambah data
+      Route::get('/assurance/{id}/transitions', [assurancecontroller::class, 'availableTransitions']);
+      Route::post('/assurance/{id}/transition', [assurancecontroller::class, 'executeTransition']);
+      Route::get('/assurance/{id}/lha-status', [assurancecontroller::class, 'getLhaStatus']);
+      Route::post('/assurance/{id}/submit-lha', [assurancecontroller::class, 'submitLha']);
+      Route::post('/assurance/{id}/approve-lha', [assurancecontroller::class, 'approveLha']);
+      Route::get('/assurance/{id}', [assurancecontroller::class, 'show']);  // Detail data
+      Route::put('/assurance/{id}', [assurancecontroller::class, 'update']); // Update data
+      Route::delete('/assurance/{id}', [assurancecontroller::class, 'destroy']); // Hapus data
 
      Route::apiResource('kka-templates', kkacontroller::class);
      Route::get('/assurance/{assuranceId}/kka-perencanaan', [perencanaancontroller::class, 'getKka']);
@@ -188,6 +193,8 @@ Route::middleware('auth:sanctum')->group(function () {
      Route::delete('/temuan/{id}', [KkaPelaksanaanController::class, 'destroyTemuan']);
      Route::get('/kka/{kkaId}/lhe',[KkaPelaksanaanController::class,'getLhe']);
      Route::delete('/kka/{kkaId}/lhe',[KkaPelaksanaanController::class,'deleteLhe']);
+     Route::post('/kka/{kkaId}/review-lhe', [KkaPelaksanaanController::class, 'reviewLhe']);
+     Route::get('/assurance/{assuranceId}/lhe-status-list', [KkaPelaksanaanController::class, 'getLheStatus']);
      Route::post('/temuan/{id}', [KkaPelaksanaanController::class, 'updateTemuan']);
      Route::put('/temuan/{id}', [KkaPelaksanaanController::class, 'updateTemuan']);
 

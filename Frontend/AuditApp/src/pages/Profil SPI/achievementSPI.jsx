@@ -27,12 +27,24 @@ const AchievementSPI = () => {
       title: "Opini Wajar Tanpa Pengecualian (WTP)",
       desc: "Kontribusi aktif dalam pengawasan laporan keuangan sehingga mempertahankan opini WTP berturut-turut.",
       icon: <Medal className="text-orange-500" />
+    },
+    {
+      year: "2021",
+      title: "Pembentukan Tim Audit Investigasi Khusus",
+      desc: "Merespon kebutuhan pengawasan yang lebih komprehensif, dibentuk tim khusus penanganan kecurangan (fraud) berlisensi CFE.",
+      icon: <ShieldCheck className="text-red-500" />
+    },
+    {
+      year: "2020",
+      title: "Sertifikasi ISO 9001:2015",
+      desc: "Mencapai standar manajemen mutu internasional dalam pelaksanaan seluruh prosedur pengawasan internal.",
+      icon: <Award className="text-purple-500" />
     }
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-6xl mx-auto">
+    <div className="w-full pb-8">
+      <div className="w-full">
         
         {/* --- HEADER --- */}
         <div className="text-center mb-16">

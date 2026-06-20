@@ -17,7 +17,7 @@ const PengaturanPage = () => {
         case 'setting-pengajuan':
             return <SettingPengajuan />;
         
-        case 'read-only':
+        case 'hak-akses':
             return <HakAkses />;
 
         case 'status-temuan':

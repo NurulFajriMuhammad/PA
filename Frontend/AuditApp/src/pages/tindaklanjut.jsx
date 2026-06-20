@@ -94,7 +94,18 @@ const FollowUp = () => {
     }
   });
 
-  useEffect(() => { fetchFollowUp(); }, []);
+  useEffect(() => { 
+    fetchFollowUp(); 
+    const saved = sessionStorage.getItem("tindaklanjut_detail");
+    if (saved) {
+      try {
+        const item = JSON.parse(saved);
+        if (item && item.temuan_id && item.jenis_audit) {
+          handleDetail(item);
+        }
+      } catch (err) {}
+    }
+  }, []);
 
   const filteredData = dataFollowUp.filter(
     (item) =>
@@ -105,6 +116,19 @@ const FollowUp = () => {
       (filterUnit === "" || item.unit === filterUnit) &&
       (filterStatus === "" || item.status === filterStatus),
   );
+
+  const isOverdue = (targetDate, status) => {
+    if (!targetDate) return false;
+    const lowerStatus = (status || "").toLowerCase();
+    if (lowerStatus === "close" || lowerStatus === "closed" || lowerStatus === "selesai") return false;
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const target = new Date(targetDate);
+    target.setHours(0, 0, 0, 0);
+    
+    return target < today;
+  };
 
   const formatDate = (date) => {
     if (!date) return "-";
@@ -127,6 +151,7 @@ const FollowUp = () => {
         tindak_lanjut: Array.isArray(res.data.tindak_lanjut) ? res.data.tindak_lanjut : [],
       });
       setMode("detail");
+      sessionStorage.setItem("tindaklanjut_detail", JSON.stringify({ temuan_id: item.temuan_id, jenis_audit: item.jenis_audit }));
     } catch (err) { console.error(err); }
   };
 
@@ -136,6 +161,14 @@ const FollowUp = () => {
     await fetchFollowUp();
   };
 
+  const handleSetMode = (newMode) => {
+    setMode(newMode);
+    if (newMode === "list") {
+      setSelectedItem(null);
+      sessionStorage.removeItem("tindaklanjut_detail");
+    }
+  };
+
   // Detail view functions and rendering logic have been extracted to DetailTindakLanjut component
 
   // --- DETAIL MODE ---
@@ -143,7 +176,7 @@ const FollowUp = () => {
     return (
       <DetailTindakLanjut 
         selectedItem={selectedItem}
-        setMode={setMode}
+        setMode={handleSetMode}
         isAuditor={isAuditor}
         refreshDetail={refreshDetail}
         fetchFollowUp={fetchFollowUp}
@@ -164,21 +197,21 @@ const FollowUp = () => {
         <p className="text-slate-500 text-sm">Sistem Pemantauan dan Realisasi Rekomendasi Hasil Pemeriksaan</p>
       </div>
 
-      <div className="mb-6 flex flex-wrap items-center gap-3">
-        <div className="relative flex-1 min-w-[300px]">
+      <div className="mb-6 flex flex-col md:flex-row items-start md:items-center gap-3">
+        <div className="relative w-full md:flex-1 md:min-w-[300px]">
           <BsSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
           <input type="text" placeholder="Cari masalah temuan atau unit..." className="w-full rounded-xl border-none bg-slate-50 py-3 pl-12 pr-4 text-sm focus:ring-2 focus:ring-blue-500 outline-none" onChange={(e) => setSearchTerm(e.target.value)} />
         </div>
-        <div className="flex gap-2">
-          <select className="rounded-xl border-none bg-slate-50 px-4 py-3 text-sm font-bold text-slate-600 focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer" value={filterJenisAudit} onChange={(e) => setFilterJenisAudit(e.target.value)}>
+        <div className="flex flex-wrap md:flex-nowrap gap-2 w-full md:w-auto">
+          <select className="flex-1 min-w-[140px] md:w-auto rounded-xl border-none bg-slate-50 px-4 py-3 text-sm font-bold text-slate-600 focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer" value={filterJenisAudit} onChange={(e) => setFilterJenisAudit(e.target.value)}>
             <option value="">Jenis Audit</option>
             {getUniqueJenisAudit().map(item => <option key={item} value={item}>{item}</option>)}
           </select>
-          <select className="rounded-xl border-none bg-slate-50 px-4 py-3 text-sm font-bold text-slate-600 focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer" value={filterUnit} onChange={(e) => setFilterUnit(e.target.value)}>
+          <select className="flex-1 min-w-[140px] md:w-auto rounded-xl border-none bg-slate-50 px-4 py-3 text-sm font-bold text-slate-600 focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer" value={filterUnit} onChange={(e) => setFilterUnit(e.target.value)}>
             <option value="">Unit Kerja</option>
             {getUniqueUnit().map(item => <option key={item} value={item}>{item}</option>)}
           </select>
-          <select className="rounded-xl border-none bg-slate-50 px-4 py-3 text-sm font-bold text-slate-600 focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
+          <select className="flex-1 min-w-[140px] md:w-auto rounded-xl border-none bg-slate-50 px-4 py-3 text-sm font-bold text-slate-600 focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
             <option value="">Status</option>
             {getUniqueStatus().map(s => {
               const sc = getStatusConfig(s);
@@ -188,9 +221,9 @@ const FollowUp = () => {
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-2xl shadow-sm border border-slate-200">
-        <table className="w-full text-left">
-          <thead className="text-[11px] font-bold text-slate-400">
+      <div className="rounded-2xl shadow-sm border border-slate-200 bg-white">
+        <table className="w-full text-left block md:table">
+          <thead className="hidden md:table-header-group text-[11px] font-bold text-slate-400">
             <tr>
               <th className="px-6 py-4 text-center">No</th>
               <th className="px-6 py-4">Informasi Temuan (Masalah)</th>
@@ -200,21 +233,67 @@ const FollowUp = () => {
               <th className="px-6 py-4 text-right">Aksi</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-50">
+          <tbody className="block md:table-row-group divide-y divide-slate-100">
             {filteredData.map((item, index) => (
-              <tr key={item.id} className="hover:bg-blue-50/20 transition-colors group">
-                <td className="px-6 py-4 text-center text-slate-400 font-mono text-xs">{index + 1}</td>
-                <td className="px-6 py-4"><p className="text-sm font-bold text-slate-700 max-w-md line-clamp-2 uppercase leading-snug">{item.masalah}</p></td>
-                <td className="px-6 py-4">
+              <tr key={item.id} className="block md:table-row hover:bg-blue-50/20 transition-colors group p-5 md:p-0">
+                {/* Desktop: No */}
+                <td className="hidden md:table-cell px-6 py-4 text-center text-slate-400 font-mono text-xs">{index + 1}</td>
+                
+                {/* Mobile: Stacked content, Desktop: Masalah */}
+                <td className="block md:table-cell px-0 md:px-6 py-0 md:py-4">
+                  <div className="md:hidden flex justify-between items-start mb-2">
+                     <span className="text-xs font-bold text-slate-400">#{index + 1}</span>
+                     {(() => {
+                        const sc = getStatusConfig(item.status);
+                        return (
+                          <span className="rounded-full border px-2 py-1 text-[9px] font-bold uppercase tracking-tighter" style={{ backgroundColor: sc.bg, color: sc.text, borderColor: 'transparent' }}>
+                            {sc.label}
+                          </span>
+                        );
+                     })()}
+                  </div>
+                  
+                  <p className="text-sm font-bold text-slate-800 max-w-md line-clamp-3 md:line-clamp-2 uppercase leading-snug mb-3 md:mb-0">{item.masalah}</p>
+                  
+                  {/* Mobile only details */}
+                  <div className="md:hidden flex flex-col gap-2">
+                     <p className="text-[10px] font-bold text-blue-600 uppercase">{item.jenis_audit || "-"} <span className="text-slate-500 italic lowercase ml-1">({item.unit || "-"})</span></p>
+                     
+                     <div className="flex items-center gap-2">
+                       <div className="flex items-center gap-1.5 text-[10px] font-medium text-slate-600 bg-slate-50 px-2.5 py-1.5 rounded-lg border border-slate-100">
+                         <BsClock className="text-blue-500" /> {formatDate(item.target_selesai)}
+                       </div>
+                       {isOverdue(item.target_selesai, item.status) && (
+                         <span className="bg-red-100 text-red-700 px-2 py-1 rounded text-[9px] font-black uppercase tracking-wider animate-pulse">
+                           ⚠️ Terlewat
+                         </span>
+                       )}
+                     </div>
+                  </div>
+                </td>
+                
+                {/* Desktop: Audit/Unit */}
+                <td className="hidden md:table-cell px-6 py-4">
                   <p className="text-[10px] font-bold text-blue-600 uppercase mb-0.5">{item.jenis_audit || "-"}</p>
                   <p className="text-xs text-slate-500 italic">{item.unit || "-"}</p>
                 </td>
-                <td className="px-6 py-4">
-                  <div className="flex items-center gap-2 text-xs font-medium text-slate-600 bg-slate-50 px-2 py-1 rounded w-fit border border-slate-100">
-                    <BsClock className="text-blue-500" /> {formatDate(item.target_selesai)}
+                
+                {/* Desktop: Target */}
+                <td className="hidden md:table-cell px-6 py-4">
+                  <div className="flex flex-col gap-1.5">
+                    <div className="flex items-center gap-2 text-xs font-medium text-slate-600 bg-slate-50 px-2 py-1 rounded w-fit border border-slate-100">
+                      <BsClock className="text-blue-500" /> {formatDate(item.target_selesai)}
+                    </div>
+                    {isOverdue(item.target_selesai, item.status) && (
+                      <span className="inline-flex items-center gap-1 bg-red-100 border border-red-200 text-red-700 px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider w-fit animate-pulse">
+                        ⚠️ Terlewat (IIA 2500)
+                      </span>
+                    )}
                   </div>
                 </td>
-                <td className="px-6 py-4">
+                
+                {/* Desktop: Status */}
+                <td className="hidden md:table-cell px-6 py-4">
                   {(() => {
                     const sc = getStatusConfig(item.status);
                     return (
@@ -227,9 +306,11 @@ const FollowUp = () => {
                     );
                   })()}
                 </td>
-                <td className="px-6 py-4 text-right">
-                  <button onClick={() => handleDetail(item)} className="inline-flex items-center gap-2 rounded-xl bg-[#1f4b82] px-4 py-2 text-xs font-bold text-white hover:bg-slate-800 transition-all shadow-md shadow-blue-50">
-                    <BsBoxArrowInRight /> Detail
+                
+                {/* Mobile & Desktop: Aksi */}
+                <td className="block md:table-cell px-0 md:px-6 py-0 md:py-4 mt-4 md:mt-0 pt-4 md:pt-0 border-t md:border-0 border-slate-100">
+                  <button onClick={() => handleDetail(item)} className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#1f4b82] px-4 py-2.5 md:py-2 text-xs font-bold text-white hover:bg-slate-800 transition-all shadow-md shadow-blue-50 w-full md:w-auto">
+                    <BsBoxArrowInRight className="text-sm md:text-xs" /> Detail
                   </button>
                 </td>
               </tr>

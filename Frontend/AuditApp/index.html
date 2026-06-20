@@ -1,10 +1,27 @@
 <!doctype html>
-<html lang="en">
+<html lang="id">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <link rel="icon" type="image/png" href="/logo.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>AuditApp</title>
+    <title>AuditApp — Sistem Informasi Pengawasan Internal</title>
+    <meta name="description" content="Sistem Informasi Pengawasan Internal - Platform manajemen audit internal dan eksternal terintegrasi." />
+
+    <!-- ✅ Preconnect: browser mulai TCP handshake ke backend sebelum JS request pertama -->
+    <script>
+      // Baca hostname dari localStorage atau gunakan window.location.hostname
+      var _host = window.location.hostname;
+      // Preconnect ke backend API
+      var _link1 = document.createElement('link');
+      _link1.rel = 'preconnect';
+      _link1.href = 'http://' + _host + ':8000';
+      document.head.appendChild(_link1);
+      // DNS prefetch untuk WebSocket
+      var _link2 = document.createElement('link');
+      _link2.rel = 'dns-prefetch';
+      _link2.href = 'http://' + _host + ':8090';
+      document.head.appendChild(_link2);
+    </script>
   </head>
   <body>
     <div id="root"></div>

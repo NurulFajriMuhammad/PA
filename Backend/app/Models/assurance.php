@@ -36,7 +36,35 @@ class assurance extends Model
         'area_risiko',
         'estimasi_anggaran',
         'sumber_anggaran',
+        'lha_status',
+        'lha_submitted_by',
+        'lha_submitted_at',
+        'lha_approved_by',
+        'lha_approved_at',
+        'lha_catatan',
+        'auditor_ids',
     ];
+
+    protected $casts = [
+        'auditor_ids' => 'array',
+    ];
+
+    protected $appends = ['auditors'];
+
+    public function getAuditorsAttribute()
+    {
+        $ids = $this->auditor_ids;
+        if (is_string($ids)) {
+            $ids = json_decode($ids, true);
+        }
+        if (empty($ids)) {
+            if ($this->auditor_id) {
+                return User::where('id', $this->auditor_id)->get();
+            }
+            return [];
+        }
+        return User::whereIn('id', (array)$ids)->get();
+    }
 
     // Menetapkan default value untuk status saat record baru dibuat
     protected $attributes = [
@@ -92,5 +120,14 @@ class assurance extends Model
     {
         return $this->belongsTo(User::class, 'auditor_id');
     }
-    
+
+    public function lhaSubmittedBy()
+    {
+        return $this->belongsTo(User::class, 'lha_submitted_by');
+    }
+
+    public function lhaApprovedBy()
+    {
+        return $this->belongsTo(User::class, 'lha_approved_by');
+    }
 }

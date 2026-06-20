@@ -14,7 +14,8 @@ class Biaya extends Model
         'jenis_akomodasi',
         'nilai_realisasi',
         'pelaksana',
-        'tgl_realisasi'
+        'tgl_realisasi',
+        'bukti'
     ];
 
     public function kka()

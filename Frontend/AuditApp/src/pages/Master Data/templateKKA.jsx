@@ -109,16 +109,16 @@ function handlePrintDocument(item) {
     <div className="px-4 sm:px-8 py-4 font-sans">
       <div className="w-full">
       {/* Header Section */}
-      <div className="flex justify-between items-center mb-8">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
         <div>
           <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
-            <BsCollection className="text-blue-600" /> Master Template KKA
+            <BsCollection className="text-blue-600 flex-shrink-0" /> Master Template KKA
           </h1>
           <p className="text-slate-500 mt-1 text-sm">Standarisasi kertas kerja untuk efisiensi audit internal.</p>
         </div>
         <button 
           onClick={() => handleOpenModal()}
-          className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all font-bold shadow-lg shadow-blue-200 text-sm border-none cursor-pointer"
+          className="flex items-center justify-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all font-bold shadow-lg shadow-blue-200 text-sm border-none cursor-pointer w-full sm:w-auto"
         >
           <BsPlusLg /> Tambah Template
         </button>
@@ -138,8 +138,8 @@ function handlePrintDocument(item) {
 
       {/* Dynamic Table */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-        <table className="w-full text-left border-collapse">
-          <thead className="bg-slate-50 border-b border-slate-200">
+        <table className="w-full text-left border-collapse block md:table">
+          <thead className="hidden md:table-header-group bg-slate-50 border-b border-slate-200">
             <tr>
               <th className="p-4 text-[11px] font-black text-slate-400 uppercase tracking-wider w-32">No. KKA</th>
               <th className="p-4 text-[11px] font-black text-slate-400 uppercase tracking-wider">Nama Template KKA</th>
@@ -147,43 +147,51 @@ function handlePrintDocument(item) {
               <th className="p-4 text-[11px] font-black text-slate-400 uppercase tracking-wider text-center w-44">Aksi</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100 text-sm">
+          <tbody className="block md:table-row-group divide-y divide-slate-100 text-sm">
             {loading ? (
-               <tr><td colSpan="4" className="p-10 text-center text-slate-400 italic">Memuat data...</td></tr>
+               <tr className="block md:table-row"><td colSpan="4" className="block md:table-cell p-10 text-center text-slate-400 italic">Memuat data...</td></tr>
             ) : filteredData.length > 0 ? filteredData.map((item) => (
-              <tr key={item.id} className="hover:bg-blue-50/40 transition-colors group">
-                <td className="p-4 font-bold text-blue-600 tracking-tight">{item.id}</td>
-                <td className="p-4 font-semibold text-slate-700">{item.nama}</td>
-                <td className="p-4 text-slate-500 leading-relaxed italic text-xs">{item.keterangan}</td>
-                <td className="p-4">
-                  <div className="flex justify-center gap-1">
+              <tr key={item.id} className="block md:table-row hover:bg-blue-50/40 transition-colors group p-4 md:p-0">
+                <td className="hidden md:table-cell p-4 font-bold text-blue-600 tracking-tight">{item.id}</td>
+                
+                <td className="block md:table-cell px-0 md:px-4 py-0 md:py-4">
+                  <div className="md:hidden flex justify-between items-center mb-1">
+                    <span className="font-bold text-blue-600 text-[10px] uppercase tracking-wider border border-blue-100 bg-blue-50 px-2 py-0.5 rounded-full">{item.id}</span>
+                  </div>
+                  <div className="font-semibold text-slate-700 leading-snug">{item.nama}</div>
+                </td>
+                
+                <td className="block md:table-cell px-0 md:px-4 py-2 md:py-4 text-slate-500 leading-relaxed italic text-xs mt-1 md:mt-0">{item.keterangan}</td>
+                
+                <td className="block md:table-cell px-0 md:px-4 py-0 md:py-4 mt-3 md:mt-0 border-t md:border-0 border-slate-100 pt-3 md:pt-4">
+                  <div className="flex justify-start md:justify-center gap-2 md:gap-1">
                     <button 
                       onClick={() => handlePrintDocument(item)}
                       title="Cetak Dokumen"
-                      className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-all border-none bg-transparent cursor-pointer"
+                      className="flex-1 md:flex-none flex items-center justify-center p-2.5 md:p-2 text-blue-600 hover:bg-blue-100 bg-blue-50 md:bg-transparent rounded-lg transition-all border-none cursor-pointer"
                     >
-                      <BsPrinter size={18} />
+                      <BsPrinter size={16} className="md:w-[18px] md:h-[18px]" /> <span className="md:hidden ml-2 text-xs font-bold">Cetak</span>
                     </button>
                     <button 
                       onClick={() => handleOpenModal(item)}
                       title="Edit Data"
-                      className="p-2 text-amber-500 hover:bg-amber-50 rounded-lg transition-all border-none bg-transparent cursor-pointer"
+                      className="flex-1 md:flex-none flex items-center justify-center p-2.5 md:p-2 text-amber-600 hover:bg-amber-100 bg-amber-50 md:bg-transparent rounded-lg transition-all border-none cursor-pointer"
                     >
-                      <BsPencilSquare size={18} />
+                      <BsPencilSquare size={16} className="md:w-[18px] md:h-[18px]" /> <span className="md:hidden ml-2 text-xs font-bold">Edit</span>
                     </button>
                     <button 
                       onClick={() => handleDelete(item.id)}
                       title="Hapus Data"
-                      className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-all border-none bg-transparent cursor-pointer"
+                      className="flex-1 md:flex-none flex items-center justify-center p-2.5 md:p-2 text-red-600 hover:bg-red-100 bg-red-50 md:bg-transparent rounded-lg transition-all border-none cursor-pointer"
                     >
-                      <BsTrash size={18} />
+                      <BsTrash size={16} className="md:w-[18px] md:h-[18px]" /> <span className="md:hidden ml-2 text-xs font-bold">Hapus</span>
                     </button>
                   </div>
                 </td>
               </tr>
             )) : (
-              <tr>
-                <td colSpan="4" className="p-10 text-center text-slate-400 italic text-sm">Data tidak ditemukan...</td>
+              <tr className="block md:table-row">
+                <td colSpan="4" className="block md:table-cell p-10 text-center text-slate-400 italic text-sm">Data tidak ditemukan...</td>
               </tr>
             )}
           </tbody>
@@ -192,12 +200,12 @@ function handlePrintDocument(item) {
 
       {/* Modal Section */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-4">
           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setShowModal(false)}></div>
-          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
-            <div className="p-6 border-b flex justify-between items-center bg-slate-50">
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] flex flex-col overflow-hidden">
+            <div className="p-4 md:p-6 border-b flex justify-between items-center bg-slate-50 flex-shrink-0">
               <h3 className="font-bold text-slate-800 text-lg flex items-center gap-2">
-                <BsFileEarmarkText className="text-blue-600" />
+                <BsFileEarmarkText className="text-blue-600 flex-shrink-0" />
                 {isEdit ? 'Update' : 'Tambah'} Template
               </h3>
               <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-red-500 border-none bg-transparent cursor-pointer">
@@ -205,13 +213,13 @@ function handlePrintDocument(item) {
               </button>
             </div>
             
-            <form onSubmit={handleSave} className="p-6 space-y-5">
+            <form onSubmit={handleSave} className="p-4 md:p-6 space-y-4 md:space-y-5 overflow-y-auto flex-grow">
               <div>
                 <label className="block text-[10px] font-black text-slate-400 uppercase mb-1.5 ml-1">Nomor KKA</label>
                 <input 
                   required
                   disabled={isEdit}
-                  className="w-full h-11 px-4 border border-slate-200 rounded-xl text-sm outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-50 transition-all disabled:bg-slate-100"
+                  className="w-full h-11 px-4 border border-slate-200 rounded-xl text-sm outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-50 transition-all disabled:bg-slate-100 box-border"
                   value={formData.id}
                   onChange={(e) => setFormData({...formData, id: e.target.value})}
                   placeholder="Contoh: KKA.01"
@@ -221,7 +229,7 @@ function handlePrintDocument(item) {
                 <label className="block text-[10px] font-black text-slate-400 uppercase mb-1.5 ml-1">Nama Template KKA</label>
                 <input 
                   required
-                  className="w-full h-11 px-4 border border-slate-200 rounded-xl text-sm outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-50 transition-all"
+                  className="w-full h-11 px-4 border border-slate-200 rounded-xl text-sm outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-50 transition-all box-border"
                   value={formData.nama}
                   onChange={(e) => setFormData({...formData, nama: e.target.value})}
                   placeholder="Masukkan nama template..."
@@ -230,14 +238,14 @@ function handlePrintDocument(item) {
               <div>
                 <label className="block text-[10px] font-black text-slate-400 uppercase mb-1.5 ml-1">Keterangan Singkat</label>
                 <textarea 
-                  className="w-full p-4 border border-slate-200 rounded-xl text-sm outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-50 transition-all h-28 resize-none"
+                  className="w-full p-4 border border-slate-200 rounded-xl text-sm outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-50 transition-all h-24 md:h-28 resize-none box-border"
                   value={formData.keterangan}
                   onChange={(e) => setFormData({...formData, keterangan: e.target.value})}
                   placeholder="Jelaskan isi/tujuan KKA ini..."
                 />
               </div>
 
-              <div className="flex gap-3 pt-2">
+              <div className="flex gap-3 pt-2 pb-1 mt-2">
                 <button type="button" onClick={() => setShowModal(false)} className="flex-1 py-3 bg-slate-100 text-slate-600 rounded-xl font-bold cursor-pointer border-none hover:bg-slate-200">Batal</button>
                 <button type="submit" disabled={loading} className="flex-1 py-3 bg-blue-600 text-white rounded-xl font-bold shadow-lg shadow-blue-200 cursor-pointer border-none hover:bg-blue-700 disabled:bg-slate-400">
                   {loading ? 'Memproses...' : (isEdit ? 'Update Data' : 'Simpan Data')}

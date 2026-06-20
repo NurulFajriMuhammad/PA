@@ -1,15 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Line } from 'react-chartjs-2';
 import {
   Chart as ChartJS, CategoryScale, LinearScale, PointElement,
   LineElement, Title, Tooltip, Legend, Filler 
 } from 'chart.js';
-import { 
-  BsBarChartFill, BsClockHistory, BsSearch, BsCheckCircleFill,
-  BsPlusLg, BsExclamationTriangleFill, BsInfoCircleFill, 
-  BsArrowRightShort, BsFilterRight
-} from 'react-icons/bs';
-import { notifySuccess } from '../../../Shared/utils/notifier';
+// ✅ Lucide-react: tree-shaking lebih optimal dibanding react-icons
+import { BarChart2, Clock, Search, CheckCircle2, RefreshCw, AlertTriangle } from 'lucide-react';
 import apiClient from '../../../Shared/api/apiClient';
 import useRealTime from '../hooks/useRealTime';
 
@@ -21,7 +17,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 
-  const fetchStats = async () => {
+  const fetchStats = useCallback(async () => {
     try {
       const res = await apiClient.get(`/api/dashboard-stats?tahun=${selectedYear}`);
       if (res.data.success) {
@@ -32,12 +28,15 @@ export default function Dashboard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedYear]);
+
+  // ✅ useCallback: callback stabil antar render → useRealTime tidak re-subscribe setiap render
+  const handleRealTimeUpdate = useCallback(() => {
+    fetchStats();
+  }, [fetchStats]);
 
   // Sinkronisasi Real-Time untuk semua data
-  useRealTime('*', () => {
-    fetchStats();
-  });
+  useRealTime('*', handleRealTimeUpdate);
 
   useEffect(() => {
     setLoading(true);
@@ -111,7 +110,7 @@ export default function Dashboard() {
         </div>
         <div className="flex gap-3">
           <button onClick={() => fetchStats()} className="flex items-center gap-2 bg-white border border-slate-200 text-slate-600 px-4 py-2.5 rounded-xl font-bold text-sm hover:bg-slate-50 transition-all">
-            <BsFilterRight size={18} /> Refresh Data
+            <RefreshCw size={16} /> Refresh Data
           </button>
         </div>
       </div>
@@ -124,10 +123,10 @@ export default function Dashboard() {
         <>
           {/* --- KPI STATS GRID --- */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <StatBox label="Total Objek Audit" value={stats?.kpi?.total_objek_audit || 0} trend="Total" icon={<BsBarChartFill />} color="bg-blue-50 text-blue-600" />
-            <StatBox label="Audit Berjalan" value={stats?.kpi?.audit_berjalan || 0} trend="On Track" icon={<BsClockHistory />} color="bg-amber-50 text-amber-600" />
-            <StatBox label="Temuan Open" value={stats?.kpi?.temuan_open || 0} trend="High Priority" icon={<BsSearch />} color="bg-red-50 text-red-600" />
-            <StatBox label="Penyelesaian" value={`${stats?.kpi?.penyelesaian || 0}%`} trend="Overall" icon={<BsCheckCircleFill />} color="bg-emerald-50 text-emerald-600" />
+            <StatBox label="Total Objek Audit" value={stats?.kpi?.total_objek_audit || 0} trend="Total" icon={<BarChart2 size={20} />} color="bg-blue-50 text-blue-600" />
+            <StatBox label="Audit Berjalan" value={stats?.kpi?.audit_berjalan || 0} trend="On Track" icon={<Clock size={20} />} color="bg-amber-50 text-amber-600" />
+            <StatBox label="Temuan Open" value={stats?.kpi?.temuan_open || 0} trend="High Priority" icon={<Search size={20} />} color="bg-red-50 text-red-600" />
+            <StatBox label="Penyelesaian" value={`${stats?.kpi?.penyelesaian || 0}%`} trend="Overall" icon={<CheckCircle2 size={20} />} color="bg-emerald-50 text-emerald-600" />
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -164,7 +163,7 @@ export default function Dashboard() {
                       key={act.id}
                       title={act.title} 
                       time={formatTimeAgo(act.time)} 
-                      icon={act.type === 'audit' ? <BsClockHistory /> : <BsExclamationTriangleFill />} 
+                      icon={act.type === 'audit' ? <Clock size={16} /> : <AlertTriangle size={16} />} 
                       color={act.type === 'audit' ? 'text-blue-500' : 'text-amber-500'} 
                       desc={act.desc}
                     />

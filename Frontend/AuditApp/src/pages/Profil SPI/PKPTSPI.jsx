@@ -8,7 +8,8 @@ import {
   Calendar,
   Layers,
   Clock,
-  CheckCircle2
+  CheckCircle2,
+  Lock
 } from 'lucide-react';
 import apiClient from "../../../../Shared/api/axios";
 import useRealTime from "../../hooks/useRealTime";
@@ -20,6 +21,13 @@ const PKPTSpiPage = () => {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   
+  // Ambil user dari localStorage untuk mengecek role
+  const currentUserContainer = JSON.parse(localStorage.getItem("user") || "{}");
+  const user = currentUserContainer.user || currentUserContainer;
+  const isAdministratorAudit = user?.role?.toLowerCase() === "administrator audit" || 
+                               user?.roles?.some(r => r.name?.toLowerCase() === "administrator audit") ||
+                               (typeof user?.role === 'string' && user.role.toLowerCase() === "administrator audit");
+
   const [newPlan, setNewPlan] = useState({
     audit_universe_id: '',
     risk_category: '',
@@ -112,8 +120,8 @@ const PKPTSpiPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 py-8 px-6 relative font-sans">
-      <div className="max-w-7xl mx-auto">
+    <div className="w-full pb-8 relative font-sans">
+      <div className="w-full">
         
         {/* --- HEADER --- */}
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-6">
@@ -129,12 +137,22 @@ const PKPTSpiPage = () => {
             </p>
           </div>
           
-          <button 
-            onClick={() => setShowForm(true)}
-            className="flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-xl font-bold text-sm shadow-lg shadow-indigo-200 transition-all active:scale-95"
-          >
-            <Plus size={18} /> Buat PKPT Baru
-          </button>
+          {isAdministratorAudit ? (
+            <button 
+              onClick={() => setShowForm(true)}
+              className="flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-xl font-bold text-sm shadow-lg shadow-indigo-200 transition-all active:scale-95"
+            >
+              <Plus size={18} /> Buat PKPT Baru
+            </button>
+          ) : (
+            <button 
+              type="button"
+              title="Hanya dapat diakses oleh Administrator Audit"
+              className="flex items-center justify-center gap-2 bg-slate-300 text-slate-500 px-6 py-3 rounded-xl font-bold text-sm cursor-not-allowed opacity-80"
+            >
+              <Lock size={18} /> Buat PKPT Baru
+            </button>
+          )}
         </div>
 
         {/* --- TABEL RENCANA --- */}
@@ -182,17 +200,17 @@ const PKPTSpiPage = () => {
                         </span>
                       </td>
                       <td className="px-6 py-4 text-center">
-                        <div className="inline-flex items-center justify-center gap-1.5 text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded border border-emerald-100">
+                        <div className="inline-flex items-center justify-center whitespace-nowrap gap-1.5 text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded border border-emerald-100">
                           <Clock size={12} /> W-{plan.start_week}
                         </div>
                       </td>
                       <td className="px-6 py-4 text-center">
-                        <div className="inline-flex items-center justify-center gap-1.5 text-xs font-bold text-red-600 bg-red-50 px-2 py-1 rounded border border-red-100">
+                        <div className="inline-flex items-center justify-center whitespace-nowrap gap-1.5 text-xs font-bold text-red-600 bg-red-50 px-2 py-1 rounded border border-red-100">
                           <Clock size={12} /> W-{plan.end_week}
                         </div>
                       </td>
                       <td className="px-6 py-4 text-center">
-                        <div className="flex items-center justify-center gap-1.5 text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded border border-indigo-100 w-fit mx-auto">
+                        <div className="flex items-center justify-center whitespace-nowrap gap-1.5 text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded border border-indigo-100 w-fit mx-auto">
                           <Calendar size={14} /> {plan.year}
                         </div>
                       </td>

@@ -21,7 +21,7 @@ export function AuthProvider({ children }) {
       localStorage.setItem('lastActiveTime', Date.now().toString());
     } else {
       localStorage.removeItem('user');
-      localStorage.removeItem('authToken');
+      // localStorage.removeItem('authToken');
       localStorage.removeItem('token');
       localStorage.removeItem('lastActiveTime');
       sessionStorage.removeItem('isLoggedIn');

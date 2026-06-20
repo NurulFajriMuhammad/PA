@@ -69,6 +69,16 @@ const AssuranceDetail = () => {
     });
   };
 
+  const formatRupiah = (val) => {
+    if (val === undefined || val === null || val === "") return "-";
+    return new Intl.NumberFormat("id-ID", {
+      style: "currency",
+      currency: "IDR",
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(val).replace("Rp", "Rp ").trim();
+  };
+
   const handleTabChange = (tab) => {
     if (tab === activeTab) return;
 
@@ -151,51 +161,94 @@ const AssuranceDetail = () => {
         {/* ACCORDION CONTENT */}
         <div
           className={`transition-all duration-700 ease-in-out overflow-hidden ${
-            openInfo ? "max-h-[500px] opacity-100" : "max-h-0 opacity-0"
+            openInfo ? "max-h-[1000px] opacity-100" : "max-h-0 opacity-0"
           }`}
         >
-          <div className="grid grid-cols-2 gap-6 py-4 text-sm">
-            <div className="space-y-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 py-4 text-xs">
+            {/* DASAR PELAKSANAAN */}
+            <div className="bg-slate-900/40 p-4 rounded-xl space-y-2.5 border border-slate-700/50">
+              <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest block border-b border-slate-700/60 pb-1.5 mb-2">
+                📂 Dasar Pelaksanaan (Surat Tugas)
+              </span>
               <p>
-                <b>Surat Tugas :</b> {assurance.surat_tugas?.nomor_surat || "-"}
+                <b>No. Surat Tugas:</b> <span className="text-slate-200">{assurance.surat_tugas?.nomor_surat || "-"}</span>
               </p>
               <p>
-                <b>Kegiatan Audit :</b> {assurance.nama_kegiatan}
+                <b>Periode Audit:</b> <span className="text-slate-200">{formatTanggal(assurance.periode_awal)} s/d {formatTanggal(assurance.periode_akhir)}</span>
               </p>
               <p>
-                <b>Nama Objek Audit :</b> {assurance.objek_pemeriksaan}
+                <b>Estimasi Anggaran:</b> <span className="text-slate-200">{assurance.estimasi_anggaran ? formatRupiah(assurance.estimasi_anggaran) : "-"}</span>
               </p>
               <p>
-                <b>Periode Audit :</b> {formatTanggal(assurance.periode_awal)}{" "}
-                s/d {formatTanggal(assurance.periode_akhir)}
-              </p>
-              <p>
-                <b>Lokasi :</b> {assurance.lokasi || "-"}
+                <b>Sumber Anggaran:</b> <span className="text-slate-200">{assurance.sumber_anggaran || "-"}</span>
               </p>
             </div>
 
-            <div className="space-y-2">
+            {/* IDENTITAS PENUGASAN */}
+            <div className="bg-slate-900/40 p-4 rounded-xl space-y-2.5 border border-slate-700/50">
+              <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest block border-b border-slate-700/60 pb-1.5 mb-2">
+                🛡️ Identitas Penugasan
+              </span>
               <p>
-                <b>Tujuan :</b> {assurance.tujuan || "-"}
+                <b>Kategori / Divisi Terperiksa:</b> <span className="text-slate-200">{assurance.objek_pemeriksaan || "-"}</span>
               </p>
               <p>
-                <b>Ruang Lingkup :</b> {assurance.ruang_lingkup || "-"}
+                <b>Jenis Audit:</b> <span className="text-slate-200">{assurance.jenis_audit || "-"}</span>
               </p>
               <p>
-                <b>Objek Audit :</b> {assurance.objek_audit || "-"}
+                <b>Objek Audit:</b> <span className="text-slate-200">{assurance.objek_audit || "-"}</span>
               </p>
               <p>
-                <b>Metodologi :</b> {assurance.metodologi || "-"}
+                <b>Metodologi:</b> <span className="text-slate-200">{assurance.metodologi || "-"}</span>
+              </p>
+            </div>
+
+            {/* PARAMETER PENGAWASAN */}
+            <div className="bg-slate-900/40 p-4 rounded-xl space-y-2.5 border border-slate-700/50">
+              <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest block border-b border-slate-700/60 pb-1.5 mb-2">
+                ⚙️ Parameter Pengawasan
+              </span>
+              <p>
+                <b>Tujuan:</b> <span className="text-slate-200 block mt-0.5 leading-relaxed">{assurance.tujuan || "-"}</span>
               </p>
               <p>
-                <b>Ketua :</b> {assurance.ketua_tim?.name || "-"}
+                <b>Ruang Lingkup:</b> <span className="text-slate-200 block mt-0.5 leading-relaxed">{assurance.ruang_lingkup || "-"}</span>
               </p>
               <p>
-                <b>Pengendali Teknis :</b>{" "}
-                {assurance.pengendali_teknis?.name || "-"}
+                <b>Sasaran:</b> <span className="text-slate-200 block mt-0.5 leading-relaxed">{assurance.sasaran || "-"}</span>
               </p>
               <p>
-                <b>Koordinator :</b> {assurance.koordinator?.name || "-"}
+                <b>Area Risiko:</b> <span className="text-slate-200 block mt-0.5 leading-relaxed">{assurance.area_risiko || "-"}</span>
+              </p>
+            </div>
+
+            {/* TIM PENGAWAS SPI */}
+            <div className="bg-slate-900/40 p-4 rounded-xl space-y-2.5 border border-slate-700/50 md:col-span-2 lg:col-span-3 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-2.5">
+              <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest block border-b border-slate-700/60 pb-1.5 col-span-full mb-1">
+                👥 Tim Pengawas & Lokasi
+              </span>
+              <p>
+                <b>Koordinator:</b> <span className="text-slate-200">{assurance.koordinator?.name || "-"}</span>
+              </p>
+              <p>
+                <b>Pengendali Teknis:</b> <span className="text-slate-200">{assurance.pengendali_teknis?.name || "-"}</span>
+              </p>
+              <p>
+                <b>Ketua Tim:</b> <span className="text-slate-200">{assurance.ketua_tim?.name || "-"}</span>
+              </p>
+              <p>
+                <b>Auditor Pelaksana:</b>{" "}
+                <span className="text-slate-200">
+                  {assurance.auditors && assurance.auditors.length > 0
+                    ? assurance.auditors.map((a) => a.name).join(", ")
+                    : (assurance.auditor?.name || "-")}
+                </span>
+              </p>
+              <p>
+                <b>Lokasi Pemeriksaan:</b> <span className="text-slate-200">{assurance.lokasi || "-"}</span>
+              </p>
+              <p className="col-span-full">
+                <b>Keterangan Tambahan:</b> <span className="text-slate-300 italic block mt-0.5">{assurance.keterangan || "-"}</span>
               </p>
             </div>
           </div>
@@ -304,12 +357,12 @@ const AssuranceDetail = () => {
     `}
         >
           {activeTab === "perencanaan" && (
-            <PerencanaanTab assurance={assurance} />
+            <PerencanaanTab assurance={assurance} onRefresh={fetchDetail} />
           )}
           {activeTab === "pelaksanaan" && (
-            <PelaksanaanTab assurance={assurance} />
+            <PelaksanaanTab assurance={assurance} onRefresh={fetchDetail} />
           )}
-          {activeTab === "analisis" && <AnalisisTab assurance={assurance} />}
+          {activeTab === "analisis" && <AnalisisTab assurance={assurance} onRefresh={fetchDetail} />}
         </div>
       </div>
     </div>

@@ -27,22 +27,20 @@ class BiayaController extends Controller
     // tambah biaya
     public function store(Request $request)
     {
-
-        // $request->validate([
-        //     'kka_id' => 'required',
-        //     'nama' => 'required',
-        //     'jenis_akomodasi' => 'required',
-        //     'nilai_realisasi' => 'required|numeric'
-        // ]);
-
         $request->validate([
             'kka_id' => 'required|exists:perencanaan_kkas,id',
             'nama' => 'required|string',
             'jenis_akomodasi' => 'required|string',
             'nilai_realisasi' => 'required|numeric',
             'pelaksana' => 'nullable|string',
-            'tgl_realisasi' => 'nullable|string'
+            'tgl_realisasi' => 'nullable|string',
+            'bukti' => 'nullable|file|extensions:pdf,jpg,jpeg,png|max:5120'
         ]);
+
+        $buktiPath = null;
+        if ($request->hasFile('bukti')) {
+            $buktiPath = $request->file('bukti')->store('bukti_biaya', 'public');
+        }
 
         $data = Biaya::create([
             'kka_id' => $request->kka_id,
@@ -50,7 +48,8 @@ class BiayaController extends Controller
             'jenis_akomodasi' => $request->jenis_akomodasi,
             'nilai_realisasi' => $request->nilai_realisasi,
             'pelaksana' => $request->pelaksana,
-            'tgl_realisasi' => $request->tgl_realisasi
+            'tgl_realisasi' => $request->tgl_realisasi,
+            'bukti' => $buktiPath
         ]);
 
         return response()->json([
@@ -63,16 +62,33 @@ class BiayaController extends Controller
     // update biaya
     public function update(Request $request, $id)
     {
-
         $data = Biaya::findOrFail($id);
 
-        $data->update([
+        $request->validate([
+            'nama' => 'required|string',
+            'jenis_akomodasi' => 'required|string',
+            'nilai_realisasi' => 'required|numeric',
+            'pelaksana' => 'nullable|string',
+            'tgl_realisasi' => 'nullable|string',
+            'bukti' => 'nullable|file|extensions:pdf,jpg,jpeg,png|max:5120'
+        ]);
+
+        $updateData = [
             'nama' => $request->nama,
             'jenis_akomodasi' => $request->jenis_akomodasi,
             'nilai_realisasi' => $request->nilai_realisasi,
             'pelaksana' => $request->pelaksana,
             'tgl_realisasi' => $request->tgl_realisasi
-        ]);
+        ];
+
+        if ($request->hasFile('bukti')) {
+            if ($data->bukti) {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($data->bukti);
+            }
+            $updateData['bukti'] = $request->file('bukti')->store('bukti_biaya', 'public');
+        }
+
+        $data->update($updateData);
 
         return response()->json([
             'message' => 'Data berhasil diupdate'
@@ -83,8 +99,11 @@ class BiayaController extends Controller
     // delete biaya
     public function destroy($id)
     {
-
-        Biaya::findOrFail($id)->delete();
+        $data = Biaya::findOrFail($id);
+        if ($data->bukti) {
+            \Illuminate\Support\Facades\Storage::disk('public')->delete($data->bukti);
+        }
+        $data->delete();
 
         return response()->json([
             'message' => 'Data berhasil dihapus'

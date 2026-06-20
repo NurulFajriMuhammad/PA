@@ -109,7 +109,7 @@ export default function LoginPage() {
     const { token, user: userData } = data;
 
     // 1. Simpan token ke localStorage dengan key konsisten
-    localStorage.setItem("authToken", token);
+    // localStorage.setItem("authToken", token);
     localStorage.setItem("token", token);
 
     // 2. Simpan user data
@@ -138,7 +138,7 @@ export default function LoginPage() {
     console.error("❌ Error saat login:", err);
 
     // Clear storage jika ada error
-    localStorage.removeItem("authToken");
+    // localStorage.removeItem("authToken");
     localStorage.removeItem("token");
     localStorage.removeItem("user");
 

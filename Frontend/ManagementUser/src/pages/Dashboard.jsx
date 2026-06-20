@@ -25,7 +25,7 @@ const extractData = (res) => {
 };
 
 // ----------------------------------------
-// NAV BUTTON (Tidak berubah)
+// NAV BUTTON
 // ----------------------------------------
 const NavButton = ({
   page,
@@ -38,13 +38,14 @@ const NavButton = ({
   return (
     <button
       onClick={() => setCurrentPage(page)}
-      className={`flex items-center px-4 py-2 font-medium rounded-lg transition-all ${
+      className={`flex items-center px-4 py-2.5 text-sm font-semibold rounded-xl transition-all duration-200 active:scale-95 shrink-0 ${
         isActive
-          ? "bg-blue-600 text-white shadow-md"
-          : "text-gray-600 hover:bg-gray-200"
+          ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-100/50 border-transparent"
+          : "text-slate-600 hover:text-slate-900 hover:bg-slate-100/80 border-transparent"
       }`}
     >
-            <Icon className="w-5 h-5 mr-2" />      <span>{label}</span>   {" "}
+      <Icon className="w-5 h-5 mr-2" />
+      <span>{label}</span>
     </button>
   );
 };
@@ -198,7 +199,10 @@ export default function DashboardApp() {
         </header>
 
         {/* NAVIGATION */}
-        <nav className="flex flex-wrap gap-2 mb-6 p-2 rounded-lg shadow-sm border border-gray-200">
+        <nav 
+          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+          className="flex items-center gap-1.5 mb-8 p-1.5 bg-slate-50/60 rounded-2xl border border-slate-100 shadow-sm overflow-x-auto w-full md:w-max scroll-smooth"
+        >
           <NavButton
             page="users"
             label="Pengguna"

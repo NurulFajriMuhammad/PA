@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { 
   BsGrid1X2, BsBuilding, BsShare, BsSearch, BsArrowRepeat, 
   BsGear, BsDatabaseGear, BsPersonVcard, 
-  BsChevronDown, BsShieldCheck, BsFolder2Open 
+  BsChevronDown, BsShieldCheck, BsFolder2Open, BsLock
 } from 'react-icons/bs';
 
 export default function Sidebar({ isSidebarOpen, toggleSidebar }) {
@@ -12,6 +12,13 @@ export default function Sidebar({ isSidebarOpen, toggleSidebar }) {
 
   const isActive = (path) => location.pathname === path;
   const isChildActive = (parentPath) => location.pathname.startsWith(parentPath);
+
+  // Ambil user dari localStorage untuk mengecek role
+  const currentUserContainer = JSON.parse(localStorage.getItem("user") || "{}");
+  const user = currentUserContainer.user || currentUserContainer;
+  const isAdministratorAudit = user?.role?.toLowerCase() === "administrator audit" || 
+                               user?.roles?.some(r => r.name?.toLowerCase() === "administrator audit") ||
+                               (typeof user?.role === 'string' && user.role.toLowerCase() === "administrator audit");
 
   const [openDropdown, setOpenDropdown] = useState(() => {
     const path = location.pathname;
@@ -238,6 +245,48 @@ export default function Sidebar({ isSidebarOpen, toggleSidebar }) {
             display: ${isSidebarOpen ? 'block' : 'none'};
             opacity: 0.6;
           }
+
+          /* --- RESPONSIVE MOBILE --- */
+          @media (max-width: 768px) {
+            :root {
+              --sb-width: 250px;
+              --sb-collapsed: 60px;
+            }
+            .sidebar-header {
+              padding: 0 16px;
+              min-height: 60px;
+            }
+            .header-logo .sidebar-icon, .header-logo svg {
+              font-size: 1.4rem !important;
+            }
+            .sidebar-text {
+              font-size: 0.85rem;
+            }
+            .sidebar-header .sidebar-text {
+              font-size: 1.2rem !important;
+            }
+            .nav-link, .dropdown-btn {
+              padding: 10px 16px;
+            }
+            .sidebar-collapsed .nav-link, 
+            .sidebar-collapsed .dropdown-btn {
+              padding: 12px 0;
+            }
+            .sidebar-icon {
+              font-size: 1.1rem;
+              min-width: ${isSidebarOpen ? '30px' : '0'};
+            }
+            .submenu-item {
+              padding: 8px 16px 8px 50px;
+              font-size: 0.8rem;
+            }
+            .sidebar-collapsed .submenu-item { 
+              padding: 10px 16px; 
+            }
+            .nav-section-label {
+              padding: 12px 16px 6px;
+            }
+          }
         `}
       </style>
 
@@ -328,11 +377,22 @@ export default function Sidebar({ isSidebarOpen, toggleSidebar }) {
               <BsChevronDown className="chevron" style={{transform: openDropdown === 'pengaturan' ? 'rotate(180deg)' : ''}}/>
             </button>
             <div className={`submenu-list ${openDropdown === 'pengaturan' ? 'is-open' : ''}`} style={!isSidebarOpen ? { top: `${floatingPos}px` } : {}}>
-              <Link to="/pengaturan/status-pengajuan" className={`submenu-item ${isActive('/pengaturan/status-pengajuan') ? 'active-sub' : ''}`} onClick={closeFloatingOnNav}>Status Pengajuan</Link>
-              <Link to="/pengaturan/setting-pengajuan" className={`submenu-item ${isActive('/pengaturan/setting-pengajuan') ? 'active-sub' : ''}`} onClick={closeFloatingOnNav}>Setting Pengajuan</Link>
-              <Link to="/pengaturan/read-only" className={`submenu-item ${isActive('/pengaturan/read-only') ? 'active-sub' : ''}`} onClick={closeFloatingOnNav}>Hak Akses</Link>
-              <Link to="/pengaturan/status-temuan" className={`submenu-item ${isActive('/pengaturan/status-temuan') ? 'active-sub' : ''}`} onClick={closeFloatingOnNav}>Status Temuan</Link>
-              <Link to="/pengaturan/periode" className={`submenu-item ${isActive('/pengaturan/periode') ? 'active-sub' : ''}`} onClick={closeFloatingOnNav}>Periode Audit</Link>
+              {[
+                { to: '/pengaturan/status-pengajuan', label: 'Status Pengajuan' },
+                { to: '/pengaturan/setting-pengajuan', label: 'Setting Pengajuan' },
+                { to: '/pengaturan/hak-akses', label: 'Hak Akses' },
+                { to: '/pengaturan/status-temuan', label: 'Status Temuan' },
+                // { to: '/pengaturan/periode', label: 'Periode Audit' }
+              ].map(item => (
+                isAdministratorAudit ? (
+                  <Link key={item.to} to={item.to} className={`submenu-item ${isActive(item.to) ? 'active-sub' : ''}`} onClick={closeFloatingOnNav}>{item.label}</Link>
+                ) : (
+                  <div key={item.to} className="submenu-item" style={{ opacity: 0.4, cursor: 'not-allowed', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }} title="Hanya dapat diakses oleh Administrator Audit">
+                    <span>{item.label}</span>
+                    <BsLock size={12} style={{ opacity: 0.6 }} />
+                  </div>
+                )
+              ))}
             </div>
           </div>
         </nav>

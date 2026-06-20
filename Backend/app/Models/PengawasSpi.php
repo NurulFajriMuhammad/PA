@@ -27,6 +27,7 @@ class PengawasSpi extends Model
         'linkedin_url',
         'foto_url',
         'bio',
-        'sertifikasi'
+        'sertifikasi',
+        'created_by'
     ];
 }

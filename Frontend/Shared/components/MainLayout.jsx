@@ -71,8 +71,8 @@ export default function MainLayout() {
 
           @media (max-width: 768px) {
             .content-wrapper {
-              margin-left: 0 !important;
-              width: 100% !important;
+              margin-left: ${isSidebarOpen ? `250px` : `60px`} !important;
+              width: calc(100% - ${isSidebarOpen ? `250px` : `60px`}) !important;
             }
             
             .main-content {

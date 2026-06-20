@@ -23,7 +23,7 @@ const PiagamAuditSPI = () => {
   const [latestDoc, setLatestDoc] = useState(null);
 
   const clientProfile = {
-    namaOrganisasi: "PT. Dua Putra Utama Makmur Tbk",
+    namaOrganisasi: "PT. FAJX-TECH",
     sebutanPimpinan: "Direktur Utama",
     sebutanPengawas: "Dewan Komisaris",
     unitAudit: "Satuan Audit Internal",
@@ -133,8 +133,8 @@ const PiagamAuditSPI = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8 font-sans text-gray-900">
-      <div className="max-w-5xl mx-auto">
+    <div className="w-full pb-8 font-sans text-gray-900">
+      <div className="w-full">
         {/* --- HEADER --- */}
         <div className="flex flex-col md:flex-row items-center justify-between mb-8 gap-6 bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
           <div className="flex items-center gap-6 text-center md:text-left">

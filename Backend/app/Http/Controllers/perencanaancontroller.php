@@ -27,7 +27,7 @@ class perencanaancontroller extends Controller {
     public function storeDoc(Request $request, $assuranceId) {
         $request->validate([
             'judul' => 'required|string',
-            'file' => 'required|file|mimes:jpg,jpeg,png,pdf,doc,docx,xls,xlsx|max:10240',
+            'file' => 'required|file|extensions:jpg,jpeg,png,pdf,doc,docx,xls,xlsx|max:10240',
             'tipe_dokumen' => 'nullable|string',
             'terkait_kka' => 'nullable|string',
             'keterangan' => 'nullable|string'

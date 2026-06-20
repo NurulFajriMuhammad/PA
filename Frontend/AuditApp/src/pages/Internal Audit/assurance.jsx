@@ -35,6 +35,17 @@ const unitToCategoryMap = {
   "Data Analyst": "IT & Infrastruktur",
 };
 
+const isExpired = (periodeStr) => {
+  if (!periodeStr) return false;
+  const parts = periodeStr.split(" s/d ");
+  if (parts.length !== 2) return false;
+  const endDateStr = parts[1];
+  const endDate = new Date(endDateStr);
+  endDate.setHours(23, 59, 59, 999);
+  const today = new Date();
+  return today > endDate;
+};
+
 const Assurance = () => {
   const navigate = useNavigate();
   const { user: authData } = useAuth();
@@ -172,7 +183,8 @@ const Assurance = () => {
       koordinator_id: koordinator?.id,
       pt_id: pt?.id,
       ketua_id: ketua?.id,
-      auditor_id: auditorIds[0],
+      auditor_id: auditorIds[0] || null,
+      auditor_ids: auditorIds,
       keterangan: formData.keterangan,
     };
 
@@ -244,7 +256,9 @@ const Assurance = () => {
       ketua: item.ketua?.name || "",
       pengendali_teknis: item.pt?.name || "",
       koordinator: item.koordinator?.name || "",
-      auditor: item.auditor ? [item.auditor.name] : [""],
+      auditor: item.auditors && item.auditors.length > 0
+        ? item.auditors.map((aud) => aud.name)
+        : (item.auditor ? [item.auditor.name] : [""]),
       keterangan: item.keterangan || "",
       status: item.status || "Planning",
     });
@@ -530,8 +544,8 @@ const Assurance = () => {
                   
                   <div className="space-y-2">
                     <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest ml-1 flex items-center justify-between">
-                      <span>Nomor surat tugas <span className="text-rose-500 ml-0.5">*</span></span>
-                      <span className="text-[9px] text-blue-600 border border-blue-200 bg-blue-50 px-2.5 py-0.5 rounded-full font-bold ml-auto uppercase tracking-wide">IIA Std. 2200</span>
+                      <span>Nomor Penugasan Audit <span className="text-rose-500 ml-0.5">*</span></span>
+                      <span className="text-[9px] text-blue-600 border border-blue-200 bg-blue-50 px-2.5 py-0.5 rounded-full font-bold ml-auto uppercase tracking-wide">GIAS 2024: Standar 13.1</span>
                     </label>
                     <select
                       required
@@ -540,11 +554,18 @@ const Assurance = () => {
                       onChange={(e) => handleSTChange(e.target.value)}
                     >
                       <option value="">-- Pilih nomor surat tugas (auto-fill data) --</option>
-                      {suratTugasList.map((st) => (
-                        <option key={st.id} value={st.nomor_surat}>
-                          {st.nomor_surat} - {st.deskripsi?.substring(0, 60)}...
-                        </option>
-                      ))}
+                      {suratTugasList.map((st) => {
+                        const expired = isExpired(st.periode_pemeriksaan);
+                        return (
+                          <option 
+                            key={st.id} 
+                            value={st.nomor_surat}
+                            disabled={expired && formData.noST !== st.nomor_surat}
+                          >
+                            {st.nomor_surat} - {st.deskripsi?.substring(0, 60)}... {expired ? " 🔒" : ""}
+                          </option>
+                        );
+                      })}
                     </select>
                     <span className="text-[10px] text-slate-400 font-medium leading-relaxed block mt-1">
                       Wajib ada dasar penugasan formal sebelum audit dimulai (IIA Standard 2200 — Engagement Planning)
@@ -604,13 +625,13 @@ const Assurance = () => {
                           value={formData.jenis_audit}
                           onChange={(e) => setFormData({ ...formData, jenis_audit: e.target.value })}
                         >
-                          <option value="Reguler">Reguler</option>
-                          <option value="Khusus">Khusus</option>
-                          <option value="Investigasi">Investigasi</option>
-                          <option value="Follow-up">Follow-up</option>
+                          <option value="Reguler">Audit Umum</option>
+                          <option value="Khusus">Audit Khusus</option>
+                          <option value="Investigasi">Audit Investigasi</option>
+                          {/* <option value="Follow-up">Follow-up</option> */}
                         </select>
                         <span className="text-[10px] text-slate-400 font-medium block leading-snug mt-1">
-                          Reguler / Khusus / Investigasi / Follow-up
+                          Audit Umum / Audit Khusus / Audit Investigasi
                         </span>
                       </div>
 
@@ -690,7 +711,7 @@ const Assurance = () => {
                         <div className="flex items-center justify-between">
                           <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest ml-1">Area risiko yang diaudit</label>
                           <div className="flex items-center gap-1.5">
-                            <span className="text-[9px] text-blue-600 border border-blue-200 bg-blue-50 px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wide">IIA Std. 2201</span>
+                            <span className="text-[9px] text-blue-600 border border-blue-200 bg-blue-50 px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wide">GIAS 2024: Standar 13.2</span>
                           </div>
                         </div>
                         <textarea
@@ -710,7 +731,7 @@ const Assurance = () => {
                 {/* --- WAKTU & TEMPAT --- */}
                 <div>
                   <div className="bg-blue-50/80 border border-blue-100/50 text-blue-800 font-black text-[10px] uppercase tracking-widest px-4 py-2.5 rounded-xl mb-4 flex items-center gap-2 shadow-sm">
-                    <BsClockHistory size={14} className="text-blue-600" /> WAKTU & TEMPAT
+                    <BsClockHistory size={14} className="text-blue-600" /> WAKTU & TEMPAT - GIAS 2024: Standar 13.5
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -752,7 +773,7 @@ const Assurance = () => {
                 {/* --- ANGGARAN --- */}
                 <div>
                   <div className="bg-blue-50/80 border border-blue-100/50 text-blue-800 font-black text-[10px] uppercase tracking-widest px-4 py-2.5 rounded-xl mb-4 flex items-center gap-2 shadow-sm">
-                    <BsWallet2 size={14} className="text-blue-600" /> ANGGARAN
+                    <BsWallet2 size={14} className="text-blue-600" /> ANGGARAN - GIAS 2024: Standar 13.5
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -760,7 +781,6 @@ const Assurance = () => {
                       <div className="flex items-center justify-between">
                         <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest ml-1">Estimasi anggaran (IDR)</label>
                         <div className="flex items-center gap-1.5">
-                          <span className="text-[9px] text-blue-600 border border-blue-200 bg-blue-50 px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wide">IIA Std. 2230</span>
                         </div>
                       </div>
                       <div className="relative">
@@ -806,7 +826,7 @@ const Assurance = () => {
                 {/* --- STRUKTUR TIM --- */}
                 <div>
                   <div className="bg-blue-50/80 border border-blue-100/50 text-blue-800 font-black text-[10px] uppercase tracking-widest px-4 py-2.5 rounded-xl mb-4 flex items-center gap-2 shadow-sm">
-                    <BsCheck2Circle className="text-emerald-600" size={16} /> STRUKTUR PERSONIL — IIA Std. 2230 Resource Allocation
+                    <BsCheck2Circle className="text-emerald-600" size={16} /> STRUKTUR PERSONIL — GIAS 2024: Standar 13.5
                   </div>
                   
                   <div className="space-y-5">
@@ -832,7 +852,7 @@ const Assurance = () => {
 
                       <div className="space-y-2">
                         <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-widest ml-1">
-                          Pengendali Teknis <span className="text-rose-500">*</span>
+                          Pengendali Teknis Audit (PTA) <span className="text-rose-500">*</span>
                         </label>
                         <select
                           required
@@ -851,7 +871,7 @@ const Assurance = () => {
 
                       <div className="space-y-2">
                         <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-widest ml-1">
-                          Ketua Tim <span className="text-rose-500">*</span>
+                          Ketua Auditor <span className="text-rose-500">*</span>
                         </label>
                         <select
                           required
@@ -871,7 +891,7 @@ const Assurance = () => {
 
                     <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100">
                       <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-4 ml-1">
-                        Anggota Tim / Auditor
+                        Auditor
                       </label>
                       
                       <div className="space-y-3.5">
@@ -950,15 +970,21 @@ const Assurance = () => {
                           </span>
                         </li>
                         <li className="flex items-start gap-2.5">
+                          <div className="w-1.5 h-1.5 rounded-full bg-purple-500 mt-1.5 shrink-0"></div>
+                          <span>
+                            <strong className="text-slate-700 font-bold">IPPF 2017</strong> — International Professional Practices Framework, IIA: Standar Kinerja 2000-2600
+                          </span>
+                        </li>
+                        <li className="flex items-start gap-2.5">
                           <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 mt-1.5 shrink-0"></div>
                           <span>
                             <strong className="text-slate-700 font-bold">SPAI-AAIPI</strong> — Standar Audit Intern Pemerintah Indonesia: Standar Perencanaan Audit, Penugasan, dan Dokumentasi
                           </span>
                         </li>
                         <li className="flex items-start gap-2.5">
-                          <div className="w-1.5 h-1.5 rounded-full bg-purple-500 mt-1.5 shrink-0"></div>
+                          <div className="w-1.5 h-1.5 rounded-full bg-red-500 mt-1.5 shrink-0"></div>
                           <span>
-                            <strong className="text-slate-700 font-bold">IPPF 2017</strong> — International Professional Practices Framework, IIA: Standar Kinerja 2000-2600
+                            <strong className="text-slate-700 font-bold">PER-24/BC/2019</strong> — Tatalaksana Audit Kepabeanan dan Audit Cukai (Standar Acuan Penerbitan Surat Tugas, NPA, dan Hierarki Personil Tim)
                           </span>
                         </li>
                       </ul>

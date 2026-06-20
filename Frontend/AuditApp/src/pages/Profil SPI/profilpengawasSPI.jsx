@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Mail, Briefcase, GraduationCap, ShieldCheck, X, CheckCircle2, UserPlus, Loader2, Image as ImageIcon } from 'lucide-react';
+import { Mail, Briefcase, GraduationCap, ShieldCheck, X, CheckCircle2, UserPlus, Loader2, Image as ImageIcon, Lock } from 'lucide-react';
 import apiClient from "../../../../Shared/api/axios"; // Pastikan path ini benar sesuai struktur folder Anda
 import useRealTime from "../../hooks/useRealTime";
 import { notifySuccess, notifyError } from '../../../../Shared/utils/notifier';
@@ -10,6 +10,13 @@ const ProfilPengawasSPI = () => {
   const [selectedMember, setSelectedMember] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [imagePreview, setImagePreview] = useState(null);
+
+  // Ambil user dari localStorage untuk mengecek role
+  const currentUserContainer = JSON.parse(localStorage.getItem("user") || "{}");
+  const user = currentUserContainer.user || currentUserContainer;
+  const isAdministratorAudit = user?.role?.toLowerCase() === "administrator audit" || 
+                               user?.roles?.some(r => r.name?.toLowerCase() === "administrator audit") ||
+                               (typeof user?.role === 'string' && user.role.toLowerCase() === "administrator audit");
   
   // State untuk form input baru
   const [newMember, setNewMember] = useState({
@@ -116,6 +123,13 @@ const handleAddMember = async (e) => {
     notifySuccess("Data pengawas berhasil ditambahkan");
     fetchTeamData();
     setShowForm(false);
+    
+    // Reset form state
+    setNewMember({
+      name: "", role: "", specialty: "", education: "", email: "", image: "", bio: "", certs: ""
+    });
+    setImagePreview(null);
+    setFileError("");
   } catch (error) {
     // log full response to developer console for easier debugging
     console.error("store pengawas error", error.response?.data || error);
@@ -128,8 +142,8 @@ const handleAddMember = async (e) => {
 };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8 relative">
-      <div className="max-w-6xl mx-auto">
+    <div className="w-full pb-8 relative">
+      <div className="w-full">
         
         {/* --- HEADER --- */}
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-16 gap-6">
@@ -145,12 +159,22 @@ const handleAddMember = async (e) => {
             </p>
           </div>
           
-          <button 
-            onClick={() => setShowForm(true)}
-            className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-2xl font-bold shadow-lg shadow-blue-200 transition-all active:scale-95"
-          >
-            <UserPlus size={20} /> Tambah Pengawas
-          </button>
+          {isAdministratorAudit ? (
+            <button 
+              onClick={() => setShowForm(true)}
+              className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-2xl font-bold shadow-lg shadow-blue-200 transition-all active:scale-95"
+            >
+              <UserPlus size={20} /> Tambah Pengawas
+            </button>
+          ) : (
+            <button 
+              type="button"
+              title="Hanya dapat diakses oleh Administrator Audit"
+              className="flex items-center justify-center gap-2 bg-gray-300 text-gray-500 px-6 py-3 rounded-2xl font-bold cursor-not-allowed opacity-80"
+            >
+              <Lock size={20} /> Tambah Pengawas
+            </button>
+          )}
         </div>
 
         {/* --- LOADING STATE --- */}
@@ -164,23 +188,23 @@ const handleAddMember = async (e) => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {team.length > 0 ? (
               team.map((member, index) => (
-                <div key={member.id || index} className="bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all border border-gray-100 group">
-                  <div className="flex flex-col sm:flex-row">
-                    <div className="relative sm:w-48 h-56 sm:h-auto bg-gray-200 overflow-hidden">
+                <div key={member.id || index} className="bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all border border-gray-100 group flex flex-col">
+                  <div className="flex flex-col sm:flex-row flex-1">
+                    <div className="relative flex flex-col sm:w-48 h-56 sm:h-auto bg-gray-200 overflow-hidden shrink-0">
                       <img 
                         src={member.image || "https://images.unsplash.com/photo-1633332755192-727a05c4013d?q=80&w=400"} 
                         alt={member.name} 
-                        className="w-full h-full object-cover transition-all duration-500 group-hover:scale-110" 
+                        className="w-full h-full object-cover transition-all duration-500 group-hover:scale-110 flex-1" 
                       />
                     </div>
-                    <div className="flex-1 p-6">
+                    <div className="flex-1 p-6 flex flex-col">
                       <p className="text-blue-600 font-bold text-xs uppercase mb-1">{member.role}</p>
                       <h3 className="text-lg font-bold text-gray-900 mb-4 leading-tight">{member.name}</h3>
-                      <div className="space-y-2 mb-4 text-sm text-gray-500">
+                      <div className="space-y-2 mb-4 text-sm text-gray-500 flex-1">
                         <div className="flex items-center gap-2"><Briefcase size={14}/> {member.specialty}</div>
                         <div className="flex items-center gap-2"><GraduationCap size={14}/> {member.education}</div>
                       </div>
-                      <div className="flex justify-between items-center border-t pt-4">
+                      <div className="flex justify-between items-center border-t pt-4 mt-auto">
                         <a href={`mailto:${member.email}`} className="p-2 bg-gray-50 rounded-lg text-gray-400 hover:text-blue-600 transition-all"><Mail size={16} /></a>
                         <button onClick={() => setSelectedMember(member)} className="text-xs font-bold text-blue-600 uppercase">View Bio →</button>
                       </div>
@@ -229,7 +253,7 @@ const handleAddMember = async (e) => {
 
         {/* --- FORM INPUT MODAL --- */}
 {showForm && (
-  <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-md transition-all duration-300">
+  <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md transition-all duration-300">
     {/* Container Modal dengan Animasi Slide Up */}
     <div className="bg-white rounded-[2rem] max-w-2xl w-full shadow-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-8 duration-300">
       
@@ -380,7 +404,7 @@ const handleAddMember = async (e) => {
 
         {/* --- MODAL DETAIL BIO --- */}
         {selectedMember && (
-          <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm">
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">
             <div className="bg-white rounded-[2rem] max-w-lg w-full overflow-hidden shadow-2xl">
               <div className="relative h-24 bg-blue-600">
                 <button onClick={() => setSelectedMember(null)} className="absolute top-4 right-4 p-2 bg-black/20 text-white rounded-full"><X size={20} /></button>

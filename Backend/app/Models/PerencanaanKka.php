@@ -10,7 +10,7 @@ class PerencanaanKka extends Model
     use BroadcastsRealTime;
 
     protected $table = 'perencanaan_kkas';
-    protected $fillable = ['assurance_id', 'uraian', 'user_id', 'no_kka', 'anggaran', 'keterangan', 'prosedur_audit', 'tgl_mulai', 'tgl_selesai'];
+    protected $fillable = ['assurance_id', 'uraian', 'user_id', 'no_kka', 'anggaran', 'keterangan', 'prosedur_audit', 'tgl_mulai', 'tgl_selesai', 'lhe_status', 'lhe_reviewed_by', 'lhe_reviewed_at', 'lhe_catatan_review'];
 
     public function auditor()
     {

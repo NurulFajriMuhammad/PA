@@ -52,9 +52,13 @@ class KkaPelaksanaanController extends Controller
             ]
         );
 
+        // Update status LHE ke 'menunggu_review' setelah upload
+        PerencanaanKka::where('id', $kkaId)->update(['lhe_status' => 'menunggu_review']);
+
         return response()->json([
             'message'=>'File berhasil diupload'
         ]);
+
     }
 
     public function getTemuan($kkaId)
@@ -157,4 +161,60 @@ class KkaPelaksanaanController extends Controller
             'data' => $data
         ]);
     }
+
+    /**
+     * Pengendali Teknis mereview LHE: approve atau minta revisi
+     * IIA Std. 2340 — Supervisi Penugasan
+     */
+    public function reviewLhe(Request $request, $kkaId)
+    {
+        $request->validate([
+            'status'  => 'required|in:disetujui,perlu_revisi',
+            'catatan' => 'nullable|string|max:1000',
+        ]);
+
+        $kka = PerencanaanKka::findOrFail($kkaId);
+
+        $kka->update([
+            'lhe_status'       => $request->status,
+            'lhe_reviewed_by'  => Auth::id(),
+            'lhe_reviewed_at'  => now(),
+            'lhe_catatan_review' => $request->catatan,
+        ]);
+
+        // Jika perlu_revisi, reset LHE file agar auditor harus upload ulang? (Opsional)
+        // Jika disetujui, tidak ada aksi tambahan
+
+        return response()->json([
+            'success' => true,
+            'message' => $request->status === 'disetujui'
+                ? 'LHE berhasil disetujui oleh Pengendali Teknis'
+                : 'LHE dikembalikan — auditor perlu merevisi',
+            'data'    => $kka->fresh()
+        ]);
+    }
+
+    /**
+     * Get semua KKA dengan status LHE untuk validasi checklist
+     */
+    public function getLheStatus($assuranceId)
+    {
+        $data = PerencanaanKka::where('assurance_id', $assuranceId)
+            ->with('lheFile')
+            ->get()
+            ->map(fn($k) => [
+                'id'         => $k->id,
+                'uraian'     => $k->uraian,
+                'lhe_status' => $k->lhe_status ?? 'belum_upload',
+                'has_lhe'    => $k->lheFile !== null,
+            ]);
+
+        $allApproved = $data->every(fn($k) => $k['lhe_status'] === 'disetujui');
+
+        return response()->json([
+            'data'         => $data,
+            'all_approved' => $allApproved,
+        ]);
+    }
 }
+

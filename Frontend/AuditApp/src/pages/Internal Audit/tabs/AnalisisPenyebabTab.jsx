@@ -13,8 +13,9 @@ import {
   BsXCircle
 } from "react-icons/bs";
 import { notifySuccess, notifyError, notifyConfirm } from "../../../../../Shared/utils/notifier.jsx";
+import { useAuth } from "../../../../../Shared/hooks/useAuth.jsx";
 
-const AnalisisTab = ({ assurance }) => {
+const AnalisisTab = ({ assurance, onRefresh }) => {
   const [data, setData] = useState([]);
   const [selectedTemuan, setSelectedTemuan] = useState(null);
   const [lampiranFile, setLampiranFile] = useState(null);
@@ -70,8 +71,36 @@ const AnalisisTab = ({ assurance }) => {
     }
   };
 
+  const [lhaData, setLhaData] = useState({
+    lha_status: "draft",
+    lha_submitted_by: null,
+    lha_submitted_at: null,
+    lha_approved_by: null,
+    lha_approved_at: null,
+    lha_catatan: null,
+  });
+
+  const { user: authData } = useAuth();
+  const userRole = authData?.user?.roles?.[0]?.name || "";
+  const isKepalaSPI = userRole.toLowerCase() === "kepala spi";
+  const isAuditor = userRole.toLowerCase() === "auditor" || userRole.toLowerCase() === "administrator audit" || userRole.toLowerCase() === "pengendali teknis";
+
+  const fetchLhaStatus = async () => {
+    try {
+      const res = await apiClient.get(`/api/assurance/${assurance?.id}/lha-status`);
+      if (res.data.success) {
+        setLhaData(res.data);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   useEffect(() => {
-    fetchAnalisis();
+    if (assurance?.id) {
+      fetchAnalisis();
+      fetchLhaStatus();
+    }
   }, [assurance]);
 
   const handleSelectTemuan = (item) => {
@@ -211,6 +240,125 @@ const AnalisisTab = ({ assurance }) => {
     }
   };
 
+  const handlePrintLha = () => {
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) return;
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Laporan Hasil Audit (LHA) - ${assurance?.no_pengajuan || ""}</title>
+          <style>
+            body { font-family: 'Arial', sans-serif; color: #1e293b; padding: 40px; line-height: 1.6; }
+            .header { text-align: center; border-bottom: 3px double #1e293b; padding-bottom: 20px; margin-bottom: 30px; }
+            .header h1 { margin: 0; font-size: 24px; text-transform: uppercase; color: #0f172a; }
+            .header p { margin: 5px 0 0 0; font-size: 14px; font-weight: bold; color: #64748b; }
+            .meta-table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
+            .meta-table td { padding: 8px 12px; font-size: 13px; vertical-align: top; }
+            .meta-table td.label { font-weight: bold; width: 180px; color: #475569; }
+            .section-title { font-size: 16px; font-weight: bold; border-bottom: 2px solid #cbd5e1; padding-bottom: 6px; margin-top: 30px; margin-bottom: 15px; text-transform: uppercase; color: #1e3a8a; }
+            .finding-card { border: 1px solid #e2e8f0; padding: 20px; border-radius: 12px; margin-bottom: 20px; page-break-inside: avoid; }
+            .finding-header { display: flex; justify-content: space-between; font-weight: bold; border-bottom: 1px solid #f1f5f9; padding-bottom: 10px; margin-bottom: 12px; }
+            .finding-title { font-size: 14px; color: #0f172a; }
+            .finding-meta { font-size: 11px; color: #64748b; text-transform: uppercase; }
+            .grid-5c { display: flex; flex-direction: column; gap: 12px; }
+            .c-item { font-size: 12px; }
+            .c-label { font-weight: bold; color: #475569; display: block; margin-bottom: 4px; text-transform: uppercase; font-size: 10px; tracking-wide; }
+            .c-value { color: #334155; }
+            .sign-section { margin-top: 50px; display: flex; justify-content: space-between; page-break-inside: avoid; }
+            .sign-box { text-align: center; width: 220px; font-size: 12px; }
+            .sign-line { margin-top: 70px; border-top: 1px solid #1e293b; padding-top: 5px; font-weight: bold; }
+            @media print {
+              body { padding: 0; }
+              .no-print { display: none !important; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="no-print" style="text-align: right; margin-bottom: 20px;">
+            <button onclick="window.print()" style="padding: 10px 20px; background-color: #1e3a8a; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">Cetak LHA</button>
+          </div>
+          <div class="header">
+            <h1>Laporan Hasil Audit (LHA)</h1>
+            <p>SPI (Satuan Pengawas Intern)</p>
+          </div>
+          
+          <table class="meta-table">
+            <tr>
+              <td class="label">Nomor Pengajuan</td>
+              <td>: ${assurance?.no_pengajuan || "-"}</td>
+            </tr>
+            <tr>
+              <td class="label">Judul Audit</td>
+              <td>: ${assurance?.judul || "-"}</td>
+            </tr>
+            <tr>
+              <td class="label">Periode Audit</td>
+              <td>: ${assurance?.tgl_mulai ? new Date(assurance.tgl_mulai).toLocaleDateString("id-ID") : "-"} s/d ${assurance?.tgl_selesai ? new Date(assurance.tgl_selesai).toLocaleDateString("id-ID") : "-"}</td>
+            </tr>
+            <tr>
+              <td class="label">Status LHA</td>
+              <td>: DISETUJUI oleh Kepala SPI</td>
+            </tr>
+          </table>
+
+          <div class="section-title">Daftar Temuan & Analisis Penyebab (5C)</div>
+          ${data.map((item, index) => `
+            <div class="finding-card">
+              <div class="finding-header">
+                <div class="finding-title">Temuan #${index + 1}: ${item.masalah}</div>
+                <div class="finding-meta">Kategori: ${item.kategori || "Minor"} | Hal: ${item.halaman_lhe || "-"}</div>
+              </div>
+              <div class="grid-5c">
+                <div class="c-item">
+                  <span class="c-label">1. Kondisi (Fakta di lapangan):</span>
+                  <div class="c-value">${item.kondisi || "-"}</div>
+                </div>
+                <div class="c-item">
+                  <span class="c-label">2. Kriteria (Aturan/Standar):</span>
+                  <div class="c-value">${item.kriteria || "-"}</div>
+                </div>
+                <div class="c-item">
+                  <span class="c-label">3. Sebab (Pemicu deviasi):</span>
+                  <div class="c-value">${item.sebab || "-"}</div>
+                </div>
+                <div class="c-item">
+                  <span class="c-label">4. Akibat (Dampak/Kerugian):</span>
+                  <div class="c-value">${item.akibat || "-"}</div>
+                </div>
+                <div class="c-item">
+                  <span class="c-label">5. Rekomendasi Auditor:</span>
+                  <div class="c-value">${item.rekomendasi || "-"}</div>
+                </div>
+                <div class="c-item" style="border-top: 1px dashed #e2e8f0; padding-top: 10px; margin-top: 5px;">
+                  <span class="c-label">Analisis Penyebab (Auditor):</span>
+                  <div class="c-value">${item.analisis_auditor || item.analisa_auditor || "-"}</div>
+                </div>
+                <div class="c-item">
+                  <span class="c-label">Rencana Tindakan Koreksi (Auditee):</span>
+                  <div class="c-value">${item.rencana_koreksi || "-"}</div>
+                </div>
+              </div>
+            </div>
+          `).join("")}
+
+          <div class="sign-section">
+            <div class="sign-box">
+              <p>Diajukan oleh,</p>
+              <div class="sign-line">Tim Auditor / PT</div>
+              <p>${lhaData.lha_submitted_by || ""}</p>
+            </div>
+            <div class="sign-box">
+              <p>Disetujui oleh,</p>
+              <div class="sign-line">Kepala SPI</div>
+              <p>${lhaData.lha_approved_by || ""}</p>
+            </div>
+          </div>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
+
   // Helper formats
   const formatDateIndo = (dateStr) => {
     if (!dateStr) return "-";
@@ -268,7 +416,7 @@ const AnalisisTab = ({ assurance }) => {
 
   // Logika pengecekan status submits
   const draftCount = data.filter(t => t.status_analisis === 'belum' || t.status_analisis === 'draft' || t.status_analisis === 'ditolak').length;
-  const isReadyToSubmit = data.length > 0 && draftCount === 0;
+  const isReadyToSubmit = data.length > 0 && draftCount === 0 && lhaData.lha_status === "approved";
 
   // ============================
   // 🎥 RENDER PREVIEW MODAL (DOKUMEN)
@@ -723,10 +871,195 @@ const AnalisisTab = ({ assurance }) => {
         </button>
       </div>
 
+      {/* ================= LHA APPROVAL WORKFLOW PANEL (IIA Std. 2420 & 2440) ================= */}
+      <div className="bg-slate-50 border border-slate-200 rounded-3xl p-6 text-slate-700 shadow-sm">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <h3 className="font-black text-sm text-slate-800 uppercase tracking-tight flex items-center gap-2">
+                🛡️ Alur Persetujuan LHA
+              </h3>
+              <span className="text-[10px] text-blue-600 border border-blue-200 bg-blue-50 px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wide">
+                IIA Std. 2420 & 2440
+              </span>
+            </div>
+            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">
+              Persetujuan Laporan Hasil Audit oleh Kepala SPI sebelum didistribusikan
+            </p>
+          </div>
+          
+          {/* Status Badge */}
+          {(() => {
+            const status = lhaData.lha_status;
+            if (status === "approved") {
+              return (
+                <div className="flex gap-2">
+                  <button
+                    onClick={handlePrintLha}
+                    className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white px-3.5 py-1.5 rounded-full text-xs font-black uppercase tracking-wider transition-all shadow-md cursor-pointer"
+                  >
+                    Cetak LHA (PDF)
+                  </button>
+                  <span className="bg-emerald-100 text-emerald-800 border border-emerald-200 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider">
+                    LHA Disetujui
+                  </span>
+                </div>
+              );
+            } else if (status === "submitted") {
+              return (
+                <span className="bg-amber-100 text-amber-800 border border-amber-200 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider animate-pulse">
+                  Menunggu Persetujuan Kepala SPI
+                </span>
+              );
+            } else if (status === "rejected") {
+              return (
+                <span className="bg-rose-100 text-rose-800 border border-rose-200 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider">
+                  LHA Dikembalikan / Ditolak
+                </span>
+              );
+            } else {
+              return (
+                <span className="bg-slate-100 text-slate-605 border border-slate-200 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider">
+                  Draft LHA
+                </span>
+              );
+            }
+          })()}
+        </div>
+
+        {/* LHA Info details */}
+        <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-semibold text-slate-600">
+          <div className="space-y-1.5">
+            {lhaData.lha_submitted_by && (
+              <p>
+                <b>Diajukan Oleh:</b> {lhaData.lha_submitted_by} {lhaData.lha_submitted_at && `pada ${new Date(lhaData.lha_submitted_at).toLocaleString("id-ID")}`}
+              </p>
+            )}
+            {lhaData.lha_approved_by && (
+              <p>
+                <b>Disetujui Oleh:</b> {lhaData.lha_approved_by} {lhaData.lha_approved_at && `pada ${new Date(lhaData.lha_approved_at).toLocaleString("id-ID")}`}
+              </p>
+            )}
+          </div>
+          {lhaData.lha_catatan && (
+            <div className="bg-white border border-slate-100 p-3 rounded-xl shadow-sm text-xs font-medium text-slate-700">
+              <span className="font-bold text-slate-400 block mb-1 uppercase tracking-wide text-[9px]">Catatan Kepala SPI:</span>
+              {lhaData.lha_catatan}
+            </div>
+          )}
+        </div>
+
+        {/* Action Controls */}
+        <div className="mt-5 pt-4 border-t border-slate-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          {lhaData.lha_status === "draft" || lhaData.lha_status === "rejected" ? (
+            <>
+              <span className="text-[11px] font-bold text-slate-450 uppercase tracking-wider">
+                {draftCount > 0 
+                  ? "Semua temuan harus berstatus Monev sebelum LHA dapat diajukan ke Kepala SPI."
+                  : "Semua temuan telah selesai dianalisis. LHA siap diajukan."
+                }
+              </span>
+              {isAuditor && (
+                <button
+                  disabled={draftCount > 0}
+                  onClick={async () => {
+                    if (!window.confirm("Apakah Anda yakin ingin mengajukan LHA ini ke Kepala SPI?")) return;
+                    try {
+                      const res = await apiClient.post(`/api/assurance/${assurance.id}/submit-lha`);
+                      if (res.data.success) {
+                        notifySuccess(res.data.message);
+                        fetchLhaStatus();
+                      }
+                    } catch (e) {
+                      notifyError(e.response?.data?.message || "Gagal mengajukan LHA");
+                    }
+                  }}
+                  className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all active:scale-95 disabled:opacity-50 disabled:bg-slate-400 disabled:cursor-not-allowed cursor-pointer shadow-md"
+                >
+                  Ajukan LHA ke Kepala SPI
+                </button>
+              )}
+            </>
+          ) : lhaData.lha_status === "submitted" && isKepalaSPI ? (
+            <div className="w-full flex flex-col gap-3">
+              <textarea
+                placeholder="Tulis catatan persetujuan atau alasan penolakan di sini..."
+                className="w-full p-3 bg-white border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 font-semibold text-xs text-slate-800 transition-all resize-y leading-relaxed shadow-sm"
+                rows="2"
+                id="lha-catatan-input"
+              />
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const catatan = document.getElementById("lha-catatan-input")?.value || "";
+                    if (!catatan.trim()) {
+                      notifyError("Catatan penolakan wajib diisi!");
+                      return;
+                    }
+                    try {
+                      const res = await apiClient.post(`/api/assurance/${assurance.id}/approve-lha`, {
+                        action: "reject",
+                        catatan
+                      });
+                      if (res.data.success) {
+                        notifySuccess(res.data.message);
+                        fetchLhaStatus();
+                      }
+                    } catch (e) {
+                      notifyError(e.response?.data?.message || "Gagal memproses LHA");
+                    }
+                  }}
+                  className="px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all active:scale-95 cursor-pointer shadow-md shadow-rose-200"
+                >
+                  Kembalikan ke Auditor
+                </button>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const catatan = document.getElementById("lha-catatan-input")?.value || "";
+                    try {
+                      const res = await apiClient.post(`/api/assurance/${assurance.id}/approve-lha`, {
+                        action: "approve",
+                        catatan
+                      });
+                      if (res.data.success) {
+                        notifySuccess(res.data.message);
+                        fetchLhaStatus();
+                      }
+                    } catch (e) {
+                      notifyError(e.response?.data?.message || "Gagal menyetujui LHA");
+                    }
+                  }}
+                  className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all active:scale-95 cursor-pointer shadow-md shadow-emerald-250"
+                >
+                  Setujui & Tandatangani LHA
+                </button>
+              </div>
+            </div>
+          ) : (
+            <span className="text-[11px] font-bold text-slate-450 uppercase tracking-wider">
+              {lhaData.lha_status === "approved" 
+                ? "LHA telah disetujui. Tim audit dapat meneruskan temuan ini ke panel Tindak Lanjut."
+                : "Menunggu Kepala SPI melakukan review dan persetujuan LHA."
+              }
+            </span>
+          )}
+        </div>
+      </div>
+
       {/* WARNING INFO BAR */}
       {!isReadyToSubmit && data.length > 0 && (
         <div className="bg-amber-50 border-l-4 border-amber-500 text-amber-900 p-5 rounded-r-2xl shadow-sm text-xs leading-relaxed font-semibold">
-          Tombol <strong className="text-amber-600">Kirim ke Tindak Lanjut</strong> baru aktif jika semua temuan berstatus <strong>Monev</strong> (sudah dianalisis). Saat ini {draftCount} temuan masih Draft.
+          {draftCount > 0 ? (
+            <span>
+              Tombol <strong className="text-amber-600">Kirim ke Tindak Lanjut</strong> baru aktif jika semua temuan berstatus <strong>Monev</strong> (sudah dianalisis). Saat ini {draftCount} temuan masih Draft.
+            </span>
+          ) : lhaData.lha_status !== "approved" ? (
+            <span>
+              Semua temuan telah selesai dianalisis. Namun LHA masih berstatus <strong className="text-amber-600">{lhaData.lha_status.toUpperCase()}</strong>. Ajukan dan dapatkan persetujuan LHA dari Kepala SPI terlebih dahulu agar tombol Kirim aktif.
+            </span>
+          ) : null}
         </div>
       )}
 

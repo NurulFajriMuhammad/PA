@@ -170,6 +170,33 @@ class UserController extends Controller
     }
 }
 
+    public function destroy(User $user)
+    {
+        try {
+            $user->delete();
+            return response()->json([
+                'success' => true,
+                'message' => 'User berhasil dihapus',
+            ]);
+        } catch (\Illuminate\Database\QueryException $e) {
+            if ($e->getCode() === '23000' || str_contains($e->getMessage(), 'foreign key constraint')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Gagal menghapus user: User ini memiliki data terkait (seperti tugas audit, kka, dll.) dan tidak bisa dihapus.',
+                ], 400);
+            }
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal menghapus user: ' . $e->getMessage(),
+            ], 500);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal menghapus user: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
     public function getUsersForDropdown() {
         // Ambil id, name, dan role
         $users = User::select('id', 'name', 'roles')->get();

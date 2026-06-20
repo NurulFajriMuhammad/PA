@@ -37,11 +37,12 @@ const printStyles = `
       display: block !important;
       width: 100% !important;
       margin: 0 !important;
-      padding: 0 !important;
+      padding: 1cm 1.5cm 1.5cm 1.5cm !important;
+      box-sizing: border-box !important;
     }
     @page {
       size: A4 portrait;
-      margin: 2cm;
+      margin: 0 !important;
     }
   }
 `;
@@ -260,6 +261,31 @@ const SuratTugas = () => {
     return `${day}-${month}-${tgl.getFullYear()}`;
   };
 
+  const isExpired = (periodeStr) => {
+    if (!periodeStr) return false;
+    const parts = periodeStr.split(" s/d ");
+    if (parts.length !== 2) return false;
+    const endDateStr = parts[1];
+    const endDate = new Date(endDateStr);
+    endDate.setHours(23, 59, 59, 999);
+    const today = new Date();
+    return today > endDate;
+  };
+
+  const getPrintDateIndo = () => {
+    const days = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
+    const months = [
+      "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+      "Juli", "Agustus", "September", "Oktober", "November", "Desember"
+    ];
+    const today = new Date();
+    const dayName = days[today.getDay()];
+    const dateNum = String(today.getDate()).padStart(2, "0");
+    const monthName = months[today.getMonth()];
+    const year = today.getFullYear();
+    return `${dayName}, ${dateNum} ${monthName} ${year}`;
+  };
+
   return (
     <>
       {/* ========================================= */}
@@ -270,8 +296,13 @@ const SuratTugas = () => {
           
           <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-6">
             <div>
-              <div className="inline-flex items-center gap-2 bg-indigo-50 text-indigo-600 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider mb-3 border border-indigo-100">
-                <FileText size={12} /> Legal & Compliance
+              <div className="flex flex-wrap items-center gap-2 mb-3">
+                <div className="inline-flex items-center gap-2 bg-indigo-50 text-indigo-600 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border border-indigo-100">
+                  <FileText size={12} /> Legal & Compliance
+                </div>
+                <div className="inline-flex items-center bg-blue-50 text-blue-600 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border border-blue-100">
+                  IIA Std. 2200
+                </div>
               </div>
               <h1 className="text-4xl font-black text-slate-900 uppercase tracking-tight">
                 Surat <span className="text-indigo-600">Tugas</span>
@@ -317,7 +348,7 @@ const SuratTugas = () => {
                   <thead>
                     <tr className="bg-[#111827] text-[11px] font-black text-slate-300 uppercase tracking-[0.2em] border-b border-slate-800">
                       <th className="px-6 py-5 text-center w-20">No</th>
-                      <th className="px-6 py-5">Nomor Surat</th>
+                      <th className="px-6 py-5">Nomor Penugasan Audit</th>
                       <th className="px-6 py-5">Tanggal Dibuat</th>
                       <th className="px-6 py-5">Deskripsi / Penugasan</th>
                       <th className="px-6 py-5 text-right pr-10">Aksi & Dokumen</th>
@@ -336,7 +367,28 @@ const SuratTugas = () => {
                             <span className="text-sm font-black text-indigo-600 uppercase tracking-tight group-hover:text-indigo-700 transition-colors">
                               {item.nomor_surat}
                             </span>
-                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Surat Penugasan Resmi</span>
+                            {(() => {
+                              const expired = isExpired(item.periode_pemeriksaan);
+                              const dates = item.periode_pemeriksaan?.split(" s/d ") || ["", ""];
+                              const start = dates[0] ? formatTanggalTable(dates[0]) : "-";
+                              const end = dates[1] ? formatTanggalTable(dates[1]) : "-";
+                              return (
+                                <div className="flex flex-col gap-1 mt-1">
+                                  <span className="text-[10px] font-bold text-slate-500">
+                                    Periode: {start} s/d {end}
+                                  </span>
+                                  {expired ? (
+                                    <span className="inline-flex items-center gap-1 w-fit bg-red-50 text-red-600 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border border-red-100">
+                                      🔒 Expired & Terkunci
+                                    </span>
+                                  ) : (
+                                    <span className="inline-flex items-center gap-1 w-fit bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border border-emerald-100">
+                                      ✓ Aktif
+                                    </span>
+                                  )}
+                                </div>
+                              );
+                            })()}
                           </div>
                         </td>
                         <td className="px-6 py-6">
@@ -361,7 +413,7 @@ const SuratTugas = () => {
                           </div>
                         </td>
                         <td className="px-6 py-6 text-right pr-8">
-                          <div className="flex items-center justify-end gap-2.5 opacity-0 group-hover:opacity-100 transition-all transform translate-x-4 group-hover:translate-x-0">
+                          <div className="flex items-center justify-end gap-2.5">
                             <button
                               onClick={() => handlePrint(item)}
                               className="flex items-center justify-center w-10 h-10 bg-white text-slate-600 hover:bg-emerald-500 hover:text-white border border-slate-200 rounded-xl transition-all shadow-sm hover:shadow-emerald-100 active:scale-95"
@@ -408,7 +460,7 @@ const SuratTugas = () => {
           {/* MODAL FORM WEB */}
           {showModal && (
             <div className="fixed inset-0 z-[9999] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
-              <div className="bg-white rounded-[2rem] p-8 w-full max-w-2xl shadow-2xl overflow-y-auto max-h-[90vh] animate-in zoom-in-95 duration-200">
+              <div className="bg-white rounded-[2rem] p-8 w-full max-w-2xl shadow-2xl overflow-y-auto max-h-[90vh] [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] animate-in zoom-in-95 duration-200">
                 <div className="flex justify-between items-center mb-6 pb-4 border-b border-slate-100">
                   <div>
                     <h2 className="text-xl font-black uppercase tracking-tight text-slate-800 flex items-center gap-2">
@@ -476,20 +528,40 @@ const SuratTugas = () => {
                       <Calendar size={12} /> PERIODE PEMERIKSAAN
                     </p>
                     <div className="grid grid-cols-2 gap-4">
-                      <input
-                        type="date"
-                        required
-                        className="w-full p-3 bg-white border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500 font-semibold text-sm"
-                        value={formData.tgl_mulai}
-                        onChange={(e) => setFormData({ ...formData, tgl_mulai: e.target.value })}
-                      />
-                      <input
-                        type="date"
-                        required
-                        className="w-full p-3 bg-white border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500 font-semibold text-sm"
-                        value={formData.tgl_selesai}
-                        onChange={(e) => setFormData({ ...formData, tgl_selesai: e.target.value })}
-                      />
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">
+                          Mulai
+                        </label>
+                        <input
+                          type="date"
+                          required
+                          className="w-full p-3 bg-white border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500 font-semibold text-sm text-slate-700"
+                          value={formData.tgl_mulai}
+                          onChange={(e) => {
+                            const newMulai = e.target.value;
+                            setFormData((prev) => {
+                              const updated = { ...prev, tgl_mulai: newMulai };
+                              if (prev.tgl_selesai && prev.tgl_selesai < newMulai) {
+                                updated.tgl_selesai = "";
+                              }
+                              return updated;
+                            });
+                          }}
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">
+                          Selesai
+                        </label>
+                        <input
+                          type="date"
+                          required
+                          className="w-full p-3 bg-white border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500 font-semibold text-sm text-slate-700"
+                          value={formData.tgl_selesai}
+                          min={formData.tgl_mulai}
+                          onChange={(e) => setFormData({ ...formData, tgl_selesai: e.target.value })}
+                        />
+                      </div>
                     </div>
                   </div>
 
@@ -602,6 +674,12 @@ const SuratTugas = () => {
         {selectedSurat && (
           <div style={{ fontFamily: '"Times New Roman", Times, serif', color: "black", width: "100%", maxWidth: "21cm", margin: "0 auto" }}>
             
+            {/* CUSTOM PRINT HEADER */}
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: "10px", color: "#666", marginBottom: "10px" }}>
+              <span>{getPrintDateIndo()}</span>
+              <span>AuditApp</span>
+            </div>
+            
             {/* KOP SURAT */}
             <div style={{ textAlign: "center", marginBottom: "20px" }}>
               <h2 style={{ margin: 0, fontSize: "18px", fontWeight: "bold" }}>PT. FILTRONA MANUFACTURING INDONESIA.</h2>
@@ -699,7 +777,13 @@ const SuratTugas = () => {
               <div style={{ textAlign: "center", width: "250px" }}>
                 <p style={{ fontSize: "14px", margin: "0 0 5px 0" }}>Lamongan, {formatTanggalIndo(selectedSurat.tanggal_surat)}</p>
                 <p style={{ fontSize: "14px", margin: "0 0 60px 0" }}><b>KEPALA SPI</b></p>
-                <p style={{ fontSize: "14px", margin: 0 }}><b>(........................................)</b></p>
+                <p style={{ fontSize: "14px", margin: 0 }}>
+                  <b>
+                    ({users.find((u) =>
+                      u.roles?.some((r) => r.name.toLowerCase() === "kepala spi")
+                    )?.name || "........................................"})
+                  </b>
+                </p>
               </div>
             </div>
 

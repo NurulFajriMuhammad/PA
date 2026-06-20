@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Plus, Trash2, Edit } from "lucide-react";
+import { Plus, Trash2, Edit, Search, Shield, Briefcase, Mail, User } from "lucide-react";
 import UserModal from "./UserModal";
 import DeleteConfirmationModal from "../common/DeleteModal";
 import { notifySuccess, notifyError } from "../../../../Shared/utils/notifier";
@@ -9,7 +9,8 @@ const UserPage = ({ users = [], roles = [], setNotification, onRefresh }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
   const [itemToDelete, setItemToDelete] = useState(null);
-  const [isLoading, setIsLoading] = useState(false); // ✅ ADD THIS STATE
+  const [isLoading, setIsLoading] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
 
   const handleAddUser = () => {
     setEditingUser(null);
@@ -79,106 +80,190 @@ const UserPage = ({ users = [], roles = [], setNotification, onRefresh }) => {
       notifySuccess("✅ User berhasil dihapus");
       setItemToDelete(null);
       
-      await onRefresh();
-      
+      if (onRefresh) {
+        await onRefresh();
+      }
     } catch (err) {
       console.error("❌ Delete Error:", err);
-      notifyError("❌ Gagal menghapus user");
+      const errorMsg = err.response?.data?.message || err.message || "Gagal menghapus user";
+      notifyError(`❌ ${errorMsg}`);
     } finally {
       setIsLoading(false);
     }
   };
 
+  // Helper styling for roles
+  const getRoleBadgeStyle = (roleName) => {
+    const name = roleName.toLowerCase();
+    if (name.includes("admin")) {
+      return "bg-indigo-50 text-indigo-700 border border-indigo-100";
+    } else if (name.includes("auditor")) {
+      return "bg-emerald-50 text-emerald-700 border border-emerald-100";
+    } else if (name.includes("auditee")) {
+      return "bg-amber-50 text-amber-700 border border-amber-100";
+    } else {
+      return "bg-slate-50 text-slate-700 border border-slate-200";
+    }
+  };
+
+  const filteredUsers = users.filter((u) => {
+    const nameMatch = u.name?.toLowerCase().includes(searchTerm.toLowerCase());
+    const emailMatch = u.email?.toLowerCase().includes(searchTerm.toLowerCase());
+    const jabatanMatch = u.jabatan?.nama?.toLowerCase().includes(searchTerm.toLowerCase());
+    const roleMatch = u.roles?.some((r) => r.name?.toLowerCase().includes(searchTerm.toLowerCase()));
+    return nameMatch || emailMatch || jabatanMatch || roleMatch;
+  });
+
   return (
-    <div>
+    <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-6">
+      <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">👥 Manajemen Pengguna</h2>
-          <p className="text-gray-600 text-sm mt-1">
-            Kelola pengguna, role, dan izin akses sistem
+          <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
+            <User className="w-7 h-7 text-blue-600" />
+            Manajemen Pengguna
+          </h2>
+          <p className="text-slate-500 text-sm mt-1">
+            Kelola pengguna, penetapan peran (role), serta informasi jabatan struktural sistem.
           </p>
         </div>
         <button
           onClick={handleAddUser}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg flex items-center hover:bg-blue-700 transition-colors shadow-md w-fit"
+          className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl flex items-center font-semibold text-sm transition-all duration-200 active:scale-95 shadow-md shadow-blue-200 w-fit"
         >
           <Plus className="w-5 h-5 mr-2" /> Tambah User
         </button>
       </div>
 
-      {/* Users Table */}
-      <div className="bg-white rounded-lg shadow border overflow-x-auto">
-        <table className="w-full min-w-max divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nama</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Jabatan</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Role</th>
-            </tr>
-          </thead>
+      {/* Control Actions (Search) */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
+        <div className="relative flex-1 max-w-md">
+          <Search className="w-5 h-5 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+          <input
+            type="text"
+            placeholder="Cari nama, email, jabatan, atau role..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-11 pr-4 py-2 border border-slate-200 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all outline-none text-sm placeholder-slate-400"
+          />
+        </div>
+        <div className="text-xs text-slate-500 font-semibold bg-slate-50 px-3 py-2 rounded-lg border border-slate-100 self-end sm:self-auto">
+          Total User: <span className="text-blue-600 text-sm font-bold">{filteredUsers.length}</span>
+        </div>
+      </div>
 
-          <tbody className="divide-y divide-gray-200">
-            {Array.isArray(users) && users.length > 0 ? (
-              users.map((user) => (
-                <tr key={user.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    {user.name}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                    {user.email}
-                  </td>
-<td className="px-6 py-4">
-        {user.jabatan ? (
-           <span className="px-3 py-1 bg-blue-50 text-blue-700 rounded-lg text-xs font-bold border border-blue-100">
-             {user.jabatan.nama}
-           </span>
-        ) : <span className="text-gray-300 italic text-xs">Staff</span>}
-      </td>
-                  <td className="px-6 py-4 text-sm">
-                    <div className="flex gap-1 flex-wrap">
-                      {user.roles?.map((role) => (
-                        <span
-                          key={role.id}
-                          className="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded"
-                        >
-                          {role.name}
+      {/* Users Table */}
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-max text-left border-collapse">
+            <thead>
+              <tr className="bg-slate-50/75 border-b border-slate-100">
+                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Nama</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Email</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Jabatan</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Role</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Aksi</th>
+              </tr>
+            </thead>
+
+            <tbody className="divide-y divide-slate-100">
+              {filteredUsers.length > 0 ? (
+                filteredUsers.map((user) => (
+                  <tr key={user.id} className="hover:bg-slate-50/50 transition-colors">
+                    {/* Nama */}
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-full bg-blue-50 text-blue-600 font-bold flex items-center justify-center text-sm shadow-inner">
+                          {user.name?.charAt(0).toUpperCase()}
+                        </div>
+                        <span className="text-sm font-bold text-slate-800">{user.name}</span>
+                      </div>
+                    </td>
+
+                    {/* Email */}
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center gap-2 text-sm text-slate-600">
+                        <Mail className="w-4 h-4 text-slate-400" />
+                        <span>{user.email}</span>
+                      </div>
+                    </td>
+
+                    {/* Jabatan */}
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {user.jabatan ? (
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-sky-50 text-sky-700 rounded-full text-xs font-bold border border-sky-100">
+                          <Briefcase className="w-3.5 h-3.5" />
+                          {user.jabatan.nama}
                         </span>
-                      ))}
+                      ) : (
+                        <span className="text-slate-400 italic text-xs">Staff / Non-Struktural</span>
+                      )}
+                    </td>
+
+                    {/* Role */}
+                    <td className="px-6 py-4">
+                      <div className="flex gap-1.5 flex-wrap max-w-xs">
+                        {user.roles && user.roles.length > 0 ? (
+                          user.roles.map((role) => (
+                            <span
+                              key={role.id}
+                              className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold ${getRoleBadgeStyle(role.name)}`}
+                            >
+                              <Shield className="w-3 h-3" />
+                              {role.name}
+                            </span>
+                          ))
+                        ) : (
+                          <span className="text-slate-300 italic text-xs">Tidak ada role</span>
+                        )}
+                      </div>
+                    </td>
+
+                    {/* Actions */}
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
+                      <div className="flex justify-end gap-2">
+                        <button
+                          onClick={() => handleEditUser(user)}
+                          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 bg-slate-50 hover:bg-slate-100 rounded-lg border border-slate-200 transition-all active:scale-95"
+                        >
+                          <Edit className="w-3.5 h-3.5 text-blue-600" />
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => setItemToDelete(user)}
+                          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-lg border border-rose-100 transition-all active:scale-95"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          Hapus
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="5" className="px-6 py-12 text-center text-slate-500">
+                    <div className="flex flex-col items-center justify-center max-w-md mx-auto space-y-3">
+                      <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-400">
+                        <Search className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <p className="font-bold text-slate-800 text-sm">Tidak ada user ditemukan</p>
+                        <p className="text-xs text-slate-400 mt-1">Coba sesuaikan kata kunci pencarian Anda atau tambahkan user baru.</p>
+                      </div>
+                      <button
+                        onClick={handleAddUser}
+                        className="px-4 py-2 text-xs font-bold bg-blue-50 text-blue-600 border border-blue-100 hover:bg-blue-100 rounded-lg transition-all"
+                      >
+                        Buat user pertama
+                      </button>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm space-x-2">
-                    <button
-                      onClick={() => handleEditUser(user)}
-                      className="text-blue-600 hover:text-blue-800 hover:bg-blue-50 px-2 py-1 rounded inline-flex items-center gap-1 transition-colors"
-                    >
-                      <Edit className="w-4 h-4" /> Edit
-                    </button>
-                    <button
-                      onClick={() => setItemToDelete(user)}
-                      className="text-red-600 hover:text-red-800 hover:bg-red-50 px-2 py-1 rounded inline-flex items-center gap-1 transition-colors"
-                    >
-                      <Trash2 className="w-4 h-4" /> Hapus
-                    </button>
-                  </td>
                 </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan="4" className="px-6 py-8 text-center text-gray-500">
-                  ℹ️ Tidak ada user ditemukan. <br />
-                  <button
-                    onClick={handleAddUser}
-                    className="text-blue-600 hover:underline mt-2"
-                  >
-                    Buat user pertama Anda
-                  </button>
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* Modals */}
@@ -191,7 +276,7 @@ const UserPage = ({ users = [], roles = [], setNotification, onRefresh }) => {
         onSave={handleSaveUser}
         existingUser={editingUser}
         roles={roles}
-        isLoading={isLoading} // ✅ PASS isLoading
+        isLoading={isLoading}
       />
 
       <DeleteConfirmationModal
