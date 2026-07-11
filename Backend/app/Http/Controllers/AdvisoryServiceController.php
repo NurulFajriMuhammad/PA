@@ -55,6 +55,7 @@ public function update(Request $request, $id)
         'no_telepon' => 'nullable|string',
         'waktu_mulai' => 'nullable|date_format:H:i',
         'waktu_selesai' => 'nullable|date_format:H:i|after:waktu_mulai',
+        'uraian_konsultasi' => 'required|string',
         'opini_spi' => 'nullable|string',
         'pengawas' => 'nullable|string',
         'keterangan' => 'nullable|string',

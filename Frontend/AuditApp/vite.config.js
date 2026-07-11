@@ -12,6 +12,24 @@ export default defineConfig({
     include: ['axios', 'react-icons'], // Masukkan semua dependency yang gagal di-resolve
   },
   
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('react') || id.includes('@remix-run/router')) {
+              return 'vendor-react';
+            }
+            if (id.includes('axios') || id.includes('react-hot-toast') || id.includes('pusher-js') || id.includes('laravel-echo')) {
+              return 'vendor-utils';
+            }
+          }
+        }
+      }
+    }
+  },
+
+  
   server: {
     fs: {
       allow: [
@@ -23,6 +41,16 @@ export default defineConfig({
   resolve: {
     alias: {
       '@shared': path.resolve(__dirname, '..', 'Shared'),
-    }
+    },
+    dedupe: [
+      'react', 
+      'react-dom', 
+      'react-router-dom', 
+      'react-router',
+      '@remix-run/router',
+      'axios', 
+      'react-hot-toast', 
+      'react-icons'
+    ]
   }
 });

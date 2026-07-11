@@ -19,7 +19,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
           reverseOrder={false} 
           gutter={8}
           containerStyle={{
-            top: 80,
+            zIndex: 899,
           }}
           toastOptions={{
             duration: 4000,

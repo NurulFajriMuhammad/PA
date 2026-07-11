@@ -95,7 +95,7 @@ class assurance extends Model
     // Relasi ke Master Status Pemeriksaan
     public function statusPemeriksaan()
     {
-        return $this->belongsTo(status_pemeriksaan::class, 'id_status_pemeriksaan', 'id_status_pemeriksaan');
+        return $this->belongsTo(StatusPemeriksaan::class, 'id_status_pemeriksaan', 'id');
     }
 
     /**

@@ -15,6 +15,9 @@ ReactDOM.createRoot(document.getElementById('root')).render(
         <Toaster 
           position="top-center" 
           reverseOrder={false}
+          containerStyle={{
+            zIndex: 899,
+          }}
           toastOptions={{
             style: {
               background: '#363636',

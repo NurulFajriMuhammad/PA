@@ -6,7 +6,8 @@ import { BsTrash, BsX, BsExclamationCircle } from "react-icons/bs";
  * Menampilkan notifikasi sukses kustom.
  */
 export const notifySuccess = (message) => {
-  toast.success(message, {
+  const cleanMessage = typeof message === 'string' ? message.replace(/^[✅❌]\s*/, '') : message;
+  toast.success(cleanMessage, {
     duration: 3000,
     style: {
       borderRadius: '16px',
@@ -16,7 +17,8 @@ export const notifySuccess = (message) => {
       fontSize: '14px',
       padding: '16px',
       boxShadow: '0 10px 15px -3px rgba(16, 185, 129, 0.2)',
-      border: 'none'
+      border: 'none',
+      marginTop: '80px'
     },
     iconTheme: {
       primary: '#ffffff',
@@ -52,7 +54,9 @@ export const notifyError = (error) => {
     message = error.message;
   }
 
-  toast.error(message, {
+  const cleanMessage = typeof message === 'string' ? message.replace(/^[✅❌]\s*/, '') : message;
+
+  toast.error(cleanMessage, {
     duration: 6000,
     style: {
       borderRadius: '16px',
@@ -62,7 +66,8 @@ export const notifyError = (error) => {
       fontSize: '14px',
       padding: '16px',
       boxShadow: '0 10px 15px -3px rgba(239, 68, 68, 0.2)',
-      border: 'none'
+      border: 'none',
+      marginTop: '80px'
     },
     iconTheme: {
       primary: '#ffffff',

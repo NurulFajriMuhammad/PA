@@ -11,7 +11,7 @@ const extractData = (response) => {
   );
 };
 
-export default function ApiPage({ setNotification }) {
+export default function ApiPage() {
   const [permissions, setPermissions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);

@@ -1,16 +1,13 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Line } from 'react-chartjs-2';
-import {
-  Chart as ChartJS, CategoryScale, LinearScale, PointElement,
-  LineElement, Title, Tooltip, Legend, Filler 
-} from 'chart.js';
+import React, { useState, useEffect, useCallback, lazy, Suspense } from 'react';
+
+// ✅ Lazy load chart component untuk mempercepat FCP & LCP utama
+const DashboardChart = lazy(() => import('../components/DashboardChart'));
 // ✅ Lucide-react: tree-shaking lebih optimal dibanding react-icons
 import { BarChart2, Clock, Search, CheckCircle2, RefreshCw, AlertTriangle } from 'lucide-react';
 import apiClient from '../../../Shared/api/apiClient';
 import useRealTime from '../hooks/useRealTime';
 
-// Registrasi ChartJS
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler);
+// Registrasi ChartJS dihapus dari sini (dipindah ke DashboardChart.jsx)
 
 export default function Dashboard() {
   const [stats, setStats] = useState(null);
@@ -144,7 +141,13 @@ export default function Dashboard() {
                 </select>
               </div>
               <div className="h-[350px]">
-                <Line options={lineChartOptions} data={lineChartData} />
+                <Suspense fallback={
+                  <div className="w-full h-full flex items-center justify-center bg-slate-50/50 rounded-xl border border-slate-100">
+                    <div className="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
+                  </div>
+                }>
+                  <DashboardChart options={lineChartOptions} data={lineChartData} />
+                </Suspense>
               </div>
             </div>
 

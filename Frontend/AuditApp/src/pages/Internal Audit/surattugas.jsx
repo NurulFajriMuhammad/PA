@@ -102,7 +102,7 @@ const SuratTugas = () => {
     }
     return filtered.map((user) => (
       <option key={user.id} value={user.name}>
-        {user.name} ({user.roles?.[0]?.name})
+        {user.name}
       </option>
     ));
   };
@@ -682,7 +682,7 @@ const SuratTugas = () => {
             
             {/* KOP SURAT */}
             <div style={{ textAlign: "center", marginBottom: "20px" }}>
-              <h2 style={{ margin: 0, fontSize: "18px", fontWeight: "bold" }}>PT. FILTRONA MANUFACTURING INDONESIA.</h2>
+              <h2 style={{ margin: 0, fontSize: "18px", fontWeight: "bold" }}>PT. FAJX-TECH SOLUSINDO.</h2>
               <p style={{ margin: 0, fontWeight: "bold", fontSize: "16px" }}>
                 SATUAN PENGAWASAN INTERN (SPI)
               </p>
@@ -709,7 +709,7 @@ const SuratTugas = () => {
 
             {/* PEMBUKA */}
             <p style={{ marginTop: "25px", textAlign: "justify", fontSize: "14px", lineHeight: "1.5" }}>
-              Manajer Senior Satuan Pengawasan Intern PT Filtrona Manufacturing Indonesia
+              Manajer Senior Satuan Pengawasan Intern PT FAJX-TECH SOLUSINDO
               Tbk dengan ini menugaskan kepada:
             </p>
 
@@ -790,7 +790,7 @@ const SuratTugas = () => {
             {/* TEMBUSAN */}
             <div style={{ marginTop: "30px", fontSize: "12px", lineHeight: "1.5" }}>
               <p style={{ marginBottom: "5px" }}><b>Tembusan:</b></p>
-              <p style={{ margin: "2px 0" }}>1. Direktur Utama PT Filtrona Manufacturing Indonesia</p>
+              <p style={{ margin: "2px 0" }}>1. Direktur Utama PT FAJX-TECH SOLUSINDO</p>
               <p style={{ margin: "2px 0" }}>2. Arsip</p>
               <br />
               <p style={{ marginBottom: "5px" }}><b>Layanan Pengaduan / Hotline:</b></p>

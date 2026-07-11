@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { X, Save, AlertCircle } from "lucide-react";
 import apiClient from "../../../../Shared/api/apiClient"; // Pastikan path ini benar
+import { notifyError } from "../../../../Shared/utils/notifier";
 
 const UserFormModal = ({
   isOpen,
@@ -29,6 +30,7 @@ const UserFormModal = ({
         setJabatans(Array.isArray(res.data) ? res.data : res.data?.data || []);
       } catch (err) {
         console.error("Gagal load jabatans", err);
+        notifyError("Gagal memuat daftar jabatan");
       }
     };
 

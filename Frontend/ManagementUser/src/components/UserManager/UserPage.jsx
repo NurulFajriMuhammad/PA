@@ -1,14 +1,12 @@
 import React, { useState } from "react";
 import { Plus, Trash2, Edit, Search, Shield, Briefcase, Mail, User } from "lucide-react";
 import UserModal from "./UserModal";
-import DeleteConfirmationModal from "../common/DeleteModal";
-import { notifySuccess, notifyError } from "../../../../Shared/utils/notifier";
+import { notifySuccess, notifyError, notifyConfirm } from "../../../../Shared/utils/notifier";
 import apiClient from "../../../../Shared/api/apiClient";
 
-const UserPage = ({ users = [], roles = [], setNotification, onRefresh }) => {
+const UserPage = ({ users = [], roles = [], onRefresh }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
-  const [itemToDelete, setItemToDelete] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -70,27 +68,7 @@ const UserPage = ({ users = [], roles = [], setNotification, onRefresh }) => {
     }
   };
 
-  const handleDeleteUser = async () => {
-    if (!itemToDelete) return;
 
-    setIsLoading(true);
-
-    try {
-      await apiClient.delete(`/api/users/${itemToDelete.id}`);
-      notifySuccess("✅ User berhasil dihapus");
-      setItemToDelete(null);
-      
-      if (onRefresh) {
-        await onRefresh();
-      }
-    } catch (err) {
-      console.error("❌ Delete Error:", err);
-      const errorMsg = err.response?.data?.message || err.message || "Gagal menghapus user";
-      notifyError(`❌ ${errorMsg}`);
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   // Helper styling for roles
   const getRoleBadgeStyle = (roleName) => {
@@ -106,13 +84,15 @@ const UserPage = ({ users = [], roles = [], setNotification, onRefresh }) => {
     }
   };
 
-  const filteredUsers = users.filter((u) => {
-    const nameMatch = u.name?.toLowerCase().includes(searchTerm.toLowerCase());
-    const emailMatch = u.email?.toLowerCase().includes(searchTerm.toLowerCase());
-    const jabatanMatch = u.jabatan?.nama?.toLowerCase().includes(searchTerm.toLowerCase());
-    const roleMatch = u.roles?.some((r) => r.name?.toLowerCase().includes(searchTerm.toLowerCase()));
-    return nameMatch || emailMatch || jabatanMatch || roleMatch;
-  });
+  const filteredUsers = [...users]
+    .sort((a, b) => a.id - b.id)
+    .filter((u) => {
+      const nameMatch = u.name?.toLowerCase().includes(searchTerm.toLowerCase());
+      const emailMatch = u.email?.toLowerCase().includes(searchTerm.toLowerCase());
+      const jabatanMatch = u.jabatan?.nama?.toLowerCase().includes(searchTerm.toLowerCase());
+      const roleMatch = u.roles?.some((r) => r.name?.toLowerCase().includes(searchTerm.toLowerCase()));
+      return nameMatch || emailMatch || jabatanMatch || roleMatch;
+    });
 
   return (
     <div className="space-y-6">
@@ -230,7 +210,22 @@ const UserPage = ({ users = [], roles = [], setNotification, onRefresh }) => {
                           Edit
                         </button>
                         <button
-                          onClick={() => setItemToDelete(user)}
+                          onClick={() => {
+                            notifyConfirm(`Yakin ingin menghapus User: ${user.name}?`, async () => {
+                              setIsLoading(true);
+                              try {
+                                await apiClient.delete(`/api/users/${user.id}`);
+                                notifySuccess("✅ User berhasil dihapus");
+                                if (onRefresh) await onRefresh();
+                              } catch (err) {
+                                console.error("❌ Delete Error:", err);
+                                const errorMsg = err.response?.data?.message || err.message || "Gagal menghapus user";
+                                notifyError(`❌ ${errorMsg}`);
+                              } finally {
+                                setIsLoading(false);
+                              }
+                            });
+                          }}
                           className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-lg border border-rose-100 transition-all active:scale-95"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -279,12 +274,7 @@ const UserPage = ({ users = [], roles = [], setNotification, onRefresh }) => {
         isLoading={isLoading}
       />
 
-      <DeleteConfirmationModal
-        isOpen={!!itemToDelete}
-        onClose={() => setItemToDelete(null)}
-        onConfirm={handleDeleteUser}
-        itemName={`User: ${itemToDelete?.name}`}
-      />
+
     </div>
   );
 };

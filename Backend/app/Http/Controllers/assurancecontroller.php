@@ -37,9 +37,9 @@ class assurancecontroller extends Controller
 
     private function appendStatusInfo($item)
     {
-        // 1. Hitung status dinamis berdasarkan temuan yang di-load
-        $calculated = 'Perencanaan';
-        
+        $currentDbStatus = $item->statusPemeriksaan ? $item->statusPemeriksaan->nama : 'Perencanaan';
+        $currentDbColor = $item->statusPemeriksaan ? $item->statusPemeriksaan->warna : '#94a3b8';
+
         // Ambil semua temuan dari KKA
         $findings = collect();
         if ($item->kka) {
@@ -53,37 +53,31 @@ class assurancecontroller extends Controller
         }
 
         if ($findings->isEmpty()) {
-            $calculated = 'Perencanaan';
+            $item->status_label = $currentDbStatus;
+            $item->status_color = $currentDbColor;
+            return $item;
         } else {
+            // Jangan override status jika audit masih di tahap Perencanaan, Pemeriksaan, atau Review Direksi
+            if (in_array(strtolower($currentDbStatus), ['perencanaan', 'pemeriksaan', 'review direksi'])) {
+                $item->status_label = $currentDbStatus;
+                $item->status_color = $currentDbColor;
+                return $item;
+            }
+
             // Cek status temuan
-            $hasDraft = false;
             $allClosed = true;
             $findingIds = $findings->pluck('id');
 
             foreach ($findings as $f) {
                 $status = strtolower($f->analisis->status ?? 'draft');
-                if ($status === 'draft') $hasDraft = true;
                 if (!in_array($status, ['close', 'closed', 'selesai'])) $allClosed = false;
             }
 
-            if ($hasDraft) {
-                $calculated = 'Pemeriksaan';
-            } elseif ($allClosed) {
+            if ($allClosed) {
                 $calculated = 'Selesai';
             } else {
-                // Cek progress di tindak_lanjut untuk menentukan Monev vs Konfirmasi Auditee
-                $hasProgress = DB::table('tindak_lanjut')
-                    ->where(function($q) {
-                        $q->where('jenis_audit', 'internal')
-                          ->orWhereNull('jenis_audit');
-                    })
-                    ->whereIn('temuan_id', $findingIds)
-                    ->where(function($q) {
-                        $q->whereNotNull('keterangan')->orWhereNotNull('bukti');
-                    })
-                    ->exists();
-                
-                $calculated = $hasProgress ? 'Monev' : 'Konfirmasi Auditee';
+                // Konfirmasi Auditee di-skip, jadi langsung masuk ke Monev (Analisis Penyebab)
+                $calculated = 'Monev';
             }
         }
 
@@ -224,9 +218,16 @@ class assurancecontroller extends Controller
             if ($tr->status_selanjutnya_id) {
                 $statusNext = DB::table('status_pemeriksaans')->where('id', $tr->status_selanjutnya_id)->first();
                 if ($statusNext && strtolower($statusNext->nama) === 'selesai') continue;
+                $label = 'Ajukan ke ' . ($statusNext ? $statusNext->nama : 'Selanjutnya');
+                
+                // Khusus status Review Direksi, ubah bahasanya menjadi 'Approve' (karena direksi sifatnya menyetujui, bukan mengajukan)
+                if ($currentStatus == 3) {
+                    $label = 'Approve LHA';
+                }
+
                 $actions[] = [
                     'action'         => 'approve',
-                    'label'          => 'Ajukan ke ' . ($statusNext ? $statusNext->nama : 'Selanjutnya'),
+                    'label'          => $label,
                     'color'          => 'bg-emerald-600',
                     'next_status_id' => $tr->status_selanjutnya_id,
                 ];

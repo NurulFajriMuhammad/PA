@@ -239,9 +239,9 @@ const AssuranceDetail = () => {
               <p>
                 <b>Auditor Pelaksana:</b>{" "}
                 <span className="text-slate-200">
-                  {assurance.auditors && assurance.auditors.length > 0
+                  {assurance.auditors && assurance.auditors.length > 1
                     ? assurance.auditors.map((a) => a.name).join(", ")
-                    : (assurance.auditor?.name || "-")}
+                    : (assurance.surat_tugas?.auditor || assurance.auditor?.name || "-")}
                 </span>
               </p>
               <p>

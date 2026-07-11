@@ -9,12 +9,17 @@ import { useEffect, useRef } from "react";
  */
 const useRealTime = (tables, onUpdate) => {
   const channelRef = useRef(null);
+  const onUpdateRef = useRef(onUpdate);
+
+  // Selalu simpan referensi callback terbaru tanpa memicu re-subscribe
+  useEffect(() => {
+    onUpdateRef.current = onUpdate;
+  }, [onUpdate]);
 
   useEffect(() => {
     let cancelled = false;
 
-    // ✅ Dynamic import: pusher-js + laravel-echo hanya dimuat setelah
-    // komponen selesai render pertama kali (tidak memblokir FCP/LCP)
+    // ✅ Dynamic import: pusher-js + laravel-echo
     import("../echo").then(({ default: echo }) => {
       if (cancelled) return;
 
@@ -24,7 +29,7 @@ const useRealTime = (tables, onUpdate) => {
       channel.listen(".entity.updated", (e) => {
         // Jika tables adalah '*', pantau semua
         if (tables === "*") {
-          onUpdate(e);
+          onUpdateRef.current(e);
           return;
         }
 
@@ -33,7 +38,7 @@ const useRealTime = (tables, onUpdate) => {
 
         if (targetTables.includes(e.table)) {
           console.log(`[RealTime] Data updated on table: ${e.table}`, e);
-          onUpdate(e);
+          onUpdateRef.current(e);
         }
       });
     });
@@ -45,7 +50,8 @@ const useRealTime = (tables, onUpdate) => {
         channelRef.current = null;
       }
     };
-  }, [tables, onUpdate]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [Array.isArray(tables) ? tables.join(',') : tables]);
 };
 
 export default useRealTime;

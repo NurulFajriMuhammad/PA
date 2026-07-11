@@ -97,16 +97,9 @@
       gap: 20px;
     }
     .kop-logo {
-      width: 76px; height: 76px; flex-shrink: 0;
-      border: 1.5px solid #c0bbb2;
-      display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
-      font-family: 'DM Sans', sans-serif; font-size: 9px;
-      color: #999; text-align: center;
-      letter-spacing: 0.04em; text-transform: uppercase;
-      background: #f8f6f2;
+      width: 100px; height: 100px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
     }
-    .kop-logo svg { margin-bottom: 4px; opacity: 0.4; }
     .kop-divider { width: 1.5px; background: #d4d0c8; flex-shrink: 0; }
     .kop-text { flex: 1; display: flex; flex-direction: column; justify-content: center; }
     .kop-instansi {
@@ -200,6 +193,8 @@
       letter-spacing: 0.1em; text-transform: uppercase;
       color: #4a6741; margin: 22px 0 9px;
       display: flex; align-items: center; gap: 8px;
+      page-break-after: avoid;
+      break-after: avoid;
     }
     .section-label::after {
       content: ''; flex: 1;
@@ -213,6 +208,8 @@
       padding: 16px 20px;
       margin-bottom: 22px;
       min-height: 120px;
+      -webkit-box-decoration-break: clone;
+      box-decoration-break: clone;
     }
     .content-area-label {
       font-family: 'DM Sans', sans-serif;
@@ -264,8 +261,8 @@
 
     /* ---- TANDA TANGAN ---- */
     .signature-grid {
-      display: grid; grid-template-columns: 1fr 1fr 1fr;
-      gap: 28px; margin-top: 32px; padding-top: 24px;
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 32px 28px; margin-top: 32px; padding-top: 24px;
       border-top: 1px solid #d4d0c8;
     }
     .sig-box { text-align: center; }
@@ -334,6 +331,8 @@
     /* ============================================================
        PRINT MEDIA QUERY — hanya dokumen, toolbar disembunyikan
     ============================================================ */
+    .print-spacer-header, .print-spacer-footer { display: none; } /* Sembunyikan spacer di layar */
+
     @media print {
       @page { size: A4; margin: 20mm; }
 
@@ -345,11 +344,22 @@
         width: 100%;
         box-shadow: none;
         border-radius: 0;
-        padding: 0;
+        padding: 0 18mm; /* Hanya padding kiri kanan, atas bawah dihandle thead/tfoot */
         font-size: 12px;
       }
+      .print-spacer-header { display: table-header-group; }
+      .print-spacer-footer { display: table-footer-group; }
+      .print-header-space { height: 10mm; } /* Diperkecil menjadi 10mm agar tidak terlalu luas */
+      .print-footer-space { height: 20mm; } /* Jarak Bottom tiap lembar */
+      @page { margin: 0; } /* Menghilangkan header/footer browser */
 
-      .watermark { display: block !important; }
+      .watermark { 
+        display: block !important; 
+        position: fixed !important; 
+        top: 50% !important; 
+        left: 50% !important; 
+        transform: translate(-50%, -50%) rotate(-35deg) !important;
+      }
 
       .content-area { background: #faf8f4 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
       .info-table th { background: #f4f1ec !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
@@ -391,24 +401,25 @@
       <!-- WATERMARK -->
       <div class="watermark" id="wm">SMART-AUDIT</div>
 
-      <!-- ========================
-           KOP SURAT
-      ======================== -->
+      <table style="width: 100%; border: none; border-collapse: collapse;">
+        <thead class="print-spacer-header"><tr><td class="print-header-space" style="border: none;"></td></tr></thead>
+        <tbody>
+          <tr>
+            <td style="border: none; padding: 0;">
+              <!-- ========================
+                   KOP SURAT
+              ======================== -->
       <div class="kop">
         <div class="kop-logo">
-          <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
-            <rect x="4" y="4" width="20" height="20" rx="2" stroke="#888" stroke-width="1.5"/>
-            <path d="M9 14h10M14 9v10" stroke="#888" stroke-width="1.5" stroke-linecap="round"/>
-          </svg>
-          Logo<br>Institusi
+          <img src="/logo-fajx.png" alt="Logo FAJX-TECH" style="width: 100%; height: 100%; object-fit: contain; mix-blend-mode: multiply; filter: contrast(1.5) brightness(1.05);" />
         </div>
         <div class="kop-divider"></div>
         <div class="kop-text">
           <div class="kop-instansi">Satuan Pengawasan Intern (SPI)</div>
-          <div class="kop-nama">PT. Filtrona Manufacturing Indonesia.</div>
+          <div class="kop-nama">PT. FAJX-TECH SOLUSINDO.</div>
           <div class="kop-alamat">
-            Jl. Berbek Industri I No.16-20, Berbek Industri, Berbek, Kec. Waru, Kabupaten Sidoarjo, Jawa Timur 61256.<br>
-            Telepon: (031) 8432018 &nbsp;|&nbsp; Email: www.filtrona.com
+            Dusun Panggung RT.02/RW.07, Desa Tunjungrejo, Kec. Margoyoso, Kabupaten Pati, Jawa Tengah 59154<br>
+            Telepon: (031) 8432018 &nbsp;|&nbsp; Email: info@fajx-tech.com
           </div>
         </div>
       </div>
@@ -498,26 +509,24 @@
            TABEL TEMUAN
       ======================== -->
       <div class="section-label">Ringkasan Temuan Audit</div>
-      <table class="temuan-table">
+      <table class="temuan-table" id="table-ringkasan">
         <thead>
           <tr>
-            <th style="width: 30px;">No.</th>
+            <th style="width: 30px; text-align: center;">Ref.</th>
             <th style="width: 26%;">Kondisi / Temuan</th>
             <th style="width: 22%;">Kriteria</th>
             <th style="width: 22%;">Sebab</th>
-            <th style="width: 20%;">Akibat / Dampak</th>
-            <!-- <th style="width: 80px;">Signifikansi</th> -->
+            <th>Akibat / Dampak</th>
           </tr>
         </thead>
         <tbody>
           <tr>
-            <td>-</td>
-            <td>-</td>
-            <td>-</td>
-            <td>-</td>
-            <td>-</td>
+            <td colspan="5" style="text-align: center;">-</td>
           </tr>
         </tbody>
+        <tfoot style="display: table-footer-group;">
+          <tr><td colspan="5" style="padding: 0; border: none; border-top: 1px solid #c0bbb2;"></td></tr>
+        </tfoot>
       </table>
 
       <!-- ========================
@@ -536,10 +545,10 @@
            REKOMENDASI RTL
       ======================== -->
       <div class="section-label">Rekomendasi &amp; Rencana Tindak Lanjut</div>
-      <table class="temuan-table">
+      <table class="temuan-table" id="table-rtl">
         <thead>
           <tr>
-            <th style="width: 30px;">Ref.</th>
+            <th style="width: 30px; text-align: center;">Ref.</th>
             <th>Rekomendasi Auditor</th>
             <th>Tindak Lanjut Auditee</th>
             <th style="width: 110px;">Penanggung Jawab</th>
@@ -549,14 +558,12 @@
         </thead>
         <tbody>
           <tr>
-            <td class="no">D1-1</td>
-            <td>-</td>
-            <td>-</td>
-            <td>-</td>
-            <td style="text-align: center;">-</td>
-            <td>-</td>
+            <td colspan="6" style="text-align: center;">-</td>
           </tr>
         </tbody>
+        <tfoot style="display: table-footer-group;">
+          <tr><td colspan="6" style="padding: 0; border: none; border-top: 1px solid #c0bbb2;"></td></tr>
+        </tfoot>
       </table>
 
       <!-- ========================
@@ -571,28 +578,8 @@
       <!-- ========================
            TANDA TANGAN
       ======================== -->
-      <div class="signature-grid">
-        <div class="sig-box">
-          <div class="sig-role">Disusun oleh (Auditor)</div>
-          <div class="sig-line"></div>
-          <div class="sig-name">( ................................................ )</div>
-          <div class="sig-nip">NIP / ID: _______________________</div>
-          <div class="sig-nip">Tanggal: ________________________</div>
-        </div>
-        <div class="sig-box">
-          <div class="sig-role">Direview oleh (Ketua Tim)</div>
-          <div class="sig-line"></div>
-          <div class="sig-name">( ................................................ )</div>
-          <div class="sig-nip">NIP / ID: _______________________</div>
-          <div class="sig-nip">Tanggal: ________________________</div>
-        </div>
-        <div class="sig-box">
-          <div class="sig-role">Disetujui (Kepala SPI)</div>
-          <div class="sig-line"></div>
-          <div class="sig-name">( ................................................ )</div>
-          <div class="sig-nip">NIP / ID: _______________________</div>
-          <div class="sig-nip">Tanggal: ________________________</div>
-        </div>
+      <div class="signature-grid" id="signature-container">
+        <!-- Akan diisi secara dinamis oleh JavaScript -->
       </div>
 
       <!-- ========================
@@ -601,9 +588,9 @@
       <div class="auditee-box">
         <div>
           <div class="auditee-label">Respons &amp; Persetujuan Auditee</div>
-          <div class="auditee-info">Nama &nbsp;&nbsp;&nbsp;: ________________________________________</div>
-          <div class="auditee-info">Jabatan : ________________________________________</div>
-          <div class="auditee-info" style="font-family:'DM Sans',sans-serif;font-size:11px;color:#8a8880;margin-top:4px;">
+          <div class="auditee-info" id="auditee-unit">Unit &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: ________________________________________</div>
+          <div class="auditee-info" id="auditee-name">Penanggung Jawab : ________________________________________</div>
+          <div class="auditee-info" style="font-family:'DM Sans',sans-serif;font-size:11px;color:#8a8880;margin-top:4px;" id="auditee-date">
             Tanggal Persetujuan: _________________________________
           </div>
         </div>
@@ -623,8 +610,14 @@
           Satuan Pengawasan Intern &mdash; E-Audit System
         </div>
         <span>Dicetak: <span id="footer-date"></span></span>
-        <span>Halaman 1 dari 1 &nbsp;|&nbsp; Dokumen Rahasia</span>
+        <span>Dokumen Rahasia</span>
       </div>
+
+            </td>
+          </tr>
+        </tbody>
+        <tfoot class="print-spacer-footer"><tr><td class="print-footer-space" style="border: none;"></td></tr></tfoot>
+      </table>
 
     </div><!-- /.a4 -->
   </div><!-- /.page-wrap -->
@@ -649,9 +642,9 @@
   // AMBIL PARAMETER URL
   // =========================
   const params = new URLSearchParams(window.location.search);
-  const templateId = params.get("template_id");
+  const templateId = params.get("template_id") || params.get("id");
   const assuranceId = params.get("assurance_id");
-  const apiBaseUrl = params.get("api_base_url"); // fallback if missing
+  const apiBaseUrl = params.get("api_base_url"); 
 
   // tampilkan di toolbar
   document.getElementById("tb-id").textContent = templateId || "-";
@@ -672,8 +665,19 @@
   // FETCH DATA DARI BACKEND
   // =========================
   async function loadData() {
+    if (!assuranceId) {
+      // Mode Preview (hanya menampilkan data template kosong)
+      document.getElementById("kka-id").textContent = params.get("id") || "-";
+      document.getElementById("kka-nama").textContent = params.get("nama") || "-";
+      document.getElementById("kka-keterangan").textContent = params.get("ket") || "-";
+      return;
+    }
+
     try {
-      const res = await fetch(`${apiBaseUrl}/api/report/${assuranceId}`);
+      // Mode Data Assurance
+      const baseUrl = apiBaseUrl && apiBaseUrl !== "null" ? apiBaseUrl : window.location.origin.replace(':5174', ':8000');
+      const res = await fetch(`${baseUrl}/api/report/${assuranceId}`);
+      if (!res.ok) throw new Error("Network response was not ok");
       const result = await res.json();
       const data = result.data || result;
 
@@ -723,34 +727,128 @@
         data.tim.auditor || "-";
 
       infoTable.rows[9].cells[1].textContent =
-        data.tim.pengendali_teknis || "-";
+        data.tim.kepala_spi || "-";
 
       // =========================
-      // TEMUAN TABLE
+      // TEMUAN TABLE & RTL TABLE
       // =========================
-      const tbody = document.querySelector(".temuan-table tbody");
-      tbody.innerHTML = "";
+      const tbodyRingkasan = document.querySelector("#table-ringkasan tbody");
+      const tbodyRtl = document.querySelector("#table-rtl tbody");
+      tbodyRingkasan.innerHTML = "";
+      tbodyRtl.innerHTML = "";
 
       if (data.temuan.length === 0) {
-        tbody.innerHTML = `
-          <tr>
-            <td class="no">1</td>
-            <td colspan="5" style="text-align:center;">Tidak ada temuan</td>
-          </tr>
-        `;
+        tbodyRingkasan.innerHTML = `<tr><td colspan="5" style="text-align:center;">Tidak ada temuan</td></tr>`;
+        tbodyRtl.innerHTML = `<tr><td colspan="6" style="text-align:center;">Tidak ada data</td></tr>`;
       } else {
         data.temuan.forEach((t, i) => {
-          tbody.innerHTML += `
+          // Ringkasan
+          tbodyRingkasan.innerHTML += `
             <tr>
-              <td class="no">${i + 1}</td>
+              <td class="no" style="text-align: center;">T${i + 1}</td>
               <td>${t.kondisi || "-"}</td>
               <td>${t.kriteria || "-"}</td>
               <td>${t.sebab || "-"}</td>
               <td>${t.akibat || "-"}</td>
             </tr>
           `;
+
+          // RTL
+          tbodyRtl.innerHTML += `
+            <tr>
+              <td class="no" style="text-align: center;">T${i + 1}</td>
+              <td>${t.rekomendasi || "-"}</td>
+              <td>${t.rencana_koreksi || "-"}</td>
+              <td>${data.assurance.objek_pemeriksaan || "-"}</td>
+              <td style="text-align: center;">${formatDate(t.target_penyelesaian)}</td>
+              <td style="text-transform: uppercase; font-weight: bold; text-align: center;">${t.status_rtl || "-"}</td>
+            </tr>
+          `;
         });
       }
+
+      // =========================
+      // SIGNATURES & AUDITEE
+      // =========================
+      const sigContainer = document.getElementById("signature-container");
+      sigContainer.innerHTML = "";
+
+      const createdDate = formatDate(data.assurance.created_at);
+      const approvedDate = formatDate(data.assurance.lha_approved_at || data.assurance.updated_at);
+
+      // Generate Auditor boxes
+      let auditors = [];
+      if (data.tim.auditor && data.tim.auditor !== "-") {
+        auditors = data.tim.auditor.split(',').map(a => a.trim());
+      }
+
+      if (auditors.length > 0) {
+        auditors.forEach((audName, idx) => {
+          sigContainer.innerHTML += `
+            <div class="sig-box" style="page-break-inside: avoid;">
+              <div class="sig-role">Disusun oleh (Auditor ${idx + 1})</div>
+              <div class="sig-line"></div>
+              <div class="sig-name">${audName}</div>
+              <div class="sig-nip">Tanggal: ${createdDate}</div>
+            </div>
+          `;
+        });
+      } else {
+        sigContainer.innerHTML += `
+          <div class="sig-box" style="page-break-inside: avoid;">
+            <div class="sig-role">Disusun oleh (Auditor)</div>
+            <div class="sig-line"></div>
+            <div class="sig-name">( ................................................ )</div>
+            <div class="sig-nip">Tanggal: ${createdDate}</div>
+          </div>
+        `;
+      }
+
+      // Ketua Tim
+      sigContainer.innerHTML += `
+        <div class="sig-box" style="page-break-inside: avoid;">
+          <div class="sig-role">Direview oleh (Ketua Tim)</div>
+          <div class="sig-line"></div>
+          <div class="sig-name">${data.tim.ketua && data.tim.ketua !== "-" ? data.tim.ketua : "( ................................................ )"}</div>
+          <div class="sig-nip">Tanggal: ${createdDate}</div>
+        </div>
+      `;
+
+      // Koordinator / Dalnis
+      const koordinator = (data.tim.koordinator && data.tim.koordinator !== "-") ? data.tim.koordinator : data.tim.pengendali_teknis;
+      if (koordinator && koordinator !== "-") {
+        sigContainer.innerHTML += `
+          <div class="sig-box" style="page-break-inside: avoid;">
+            <div class="sig-role">Direview oleh (Koordinator)</div>
+            <div class="sig-line"></div>
+            <div class="sig-name">${koordinator}</div>
+            <div class="sig-nip">Tanggal: ${createdDate}</div>
+          </div>
+        `;
+      }
+
+      // Kepala SPI
+      sigContainer.innerHTML += `
+        <div class="sig-box" style="page-break-inside: avoid;">
+          <div class="sig-role">Disetujui (Kepala SPI)</div>
+          <div class="sig-line"></div>
+          <div class="sig-name">${data.tim.kepala_spi && data.tim.kepala_spi !== "-" ? data.tim.kepala_spi : "( ................................................ )"}</div>
+          <div class="sig-nip">Tanggal: ${approvedDate}</div>
+        </div>
+      `;
+
+      // Auditee info
+      document.getElementById("auditee-unit").textContent = "Unit : " + (data.assurance.objek_pemeriksaan || "-");
+      
+      // Let's use the maximum target penyelesaian as Auditee Approval date if available
+      let lastRtlDate = "-";
+      if (data.temuan && data.temuan.length > 0) {
+        const dates = data.temuan.map(t => new Date(t.tanggal_rtl || t.target_penyelesaian)).filter(d => !isNaN(d));
+        if (dates.length > 0) {
+          lastRtlDate = formatDate(new Date(Math.max(...dates)));
+        }
+      }
+      document.getElementById("auditee-date").textContent = "Tanggal Persetujuan RTL: " + lastRtlDate;
 
     } catch (err) {
       console.error("ERROR LOAD DATA:", err);

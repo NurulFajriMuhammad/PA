@@ -37,6 +37,8 @@ const ExternalAudit = () => {
   const { user: authData } = useAuth();
   const userRole = authData?.user?.roles?.[0]?.name || "";
   const isKepalaSPI = userRole.toLowerCase() === "kepala spi";
+  const isAuditorOrAdmin = userRole.toLowerCase() === "auditor" || userRole.toLowerCase() === "administrator audit";
+  const canAddData = isKepalaSPI || isAuditorOrAdmin;
   
   const [data, setData] = useState([]);
   const [showModal, setShowModal] = useState(false);
@@ -155,8 +157,9 @@ const ExternalAudit = () => {
   };
 
   const handleDelete = (id, status) => {
-    // Jika status Selesai, hanya Kepala SPI yang boleh hapus
-    if (status?.toLowerCase() === "selesai" && !isKepalaSPI) {
+    // Jika status Selesai atau Closed, hanya Kepala SPI yang boleh hapus
+    const statusLower = status?.toLowerCase();
+    if ((statusLower === "selesai" || statusLower === "closed") && !isKepalaSPI) {
       notifyError("Hanya Kepala SPI yang dapat menghapus audit yang sudah selesai.");
       return;
     }
@@ -206,17 +209,19 @@ const ExternalAudit = () => {
             </p>
           </div>
 
-          <button
-            onClick={() => {
-              setForm(initialForm);
-              setIsEdit(false);
-              setSelectedId(null);
-              setShowModal(true);
-            }}
-            className="bg-blue-600 text-white px-6 py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 active:scale-95"
-          >
-            <BsPlusLg size={18} /> Tambah Data Audit
-          </button>
+          {canAddData && (
+            <button
+              onClick={() => {
+                setForm(initialForm);
+                setIsEdit(false);
+                setSelectedId(null);
+                setShowModal(true);
+              }}
+              className="bg-blue-600 text-white px-6 py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 active:scale-95"
+            >
+              <BsPlusLg size={18} /> Tambah Data Audit
+            </button>
+          )}
         </div>
 
         {/* --- SEARCH BAR --- */}
@@ -350,7 +355,7 @@ const ExternalAudit = () => {
                                 <BsEye size={16} />
                               </button>
                               
-                              {item.status_label?.toLowerCase() !== "selesai" && (
+                              {item.status_label?.toLowerCase() !== "selesai" && item.status_label?.toLowerCase() !== "closed" && (
                                 <>
                                   <button 
                                     onClick={() => handleEdit(item)}
@@ -364,7 +369,7 @@ const ExternalAudit = () => {
                                 </>
                               )}
                               
-                              {item.status_label?.toLowerCase() === "selesai" && isKepalaSPI && (
+                              {(item.status_label?.toLowerCase() === "selesai" || item.status_label?.toLowerCase() === "closed") && isKepalaSPI && (
                                 <button onClick={() => handleDelete(item.id, item.status_label)} className="p-2.5 bg-slate-100 text-slate-500 hover:bg-red-500 hover:text-white rounded-xl transition-all shadow-sm" title="Hapus (Role Khusus)">
                                   <BsTrash size={16} />
                                 </button>
@@ -536,6 +541,7 @@ const ExternalAudit = () => {
                     <input
                       type="date"
                       required
+                      min={form.tgl_mulai}
                       name="tgl_selesai"
                       className="flex-1 p-3.5 bg-white border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 font-semibold text-sm transition-all cursor-text"
                       value={form.tgl_selesai}

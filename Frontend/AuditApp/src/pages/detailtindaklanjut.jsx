@@ -192,12 +192,16 @@ const DetailTindakLanjut = ({
 
     setIsSubmittingRtl(true);
     try {
-      await apiClient.post(`/api/tindak-lanjut/temuan/${selectedItem.temuan_id}/rtl`, rtlForm);
+      await apiClient.post(`/api/tindak-lanjut/temuan/${selectedItem.temuan_id}/rtl?jenis=${selectedItem.jenis_audit}`, rtlForm);
       
       // Update status temuan menjadi Pengisian Tindak Lanjut Temuan
-      await apiClient.put(`/api/external-audit-temuan/${selectedItem.temuan_id}`, { 
-        status: "Pengisian Tindak Lanjut Temuan" 
-      });
+      if (selectedItem.jenis_audit === 'eksternal') {
+        await apiClient.put(`/api/external-audit-temuan/${selectedItem.temuan_id}`, { 
+          status: "Pengisian Tindak Lanjut Temuan" 
+        });
+      } else {
+        // Internal status updated via AnalisisTemuan endpoint or handled by backend directly
+      }
 
       notifySuccess("Rencana Tindak Lanjut (RTL) berhasil disimpan");
       setShowRtlModal(false);
@@ -339,36 +343,34 @@ const DetailTindakLanjut = ({
       
       await apiClient.put(`/api/tindak-lanjut/${reviewItem.id}/review`, payload);
       
-      const hasil = reviewForm.hasil_evaluasi.toLowerCase();
-      let statusTemuan = "";
-      let statusAudit = "";
+      if (selectedItem.jenis_audit === 'eksternal') {
+        const hasil = reviewForm.hasil_evaluasi.toLowerCase();
+        let statusAudit = "";
 
-      if (hasil === "sesuai") {
-        statusTemuan = "Close";
-        statusAudit = "Monev";
-      } else if (hasil === "belum sesuai") {
-        statusTemuan = "Pengisian Tindak Lanjut";
-      } else if (hasil === "dalam proses") {
-        statusTemuan = "Monev";
+        if (hasil === "sesuai") {
+          statusAudit = "Monev";
+        }
+
+        // Backend TindakLanjutController@review sudah menghandle update status temuan
+        if (statusAudit && selectedItem.external_audit_id) {
+          try {
+            await apiClient.put(`/api/external-audit/${selectedItem.external_audit_id}`, { 
+              status: statusAudit 
+            });
+          } catch (e) {
+            console.error("Gagal update status audit", e);
+          }
+        }
       }
 
-      if (statusTemuan) {
-        await apiClient.put(`/api/external-audit-temuan/${selectedItem.temuan_id}`, { 
-          status: statusTemuan 
-        });
-      }
-
-      if (statusAudit && selectedItem.external_audit_id) {
-        await apiClient.put(`/api/external-audit/${selectedItem.external_audit_id}`, { 
-          status: statusAudit 
-        });
-      }
-
-      notifySuccess("Review disimpan");
+      notifySuccess("Review berhasil disimpan");
       setReviewItem(null);
       await refreshDetail();
       await fetchFollowUp();
-    } catch (err) { console.error(err); }
+    } catch (err) { 
+      console.error(err);
+      notifyError(err.response?.data?.message || "Gagal menyimpan review");
+    }
   };
 
 
@@ -621,7 +623,7 @@ const DetailTindakLanjut = ({
             </div>
           </div>
           {/* Tombol edit tetap di pojok kanan atas jika sudah disubmit */}
-          {!isAuditor && selectedItem.rtl_submitted_at && ["dalam perbaikan", "pengisian rtl", "pengisian tindak lanjut", "pengisian tindak lanjut temuan"].includes((selectedItem.status || "").toLowerCase()) && (
+          {!isAuditor && selectedItem.rtl_submitted_at && ["draft", "draft temuan", "dalam perbaikan", "pengisian rtl", "pengisian tindak lanjut", "pengisian tindak lanjut temuan"].includes((selectedItem.status || "").toLowerCase()) && (
             <button 
               onClick={openRtlModal}
               className="px-4 py-2 bg-white/10 hover:bg-white/20 border border-white/30 text-white rounded-xl font-black text-xs uppercase tracking-wider active:scale-95 transition-all flex items-center gap-2"
@@ -655,7 +657,7 @@ const DetailTindakLanjut = ({
                 </div>
 
                 {/* Action Button at Bottom Center */}
-                {!isAuditor && ["dalam perbaikan", "pengisian rtl", "pengisian tindak lanjut", "pengisian tindak lanjut temuan"].includes((selectedItem.status || "").toLowerCase()) && (
+                {!isAuditor && ["draft", "draft temuan", "dalam perbaikan", "pengisian rtl", "pengisian tindak lanjut", "pengisian tindak lanjut temuan"].includes((selectedItem.status || "").toLowerCase()) && (
                   <button 
                     onClick={openRtlModal}
                     className="flex items-center gap-2 px-8 py-4 bg-[#2e343b] hover:bg-[#3d444d] border border-slate-600 text-white rounded-2xl font-black text-sm uppercase tracking-widest active:scale-95 transition-all shadow-2xl"
@@ -779,7 +781,7 @@ const DetailTindakLanjut = ({
           <div className="flex gap-3">
 
             {/* Tambah Progres: Auditee saja, saat status Dalam Perbaikan */}
-            {!isAuditor && ["dalam perbaikan", "pengisian rtl", "pengisian tindak lanjut", "pengisian tindak lanjut temuan", "monev", "close"].includes((selectedItem.status || "").toLowerCase()) && (
+            {!isAuditor && ["draft", "draft temuan", "dalam perbaikan", "pengisian rtl", "pengisian tindak lanjut", "pengisian tindak lanjut temuan", "monev", "close"].includes((selectedItem.status || "").toLowerCase()) && (
               <div className="relative group">
                 <button
                   onClick={() => !isLocked && setShowCreateModal(true)}
@@ -847,7 +849,7 @@ const DetailTindakLanjut = ({
                   
                     <div className="flex gap-2">
                     {/* Tombol Review: Auditor saja, jika temuan masih dalam proses perbaikan/monev */}
-                    {isAuditor && ["dalam perbaikan", "pengisian rtl", "pengisian tindak lanjut", "pengisian tindak lanjut temuan", "monev"].includes((selectedItem.status || "").toLowerCase()) && !tl.hasil_evaluasi && (
+                    {isAuditor && !tl.hasil_evaluasi && !isLocked && (
                       <button 
                         onClick={() => openReviewModal(tl)} 
                         className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white rounded-md font-black text-[9px] uppercase tracking-widest transition-all"
@@ -1193,11 +1195,11 @@ const DetailTindakLanjut = ({
 
       {/* MODAL REVIEW / EVALUASI (AUDITOR) */}
       {reviewItem && (
-        <div className="fixed inset-0 z-[110] flex items-start justify-center bg-slate-900/60 p-4 pt-24 pb-10 backdrop-blur-sm overflow-y-auto">
-          <div className="w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in duration-200 border border-blue-100">
+        <div className="fixed inset-0 z-[110] flex items-start justify-center bg-slate-900/60 p-4 pt-24 pb-10 backdrop-blur-sm">
+          <div className="w-full max-w-xl bg-white rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in duration-200 border border-blue-100 flex flex-col h-full max-h-[90vh]">
             
             {/* Modal Header */}
-            <div className="bg-[#1f4b82] px-6 py-5 text-white flex justify-between items-start">
+            <div className="bg-[#1f4b82] px-6 py-5 text-white flex justify-between items-start shrink-0">
               <div>
                 <h3 className="text-xl font-black uppercase tracking-tight">Review Progres Tindak Lanjut</h3>
                 <p className="text-xs text-blue-100 font-bold uppercase tracking-widest mt-1">
@@ -1211,7 +1213,7 @@ const DetailTindakLanjut = ({
               </div>
             </div>
 
-            <div className="p-8 space-y-6">
+            <div className="p-6 space-y-6 flex-1 overflow-y-auto">
               
               {/* Hasil Penilaian Section */}
               <div className="space-y-4">
@@ -1320,7 +1322,7 @@ const DetailTindakLanjut = ({
               </div>
             </div>
 
-            <div className="px-8 py-5 bg-slate-50 border-t border-slate-100 flex justify-end gap-3">
+            <div className="px-8 py-5 bg-slate-50 border-t border-slate-100 flex justify-end gap-3 shrink-0">
               <button 
                 onClick={() => setReviewItem(null)} 
                 className="px-6 py-3 text-slate-500 font-black text-xs uppercase tracking-widest hover:bg-white rounded-xl transition-all border border-slate-200 active:scale-95"

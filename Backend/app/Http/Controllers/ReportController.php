@@ -29,11 +29,21 @@ class ReportController extends Controller
             'nomor_surat' => $assurance->suratTugas->nomor_surat ?? '-',
         ];
 
+        $auditorsNames = [];
+        if ($assurance->auditors && count($assurance->auditors) > 1) {
+            $auditorsNames = collect($assurance->auditors)->pluck('name')->toArray();
+        } elseif ($assurance->suratTugas && $assurance->suratTugas->auditor) {
+            $auditorsNames = explode(', ', $assurance->suratTugas->auditor);
+        } elseif ($assurance->auditor) {
+            $auditorsNames[] = $assurance->auditor->name;
+        }
+
         $tim = [
             'ketua' => $assurance->ketuaTim->name ?? '-',
             'pengendali_teknis' => $assurance->pengendaliTeknis->name ?? '-',
             'koordinator' => $assurance->koordinator->name ?? '-',
-            'auditor' => $assurance->auditor->name ?? '-',
+            'auditor' => !empty($auditorsNames) ? implode(', ', $auditorsNames) : '-',
+            'kepala_spi' => \App\Models\User::role('Kepala SPI')->first()->name ?? '-',
         ];
 
         $kka = DB::table('perencanaan_kkas')
@@ -48,13 +58,24 @@ class ReportController extends Controller
         $temuan = DB::table('pemeriksaan_temuan as t')
             ->join('perencanaan_kkas as k', 't.kka_id', '=', 'k.id')
             ->join('users as u', 'k.user_id', '=', 'u.id')
+            ->leftJoin('analisis_temuan as a', 't.id', '=', 'a.temuan_id')
+            ->leftJoin('tindak_lanjut as tl', 't.id', '=', 'tl.temuan_id')
             ->where('k.assurance_id', $id)
             ->select(
                 't.*',
                 'u.name as auditor',
-                'k.uraian'
+                'k.uraian',
+                'a.rencana_koreksi',
+                'a.target_penyelesaian',
+                'a.status as status_rtl',
+                'tl.updated_at as tanggal_rtl'
             )
-            ->get();
+            ->orderBy('t.id', 'asc')
+            ->orderBy('tl.id', 'desc')
+            ->orderBy('a.id', 'desc')
+            ->get()
+            ->unique('id')
+            ->values();
 
         return response()->json([
             'assurance' => $dataAssurance,

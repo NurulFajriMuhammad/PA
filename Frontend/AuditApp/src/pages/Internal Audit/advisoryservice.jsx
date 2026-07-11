@@ -20,9 +20,12 @@ const AdvisoryService = () => {
   const [dataAdvisory, setDataAdvisory] = useState([]);
   const [openModal, setOpenModal] = useState(false);
   const [units, setUnits] = useState([]);
+  const [users, setUsers] = useState([]);
   const [isEdit, setIsEdit] = useState(false);
   const [selectedId, setSelectedId] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [searchUnitTerm, setSearchUnitTerm] = useState("");
+  const [showUnitDropdown, setShowUnitDropdown] = useState(false);
 
   const [form, setForm] = useState({
     tanggal_kegiatan: "",
@@ -39,14 +42,16 @@ const AdvisoryService = () => {
 
   // ================= FETCH =================
   // Sinkronisasi Real-Time
-  useRealTime(['advisory_services', 'units'], () => {
+  useRealTime(['advisory_services', 'units', 'users'], () => {
     fetchData();
     fetchUnits();
+    fetchUsers();
   });
 
   useEffect(() => {
     fetchData();
     fetchUnits();
+    fetchUsers();
   }, []);
 
   const fetchUnits = async () => {
@@ -55,6 +60,15 @@ const AdvisoryService = () => {
       setUnits(res.data.data || res.data || []);
     } catch (err) {
       console.error("Gagal fetch unit", err);
+    }
+  };
+
+  const fetchUsers = async () => {
+    try {
+      const res = await apiClient.get("/api/users");
+      setUsers(res.data.data || res.data || []);
+    } catch (err) {
+      console.error("Gagal fetch users", err);
     }
   };
 
@@ -107,13 +121,16 @@ const AdvisoryService = () => {
       unit_id: item.unit_id || "",
       contact_person: item.contact_person || "",
       no_telepon: item.no_telepon || "",
-      waktu_mulai: item.waktu_mulai || "",
-      waktu_selesai: item.waktu_selesai || "",
+      waktu_mulai: item.waktu_mulai ? item.waktu_mulai.substring(0, 5) : "",
+      waktu_selesai: item.waktu_selesai ? item.waktu_selesai.substring(0, 5) : "",
       uraian_konsultasi: item.uraian_konsultasi || "",
       opini_spi: item.opini_spi || "",
       pengawas: item.pengawas || "",
       keterangan: item.keterangan || "",
     });
+
+    const unitName = item.unit || units.find(u => u.id == item.unit_id)?.nama || "";
+    setSearchUnitTerm(unitName);
 
     setSelectedId(item.id);
     setIsEdit(true);
@@ -145,6 +162,7 @@ const AdvisoryService = () => {
       pengawas: "",
       keterangan: "",
     });
+    setSearchUnitTerm("");
   };
 
   // Format Tanggal (Opsional untuk tampilan tabel)
@@ -349,19 +367,43 @@ const AdvisoryService = () => {
 
                 {/* ROW 2: IDENTITAS KLIEN */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="flex flex-col">
+                  <div className="flex flex-col relative">
                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Unit / Divisi (Auditee)</label>
-                    <select
-                      name="unit_id"
-                      onChange={handleChange}
-                      value={form.unit_id || ""}
+                    <input
+                      type="text"
+                      placeholder="-- Ketik atau Pilih Unit --"
+                      value={searchUnitTerm}
+                      onChange={(e) => {
+                        setSearchUnitTerm(e.target.value);
+                        setForm({ ...form, unit_id: "" });
+                        setShowUnitDropdown(true);
+                      }}
+                      onFocus={() => setShowUnitDropdown(true)}
+                      onBlur={() => setTimeout(() => setShowUnitDropdown(false), 200)}
                       className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 font-semibold text-sm"
-                    >
-                      <option value="">-- Pilih Unit --</option>
-                      {units.map((u) => (
-                        <option key={u.id} value={u.id}>{u.nama}</option>
-                      ))}
-                    </select>
+                    />
+                    {showUnitDropdown && (
+                      <ul className="absolute z-[9999] top-full mt-1 w-full bg-white border border-slate-200 rounded-xl shadow-xl max-h-56 overflow-y-auto divide-y divide-slate-100">
+                        {units
+                          .filter(u => u.nama.toLowerCase().includes(searchUnitTerm.toLowerCase()))
+                          .map((u) => (
+                          <li
+                            key={u.id}
+                            onMouseDown={() => {
+                              setSearchUnitTerm(u.nama);
+                              setForm({ ...form, unit_id: u.id });
+                              setShowUnitDropdown(false);
+                            }}
+                            className="p-3.5 hover:bg-indigo-50 cursor-pointer text-sm font-semibold text-slate-700 transition-colors"
+                          >
+                            {u.nama}
+                          </li>
+                        ))}
+                        {units.filter(u => u.nama.toLowerCase().includes(searchUnitTerm.toLowerCase())).length === 0 && (
+                          <li className="p-3.5 text-sm text-slate-400 italic text-center">Unit tidak ditemukan</li>
+                        )}
+                      </ul>
+                    )}
                   </div>
                   <div className="flex flex-col">
                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Contact Person (PIC)</label>
@@ -415,13 +457,20 @@ const AdvisoryService = () => {
                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Auditor Penanggung Jawab</label>
                     <div className="relative">
                        <BsPeople className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-                       <input
+                       <select
                         name="pengawas"
-                        placeholder="Nama Auditor / Pengawas"
                         value={form.pengawas}
                         onChange={handleChange}
-                        className="w-full pl-10 pr-3.5 py-3.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-sm"
-                      />
+                        className="w-full pl-10 pr-3.5 py-3.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-sm appearance-none"
+                      >
+                        <option value="">-- Pilih Auditor --</option>
+                        {users
+                          .filter(u => u.roles?.some(r => r.name.toLowerCase() === "auditor"))
+                          .map(u => (
+                            <option key={u.id} value={u.name}>{u.name}</option>
+                          ))
+                        }
+                      </select>
                     </div>
                   </div>
                   <div className="flex flex-col">

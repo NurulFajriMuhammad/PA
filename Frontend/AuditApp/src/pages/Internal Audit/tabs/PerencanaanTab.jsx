@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from "react";
 import apiClient from "../../../../../Shared/api/apiClient";
-import { BsX, BsPrinter, BsFileEarmarkCheck, BsPlusLg, BsCloudUpload, BsFileEarmarkText, BsFolder2Open, BsTrash, BsEye, BsCheckCircle } from "react-icons/bs";
+import { BsX, BsPrinter, BsFileEarmarkCheck, BsPlusLg, BsCloudUpload, BsFileEarmarkText, BsFolder2Open, BsTrash, BsEye, BsCheckCircle, BsLock } from "react-icons/bs";
 import { notifySuccess, notifyError, notifyConfirm } from "../../../../../Shared/utils/notifier.jsx";
 import { useAuth } from "../../../../../Shared/hooks/useAuth.jsx";
+import PrintPerencanaan from "../PrintPerencanaan.jsx";
 
 const PerencanaanTab = ({ assurance, onRefresh }) => {
   const [kka, setKka] = useState([]);
@@ -236,10 +237,6 @@ const PerencanaanTab = ({ assurance, onRefresh }) => {
       }
     };
 
-    addToList(assurance?.koordinator);
-    addToList(assurance?.pengendali_teknis);
-    addToList(assurance?.ketua);
-    
     if (assurance?.auditors && Array.isArray(assurance.auditors)) {
       assurance.auditors.forEach(a => addToList(a));
     }
@@ -299,6 +296,22 @@ const PerencanaanTab = ({ assurance, onRefresh }) => {
   const isDocUploaded = docs.length > 0;
   const fulfilledCount = [isKkaLengkap, isAnggaranSesuai, isDocUploaded].filter(Boolean).length;
 
+  const isAuditClosed = ["selesai", "closed", "close"].includes(String(assurance?.status_label || assurance?.status_pemeriksaan?.nama || "").toLowerCase());
+
+  const authId = authData?.id || authData?.user?.id;
+  const isKetuaTim = String(authId) === String(assurance?.ketua_id) || (assurance?.ketua_tim && String(authId) === String(assurance?.ketua_tim?.id));
+  const isKkaLocked = isAuditClosed || !isKetuaTim;
+  
+  const getKkaButtonTooltip = () => {
+    if (isAuditClosed) return "Audit telah selesai (terkunci)";
+    if (!isKetuaTim) return "Hanya role ketua tim yang bisa menambahkan KKA Perencanaan";
+    return "Tambah KKA Baru";
+  };
+
+  const handlePrintAction = () => {
+    window.print();
+  };
+
   return (
     <div className="space-y-5 font-sans">
       
@@ -320,16 +333,21 @@ const PerencanaanTab = ({ assurance, onRefresh }) => {
 
           <div className="flex flex-wrap items-center gap-3">
             <button
-              onClick={() => window.print()}
+              onClick={handlePrintAction}
               className="flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-bold uppercase tracking-wider rounded-xl transition-all shadow-sm active:scale-95 cursor-pointer"
             >
               <BsPrinter size={14} /> Print
             </button>
             <button
-              onClick={() => setShowModalKka(true)}
-              className="flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold uppercase tracking-wider rounded-xl transition-all shadow-md shadow-blue-200 active:scale-95 cursor-pointer"
+              onClick={() => !isKkaLocked && setShowModalKka(true)}
+              disabled={isKkaLocked}
+              title={getKkaButtonTooltip()}
+              className={`flex items-center justify-center gap-2 px-4 py-2.5 text-xs font-bold uppercase tracking-wider rounded-xl transition-all shadow-md active:scale-95 ${
+                isKkaLocked ? "bg-slate-300 text-slate-500 cursor-not-allowed shadow-none" : "bg-blue-600 hover:bg-blue-700 text-white shadow-blue-200 cursor-pointer"
+              }`}
             >
-              <BsPlusLg size={14} /> Tambah KKA
+              {isKkaLocked ? <BsLock size={14} /> : <BsPlusLg size={14} />}
+              {isKkaLocked ? "Terkunci" : "Tambah KKA"}
             </button>
           </div>
         </div>
@@ -382,13 +400,15 @@ const PerencanaanTab = ({ assurance, onRefresh }) => {
                       {formatCurrency(item.anggaran)}
                     </td>
                     <td className="p-4 text-center">
-                      <button
-                        onClick={() => handleDeleteKka(item.id)}
-                        className="w-8 h-8 rounded-lg border border-rose-100 bg-rose-50 text-rose-500 hover:bg-rose-500 hover:text-white transition-all duration-200 flex items-center justify-center mx-auto active:scale-95 cursor-pointer"
-                        title="Hapus KKA"
-                      >
-                        <BsTrash size={14} />
-                      </button>
+                      {!isAuditClosed && (
+                        <button
+                          onClick={() => handleDeleteKka(item.id)}
+                          className="w-8 h-8 rounded-lg border border-rose-100 bg-rose-50 text-rose-500 hover:bg-rose-500 hover:text-white transition-all duration-200 flex items-center justify-center mx-auto active:scale-95 cursor-pointer"
+                          title="Hapus KKA"
+                        >
+                          <BsTrash size={14} />
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))
@@ -398,12 +418,21 @@ const PerencanaanTab = ({ assurance, onRefresh }) => {
                     <div className="flex flex-col items-center gap-3">
                       <BsFileEarmarkText size={40} className="text-slate-200" />
                       <p className="font-bold text-slate-500 uppercase tracking-widest text-[10px]">Belum Ada Data KKA Perencanaan</p>
-                      <button 
-                        onClick={() => setShowModalKka(true)}
-                        className="mt-2 text-blue-600 text-[11px] font-black uppercase tracking-wider hover:bg-slate-100 px-4 py-2 rounded-lg transition-colors border border-blue-200"
-                      >
-                        + Tambah Data Sekarang
-                      </button>
+                      {!isKkaLocked ? (
+                        <button 
+                          onClick={() => setShowModalKka(true)}
+                          className="mt-2 text-blue-600 text-[11px] font-black uppercase tracking-wider hover:bg-slate-100 px-4 py-2 rounded-lg transition-colors border border-blue-200 cursor-pointer"
+                        >
+                          + Tambah Data Sekarang
+                        </button>
+                      ) : (
+                        <span 
+                          title={getKkaButtonTooltip()}
+                          className="mt-2 flex items-center gap-1.5 text-slate-400 text-[11px] font-black uppercase tracking-wider px-4 py-2 rounded-lg border border-slate-200 bg-slate-100 cursor-not-allowed"
+                        >
+                          <BsLock size={12} /> Terkunci
+                        </span>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -438,10 +467,14 @@ const PerencanaanTab = ({ assurance, onRefresh }) => {
           </div>
 
           <button
-            onClick={() => setShowModalDoc(true)}
-            className="flex items-center justify-center gap-2 px-5 py-2.5 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold uppercase tracking-wider rounded-xl transition-all shadow-md active:scale-95 cursor-pointer border border-slate-700"
+            onClick={() => !isAuditClosed && setShowModalDoc(true)}
+            disabled={isAuditClosed}
+            className={`flex items-center justify-center gap-2 px-5 py-2.5 text-xs font-bold uppercase tracking-wider rounded-xl transition-all shadow-md active:scale-95 ${
+              isAuditClosed ? "bg-slate-300 text-slate-500 cursor-not-allowed shadow-none border-none" : "bg-slate-800 hover:bg-slate-900 text-white cursor-pointer border border-slate-700"
+            }`}
           >
-            <BsCloudUpload size={16} /> Upload dokumen
+            {isAuditClosed ? <BsLock size={16} /> : <BsCloudUpload size={16} />}
+            {isAuditClosed ? "Terkunci" : "Upload dokumen"}
           </button>
         </div>
 
@@ -522,13 +555,15 @@ const PerencanaanTab = ({ assurance, onRefresh }) => {
                           >
                             <BsEye size={15} />
                           </button>
-                          <button
-                            onClick={() => handleDeleteDoc(doc.id)}
-                            className="p-2 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-600 rounded-lg hover:bg-rose-600 hover:text-white transition-all active:scale-95 cursor-pointer"
-                            title="Hapus Dokumen"
-                          >
-                            <BsTrash size={15} />
-                          </button>
+                          {!isAuditClosed && (
+                            <button
+                              onClick={() => handleDeleteDoc(doc.id)}
+                              className="p-2 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-600 rounded-lg hover:bg-rose-600 hover:text-white transition-all active:scale-95 cursor-pointer"
+                              title="Hapus Dokumen"
+                            >
+                              <BsTrash size={15} />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -636,16 +671,28 @@ const PerencanaanTab = ({ assurance, onRefresh }) => {
           </div>
         </div>
       ) : (
-        <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-6 text-emerald-800 shadow-sm mt-6 flex items-center gap-4 animate-in fade-in duration-300">
-          <BsCheckCircle size={24} className="text-emerald-500 flex-shrink-0" />
-          <div>
-            <h4 className="font-bold text-sm uppercase tracking-wider">Perencanaan Telah Diselesaikan</h4>
-            <p className="text-xs text-emerald-600 mt-1">
+        <div className="relative overflow-hidden bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl p-4 shadow-lg shadow-emerald-200 mt-5 flex flex-col sm:flex-row items-start sm:items-center gap-4 animate-in fade-in slide-in-from-bottom-2 duration-500 border border-emerald-400">
+          {/* Decorative background blurs for depth */}
+          <div className="absolute -right-4 -top-4 w-24 h-24 bg-white/20 rounded-full blur-2xl pointer-events-none"></div>
+          <div className="absolute right-20 -bottom-10 w-20 h-20 bg-teal-900/10 rounded-full blur-xl pointer-events-none"></div>
+          
+          <div className="relative z-10 flex items-center justify-center w-10 h-10 bg-white rounded-full shadow-sm flex-shrink-0 text-emerald-600 ring-[3px] ring-emerald-400/30">
+            <BsCheckCircle size={20} className="stroke-[0.5]" />
+          </div>
+          
+          <div className="relative z-10 text-white">
+            <h4 className="font-black text-sm sm:text-sm tracking-wide drop-shadow-sm">PERENCANAAN TELAH DISELESAIKAN</h4>
+            <p className="text-emerald-50 text-[11px] sm:text-xs mt-0.5 font-medium leading-relaxed max-w-3xl drop-shadow-sm">
               Tahap perencanaan untuk kegiatan ini telah rampung dan disetujui. Saat ini penugasan sedang berjalan di tahap pemeriksaan lapangan.
             </p>
           </div>
         </div>
       )}
+
+      {/* Komponen Print KKA Tersembunyi */}
+      <div className="hidden print:block absolute inset-0 z-[9999]">
+        <PrintPerencanaan assurance={assurance} kka={kka} docs={docs} />
+      </div>
 
       {/* ================= MODAL TAMBAH KKA ================= */}
       {showModalKka && (

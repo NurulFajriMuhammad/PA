@@ -19,7 +19,10 @@ const AuditEvaluasi = () => {
   const [dataEvaluasi, setDataEvaluasi] = useState([]);
   const [openModal, setOpenModal] = useState(false);
   const [units, setUnits] = useState([]);
+  const [users, setUsers] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [searchUnitTerm, setSearchUnitTerm] = useState("");
+  const [showUnitDropdown, setShowUnitDropdown] = useState(false);
 
   const [form, setForm] = useState({
     program: "",
@@ -52,15 +55,26 @@ const AuditEvaluasi = () => {
     }
   };
 
+  const fetchUsers = async () => {
+    try {
+      const res = await apiClient.get("/api/users");
+      setUsers(res.data.data || res.data || []);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   // Sinkronisasi Real-Time
-  useRealTime(['audit_evaluasi', 'units'], () => {
+  useRealTime(['audit_evaluasi', 'units', 'users'], () => {
     fetchData();
     fetchUnits();
+    fetchUsers();
   });
 
   useEffect(() => {
     fetchData();
     fetchUnits();
+    fetchUsers();
   }, []);
 
   // ================= HANDLE =================
@@ -80,6 +94,8 @@ const AuditEvaluasi = () => {
       rekomendasi: item.rekomendasi || "",
       auditor: item.auditor || "",
     });
+    const unitName = item.unit?.nama || units.find(u => u.id == item.unit_id)?.nama || "";
+    setSearchUnitTerm(unitName);
     setOpenModal(true);
   };
 
@@ -109,6 +125,7 @@ const AuditEvaluasi = () => {
       program: "", unit_id: "", periode: "", tanggal_evaluasi: "", 
       target: "", realisasi: "", kesimpulan: "", rekomendasi: "", auditor: "",
     });
+    setSearchUnitTerm("");
   };
 
   const getStatus = (target, realisasi) => {
@@ -296,7 +313,7 @@ const AuditEvaluasi = () => {
                 </button>
               </div>
 
-              <div className="space-y-5">
+              <div className="space-y-3">
                 
                 {/* ROW 1: PROGRAM & UNIT */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -311,22 +328,43 @@ const AuditEvaluasi = () => {
                       className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 font-semibold text-sm transition-all"
                     />
                   </div>
-                  <div className="space-y-1.5">
+                  <div className="space-y-1.5 relative">
                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Unit Kerja (Auditee)</label>
-                    <select
-                      name="unit_id"
-                      required
-                      value={form.unit_id}
-                      onChange={handleChange}
-                      className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 font-semibold text-sm transition-all cursor-pointer"
-                    >
-                      <option value="">-- Pilih Unit Kerja --</option>
-                      {units.map((u) => (
-                        <option key={u.id} value={u.id}>
-                          {u.nama} ({u.kode})
-                        </option>
-                      ))}
-                    </select>
+                    <input
+                      type="text"
+                      placeholder="-- Ketik atau Pilih Unit Kerja --"
+                      value={searchUnitTerm}
+                      onChange={(e) => {
+                        setSearchUnitTerm(e.target.value);
+                        setForm({ ...form, unit_id: "" });
+                        setShowUnitDropdown(true);
+                      }}
+                      onFocus={() => setShowUnitDropdown(true)}
+                      onBlur={() => setTimeout(() => setShowUnitDropdown(false), 200)}
+                      className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 font-semibold text-sm transition-all"
+                    />
+                    {showUnitDropdown && (
+                      <ul className="absolute z-[9999] top-full mt-1 w-full bg-white border border-slate-200 rounded-xl shadow-xl max-h-56 overflow-y-auto divide-y divide-slate-100">
+                        {units
+                          .filter(u => u.nama.toLowerCase().includes(searchUnitTerm.toLowerCase()))
+                          .map((u) => (
+                          <li
+                            key={u.id}
+                            onMouseDown={() => {
+                              setSearchUnitTerm(u.nama);
+                              setForm({ ...form, unit_id: u.id });
+                              setShowUnitDropdown(false);
+                            }}
+                            className="p-3.5 hover:bg-emerald-50 cursor-pointer text-sm font-semibold text-slate-700 transition-colors"
+                          >
+                            {u.nama} ({u.kode})
+                          </li>
+                        ))}
+                        {units.filter(u => u.nama.toLowerCase().includes(searchUnitTerm.toLowerCase())).length === 0 && (
+                          <li className="p-3.5 text-sm text-slate-400 italic text-center">Unit tidak ditemukan</li>
+                        )}
+                      </ul>
+                    )}
                   </div>
                 </div>
 
@@ -417,20 +455,27 @@ const AuditEvaluasi = () => {
                 </div>
 
                 {/* ROW 5: AUDITOR */}
-                <div className="space-y-1.5 border-t border-slate-100 pt-4">
+                <div className="space-y-1.5">
                   <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Auditor / Penilai</label>
-                  <input
+                  <select
                     name="auditor"
                     required
                     value={form.auditor}
                     onChange={handleChange}
-                    placeholder="Nama Auditor Pengampu"
-                    className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 font-bold text-sm transition-all"
-                  />
+                    className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 font-bold text-sm transition-all appearance-none cursor-pointer"
+                  >
+                    <option value="">-- Pilih Auditor --</option>
+                    {users
+                      .filter(u => u.roles?.some(r => r.name.toLowerCase() === "auditor"))
+                      .map(u => (
+                        <option key={u.id} value={u.name}>{u.name}</option>
+                      ))
+                    }
+                  </select>
                 </div>
 
                 {/* FOOTER BUTTONS */}
-                <div className="flex gap-3 pt-6 mt-4">
+                <div className="flex gap-3">
                   <button
                     onClick={() => setOpenModal(false)}
                     className="flex-1 py-4 text-slate-500 bg-slate-100 hover:bg-slate-200 rounded-xl font-bold transition-all text-sm uppercase tracking-wider"

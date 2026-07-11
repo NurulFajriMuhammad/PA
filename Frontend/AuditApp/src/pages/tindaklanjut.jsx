@@ -144,12 +144,13 @@ const FollowUp = () => {
   const handleDetail = async (item) => {
     try {
       const res = await apiClient.get(`/api/tindak-lanjut/detail/${item.temuan_id}?jenis=${item.jenis_audit}`);
-      setSelectedItem({
+      setSelectedItem(prev => ({
         ...res.data.temuan,
+        status: item.status !== undefined ? item.status : (prev?.status || res.data.temuan.status_temuan || res.data.temuan.status), // Teruskan status dari list atau gunakan dari API
         temuan_id: item.temuan_id,
         jenis_audit: item.jenis_audit,
         tindak_lanjut: Array.isArray(res.data.tindak_lanjut) ? res.data.tindak_lanjut : [],
-      });
+      }));
       setMode("detail");
       sessionStorage.setItem("tindaklanjut_detail", JSON.stringify({ temuan_id: item.temuan_id, jenis_audit: item.jenis_audit }));
     } catch (err) { console.error(err); }
@@ -235,12 +236,12 @@ const FollowUp = () => {
           </thead>
           <tbody className="block md:table-row-group divide-y divide-slate-100">
             {filteredData.map((item, index) => (
-              <tr key={item.id} className="block md:table-row hover:bg-blue-50/20 transition-colors group p-5 md:p-0">
+              <tr key={item.id} className="block md:table-row hover:bg-blue-50/20 transition-colors group p-5 md:p-0 align-middle">
                 {/* Desktop: No */}
-                <td className="hidden md:table-cell px-6 py-4 text-center text-slate-400 font-mono text-xs">{index + 1}</td>
+                <td className="hidden md:table-cell px-6 py-4 text-center text-slate-400 font-mono text-xs align-middle">{index + 1}</td>
                 
                 {/* Mobile: Stacked content, Desktop: Masalah */}
-                <td className="block md:table-cell px-0 md:px-6 py-0 md:py-4">
+                <td className="block md:table-cell px-0 md:px-6 py-0 md:py-4 align-middle">
                   <div className="md:hidden flex justify-between items-start mb-2">
                      <span className="text-xs font-bold text-slate-400">#{index + 1}</span>
                      {(() => {
@@ -273,13 +274,13 @@ const FollowUp = () => {
                 </td>
                 
                 {/* Desktop: Audit/Unit */}
-                <td className="hidden md:table-cell px-6 py-4">
+                <td className="hidden md:table-cell px-6 py-4 align-middle">
                   <p className="text-[10px] font-bold text-blue-600 uppercase mb-0.5">{item.jenis_audit || "-"}</p>
                   <p className="text-xs text-slate-500 italic">{item.unit || "-"}</p>
                 </td>
                 
                 {/* Desktop: Target */}
-                <td className="hidden md:table-cell px-6 py-4">
+                <td className="hidden md:table-cell px-6 py-4 align-middle">
                   <div className="flex flex-col gap-1.5">
                     <div className="flex items-center gap-2 text-xs font-medium text-slate-600 bg-slate-50 px-2 py-1 rounded w-fit border border-slate-100">
                       <BsClock className="text-blue-500" /> {formatDate(item.target_selesai)}
@@ -293,7 +294,7 @@ const FollowUp = () => {
                 </td>
                 
                 {/* Desktop: Status */}
-                <td className="hidden md:table-cell px-6 py-4">
+                <td className="hidden md:table-cell px-6 py-4 align-middle">
                   {(() => {
                     const sc = getStatusConfig(item.status);
                     return (
@@ -308,8 +309,8 @@ const FollowUp = () => {
                 </td>
                 
                 {/* Mobile & Desktop: Aksi */}
-                <td className="block md:table-cell px-0 md:px-6 py-0 md:py-4 mt-4 md:mt-0 pt-4 md:pt-0 border-t md:border-0 border-slate-100">
-                  <button onClick={() => handleDetail(item)} className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#1f4b82] px-4 py-2.5 md:py-2 text-xs font-bold text-white hover:bg-slate-800 transition-all shadow-md shadow-blue-50 w-full md:w-auto">
+                <td className="block md:table-cell px-0 md:px-6 py-0 md:py-4 mt-4 md:mt-0 pt-4 md:pt-0 border-t md:border-0 border-slate-100 md:text-right align-middle">
+                  <button onClick={() => handleDetail(item)} className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#1f4b82] px-4 py-2.5 md:py-2 text-xs font-bold text-white hover:bg-slate-800 transition-all shadow-md shadow-blue-50 w-full md:w-auto md:mt-5">
                     <BsBoxArrowInRight className="text-sm md:text-xs" /> Detail
                   </button>
                 </td>

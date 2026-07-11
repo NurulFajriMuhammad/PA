@@ -10,7 +10,8 @@ import {
   BsSend, 
   BsPencilSquare,
   BsCheckCircle,
-  BsXCircle
+  BsXCircle,
+  BsLock
 } from "react-icons/bs";
 import { notifySuccess, notifyError, notifyConfirm } from "../../../../../Shared/utils/notifier.jsx";
 import { useAuth } from "../../../../../Shared/hooks/useAuth.jsx";
@@ -85,6 +86,15 @@ const AnalisisTab = ({ assurance, onRefresh }) => {
   const isKepalaSPI = userRole.toLowerCase() === "kepala spi";
   const isAuditor = userRole.toLowerCase() === "auditor" || userRole.toLowerCase() === "administrator audit" || userRole.toLowerCase() === "pengendali teknis";
 
+  const userId = authData?.user?.id;
+  const isAssignedAuditor = 
+    userRole.toLowerCase() === "administrator audit" ||
+    assurance?.ketua_id === userId ||
+    assurance?.pt_id === userId ||
+    assurance?.koordinator_id === userId ||
+    assurance?.auditor_id === userId ||
+    (assurance?.auditors && assurance.auditors.some(a => a.id === userId));
+
   const fetchLhaStatus = async () => {
     try {
       const res = await apiClient.get(`/api/assurance/${assurance?.id}/lha-status`);
@@ -108,7 +118,7 @@ const AnalisisTab = ({ assurance, onRefresh }) => {
 
     setSelectedTemuan(item);
     setForm({
-      tanggapan: dataAnalisis.tanggapan || "setuju", // Default setuju
+      tanggapan: dataAnalisis.tanggapan || "", // Kosong default
       status: dataAnalisis.status || "draft",
       analisa: dataAnalisis.analisa || "", // Analisa auditee
       analisa_auditor: dataAnalisis.analisa_auditor || "",
@@ -241,14 +251,28 @@ const AnalisisTab = ({ assurance, onRefresh }) => {
   };
 
   const handlePrintLha = () => {
-    const printWindow = window.open("", "_blank");
-    if (!printWindow) return;
-    printWindow.document.write(`
+    // Gunakan posisi fixed dan ukuran viewport penuh agar layout tidak terpotong (clipping) pada kertas
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'fixed';
+    iframe.style.top = '0';
+    iframe.style.left = '0';
+    iframe.style.width = '100vw';
+    iframe.style.height = '100vh';
+    iframe.style.opacity = '0';
+    iframe.style.pointerEvents = 'none';
+    iframe.style.zIndex = '-9999';
+    iframe.style.border = 'none';
+    document.body.appendChild(iframe);
+
+    const doc = iframe.contentWindow.document;
+    
+    // Tulis HTML persis seperti saat menggunakan window.open
+    doc.write(`
       <html>
         <head>
           <title>Laporan Hasil Audit (LHA) - ${assurance?.no_pengajuan || ""}</title>
           <style>
-            body { font-family: 'Arial', sans-serif; color: #1e293b; padding: 40px; line-height: 1.6; }
+            body { font-family: 'Arial', sans-serif; color: #1e293b; margin: 0; padding: 0; line-height: 1.6; }
             .header { text-align: center; border-bottom: 3px double #1e293b; padding-bottom: 20px; margin-bottom: 30px; }
             .header h1 { margin: 0; font-size: 24px; text-transform: uppercase; color: #0f172a; }
             .header p { margin: 5px 0 0 0; font-size: 14px; font-weight: bold; color: #64748b; }
@@ -256,27 +280,24 @@ const AnalisisTab = ({ assurance, onRefresh }) => {
             .meta-table td { padding: 8px 12px; font-size: 13px; vertical-align: top; }
             .meta-table td.label { font-weight: bold; width: 180px; color: #475569; }
             .section-title { font-size: 16px; font-weight: bold; border-bottom: 2px solid #cbd5e1; padding-bottom: 6px; margin-top: 30px; margin-bottom: 15px; text-transform: uppercase; color: #1e3a8a; }
-            .finding-card { border: 1px solid #e2e8f0; padding: 20px; border-radius: 12px; margin-bottom: 20px; page-break-inside: avoid; }
+            .finding-card { border: 1px solid #e2e8f0; padding: 20px; border-radius: 12px; margin-bottom: 20px; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
             .finding-header { display: flex; justify-content: space-between; font-weight: bold; border-bottom: 1px solid #f1f5f9; padding-bottom: 10px; margin-bottom: 12px; }
             .finding-title { font-size: 14px; color: #0f172a; }
             .finding-meta { font-size: 11px; color: #64748b; text-transform: uppercase; }
             .grid-5c { display: flex; flex-direction: column; gap: 12px; }
             .c-item { font-size: 12px; }
-            .c-label { font-weight: bold; color: #475569; display: block; margin-bottom: 4px; text-transform: uppercase; font-size: 10px; tracking-wide; }
+            .c-label { font-weight: bold; color: #475569; display: block; margin-bottom: 4px; text-transform: uppercase; font-size: 10px; letter-spacing: 0.05em; }
             .c-value { color: #334155; }
             .sign-section { margin-top: 50px; display: flex; justify-content: space-between; page-break-inside: avoid; }
             .sign-box { text-align: center; width: 220px; font-size: 12px; }
             .sign-line { margin-top: 70px; border-top: 1px solid #1e293b; padding-top: 5px; font-weight: bold; }
-            @media print {
-              body { padding: 0; }
-              .no-print { display: none !important; }
-            }
+            @page { margin: 0; }
           </style>
         </head>
         <body>
-          <div class="no-print" style="text-align: right; margin-bottom: 20px;">
-            <button onclick="window.print()" style="padding: 10px 20px; background-color: #1e3a8a; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">Cetak LHA</button>
-          </div>
+          <table style="width: 100%; border-spacing: 0; border: none;">
+            <thead><tr><td style="height: 40px; border: none; padding: 0;"></td></tr></thead>
+            <tbody><tr><td style="padding: 0 40px; border: none;">
           <div class="header">
             <h1>Laporan Hasil Audit (LHA)</h1>
             <p>SPI (Satuan Pengawas Intern)</p>
@@ -284,16 +305,16 @@ const AnalisisTab = ({ assurance, onRefresh }) => {
           
           <table class="meta-table">
             <tr>
-              <td class="label">Nomor Pengajuan</td>
-              <td>: ${assurance?.no_pengajuan || "-"}</td>
+              <td class="label">Nomor LHA</td>
+              <td>: LHA-${new Date().getFullYear()}-${String(assurance?.id || "0").padStart(3, '0')}</td>
             </tr>
             <tr>
               <td class="label">Judul Audit</td>
-              <td>: ${assurance?.judul || "-"}</td>
+              <td>: ${assurance?.nama_kegiatan || assurance?.objek_pemeriksaan || "-"}</td>
             </tr>
             <tr>
               <td class="label">Periode Audit</td>
-              <td>: ${assurance?.tgl_mulai ? new Date(assurance.tgl_mulai).toLocaleDateString("id-ID") : "-"} s/d ${assurance?.tgl_selesai ? new Date(assurance.tgl_selesai).toLocaleDateString("id-ID") : "-"}</td>
+              <td>: ${assurance?.periode_awal ? new Date(assurance.periode_awal).toLocaleDateString("id-ID", { day: 'numeric', month: 'long', year: 'numeric' }) : "-"} s/d ${assurance?.periode_akhir ? new Date(assurance.periode_akhir).toLocaleDateString("id-ID", { day: 'numeric', month: 'long', year: 'numeric' }) : "-"}</td>
             </tr>
             <tr>
               <td class="label">Status LHA</td>
@@ -305,7 +326,7 @@ const AnalisisTab = ({ assurance, onRefresh }) => {
           ${data.map((item, index) => `
             <div class="finding-card">
               <div class="finding-header">
-                <div class="finding-title">Temuan #${index + 1}: ${item.masalah}</div>
+                <div class="finding-title">Temuan ${index + 1}: ${item.masalah}</div>
                 <div class="finding-meta">Kategori: ${item.kategori || "Minor"} | Hal: ${item.halaman_lhe || "-"}</div>
               </div>
               <div class="grid-5c">
@@ -330,12 +351,12 @@ const AnalisisTab = ({ assurance, onRefresh }) => {
                   <div class="c-value">${item.rekomendasi || "-"}</div>
                 </div>
                 <div class="c-item" style="border-top: 1px dashed #e2e8f0; padding-top: 10px; margin-top: 5px;">
-                  <span class="c-label">Analisis Penyebab (Auditor):</span>
-                  <div class="c-value">${item.analisis_auditor || item.analisa_auditor || "-"}</div>
+                  <span class="c-label">Analisis Penyebab:</span>
+                  <div class="c-value">${item.analisis?.analisa_auditor || item.analisa_auditor || "-"}</div>
                 </div>
                 <div class="c-item">
-                  <span class="c-label">Rencana Tindakan Koreksi (Auditee):</span>
-                  <div class="c-value">${item.rencana_koreksi || "-"}</div>
+                  <span class="c-label">Rencana Tindakan Koreksi:</span>
+                  <div class="c-value">${item.analisis?.rencana_koreksi || item.rencana_koreksi || "-"}</div>
                 </div>
               </div>
             </div>
@@ -343,20 +364,39 @@ const AnalisisTab = ({ assurance, onRefresh }) => {
 
           <div class="sign-section">
             <div class="sign-box">
-              <p>Diajukan oleh,</p>
-              <div class="sign-line">Tim Auditor / PT</div>
-              <p>${lhaData.lha_submitted_by || ""}</p>
+              <p>Disusun oleh Ketua Tim,</p>
+              <div style="border-top: 1px solid #1e293b; margin: 70px auto 4px auto; width: 80%;"></div>
+              <p style="font-weight: bold;">${assurance?.ketua_tim?.name || lhaData.lha_submitted_by || ""}</p>
             </div>
             <div class="sign-box">
-              <p>Disetujui oleh,</p>
-              <div class="sign-line">Kepala SPI</div>
-              <p>${lhaData.lha_approved_by || ""}</p>
+              <p>Direviu oleh Pengendali Teknis,</p>
+              <div style="border-top: 1px solid #1e293b; margin: 70px auto 4px auto; width: 80%;"></div>
+              <p style="font-weight: bold;">${assurance?.pengendali_teknis?.name || ""}</p>
+            </div>
+            <div class="sign-box">
+              <p>Diketahui oleh Kepala SPI,</p>
+              <div style="border-top: 1px solid #1e293b; margin: 70px auto 4px auto; width: 80%;"></div>
+              <p style="font-weight: bold;">${lhaData.lha_approved_by || ""}</p>
             </div>
           </div>
+            </td></tr></tbody>
+            <tfoot><tr><td style="height: 40px; border: none; padding: 0;"></td></tr></tfoot>
+          </table>
         </body>
       </html>
     `);
-    printWindow.document.close();
+    doc.close();
+
+    // Beri waktu sejenak agar browser memuat konten dalam iframe, lalu panggil print
+    setTimeout(() => {
+      iframe.contentWindow.focus();
+      iframe.contentWindow.print();
+      
+      // Bersihkan iframe setelah popup print ditutup
+      setTimeout(() => {
+        document.body.removeChild(iframe);
+      }, 1000);
+    }, 500);
   };
 
   // Helper formats
@@ -417,6 +457,9 @@ const AnalisisTab = ({ assurance, onRefresh }) => {
   // Logika pengecekan status submits
   const draftCount = data.filter(t => t.status_analisis === 'belum' || t.status_analisis === 'draft' || t.status_analisis === 'ditolak').length;
   const isReadyToSubmit = data.length > 0 && draftCount === 0 && lhaData.lha_status === "approved";
+  const isAllSent = data.length > 0 && data.every(t => t.tindak_lanjut);
+
+  const isAuditClosed = ["selesai", "closed", "close"].includes(String(assurance?.status_label || assurance?.status_pemeriksaan?.nama || "").toLowerCase());
 
   // ============================
   // 🎥 RENDER PREVIEW MODAL (DOKUMEN)
@@ -476,11 +519,12 @@ const AnalisisTab = ({ assurance, onRefresh }) => {
     const statusConfig = getStatusBadgeConfig(selectedTemuan.status_analisis);
 
     return (
-      <div className="fixed inset-0 z-[9999] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-200">
-        <div className="relative bg-white border border-slate-200 text-slate-800 rounded-3xl shadow-2xl w-full max-w-4xl max-h-[92vh] overflow-y-auto p-6 sm:p-8 flex flex-col animate-in zoom-in-95 duration-200 space-y-6">
+      <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 animate-in fade-in duration-200">
+        <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setSelectedTemuan(null)}></div>
+        <div className="relative bg-white border border-slate-200 text-slate-800 rounded-[2rem] shadow-2xl w-full max-w-4xl max-h-[92vh] flex flex-col animate-in zoom-in-95 duration-200">
           
           {/* MODAL HEADER */}
-          <div className="flex justify-between items-start border-b border-slate-200 pb-5">
+          <div className="flex justify-between items-start border-b border-slate-200 p-6 sm:px-8 bg-white rounded-t-[2rem] shrink-0">
             <div className="space-y-1.5 flex-1 pr-6">
               <div className="flex items-center gap-2">
                   <BsSearch size={18} />
@@ -494,6 +538,9 @@ const AnalisisTab = ({ assurance, onRefresh }) => {
               {statusConfig.label}
             </span>
           </div>
+
+          {/* MODAL BODY (SCROLLABLE) */}
+          <div className="flex-1 overflow-y-auto p-6 sm:px-8 bg-white space-y-6">
 
           {/* BOX 1: RINGKASAN TEMUAN (READ-ONLY) */}
           <div className="bg-blue-50/50 border-l-4 border-blue-500 p-4 rounded-r-2xl space-y-3 shadow-inner">
@@ -531,9 +578,9 @@ const AnalisisTab = ({ assurance, onRefresh }) => {
                 type="button"
                 onClick={() => setForm({ ...form, tanggapan: "setuju" })}
                 className={`flex items-center justify-center gap-2.5 flex-1 cursor-pointer p-4 rounded-xl border-2 transition-all font-black text-sm uppercase tracking-wider active:scale-[0.98] ${
-                  !isTolak 
+                  form.tanggapan === "setuju"
                     ? "border-emerald-500 bg-emerald-50 text-emerald-700 shadow-md shadow-emerald-100" 
-                    : "border-slate-200 bg-slate-50 text-slate-550 hover:bg-slate-100 hover:text-slate-700"
+                    : "border-slate-200 bg-white text-slate-550 hover:bg-slate-50 hover:border-emerald-300 hover:text-slate-700"
                 }`}
               >
                 <BsCheckCircle size={16} />
@@ -545,9 +592,9 @@ const AnalisisTab = ({ assurance, onRefresh }) => {
                 type="button"
                 onClick={() => setForm({ ...form, tanggapan: "tolak" })}
                 className={`flex items-center justify-center gap-2.5 flex-1 cursor-pointer p-4 rounded-xl border-2 transition-all font-black text-sm uppercase tracking-wider active:scale-[0.98] ${
-                  isTolak 
+                  form.tanggapan === "tolak"
                     ? "border-red-500 bg-red-50 text-red-700 shadow-md shadow-red-100" 
-                    : "border-slate-200 bg-slate-50 text-slate-550 hover:bg-slate-100 hover:text-slate-700"
+                    : "border-slate-200 bg-white text-slate-550 hover:bg-slate-50 hover:border-red-300 hover:text-slate-700"
                 }`}
               >
                 <BsXCircle size={16} />
@@ -560,7 +607,7 @@ const AnalisisTab = ({ assurance, onRefresh }) => {
           </div>
 
           {/* MAIN DYNAMIC CONTENT */}
-          {!isTolak ? (
+          {form.tanggapan === "setuju" ? (
             /* ============================================================ */
             /* 🟢 MODE SETUJU (BOX 3 & BOX 4)                                */
             /* ============================================================ */
@@ -589,20 +636,6 @@ const AnalisisTab = ({ assurance, onRefresh }) => {
                     </span>
                   </div>
 
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">
-                      Analisa penyebab auditee <span className="text-slate-400">(opsional — diisi jika auditee setuju)</span>
-                    </label>
-                    <textarea
-                      placeholder="Tanggapan / analisis dari pihak auditee..."
-                      className="w-full p-3.5 bg-slate-50 border border-slate-205 rounded-xl outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-600 font-medium text-sm text-slate-800 h-24 resize-none transition-all placeholder:text-slate-400"
-                      value={form.analisa || ""}
-                      onChange={(e) => setForm({ ...form, analisa: e.target.value })}
-                    />
-                    <span className="text-[9px] text-slate-500 font-medium block">
-                      Perspektif auditee atas penyebab temuan — dicatat untuk kelengkapan dokumentasi
-                    </span>
-                  </div>
                 </div>
               </div>
 
@@ -685,7 +718,7 @@ const AnalisisTab = ({ assurance, onRefresh }) => {
                 Setelah klik <strong className="text-blue-650">Simpan Analisis</strong> &rarr; status temuan otomatis berubah dari <strong>Draft</strong> ke <strong>Monev</strong>. Jika semua temuan sudah <strong>Monev</strong> &rarr; tombol <strong>&ldquo;Kirim ke Tindak Lanjut&rdquo;</strong> di header aktif.
               </div>
             </div>
-          ) : (
+          ) : form.tanggapan === "tolak" ? (
             /* ============================================================ */
             /* 🔴 MODE TOLAK (BOX RED)                                      */
             /* ============================================================ */
@@ -795,24 +828,33 @@ const AnalisisTab = ({ assurance, onRefresh }) => {
                 </div>
               </div>
 
-              {/* BOX 5: FOOTER INFO ALERT BAR FOR TOLAK */}
               <div className="bg-red-50 border border-red-200 text-red-800 p-4 rounded-xl text-xs font-semibold leading-relaxed">
                 Setelah klik <strong>Kirim Penolakan</strong> &rarr; temuan dikembalikan ke auditor dengan flag <strong>&ldquo;Ditolak auditee&rdquo;</strong>. Auditor harus review ulang temuan di Tab Pelaksanaan — bisa direvisi atau dipertahankan dengan penjelasan.
               </div>
             </div>
+          ) : (
+            /* ============================================================ */
+            /* ⚪ MODE BELUM DIPILIH                                        */
+            /* ============================================================ */
+            <div className="flex flex-col items-center justify-center py-12 bg-slate-50 border-2 border-slate-200 border-dashed rounded-2xl text-slate-400">
+              <CheckCircle2 size={36} className="mb-3 opacity-30" />
+              <p className="text-xs font-bold uppercase tracking-wider">Silakan pilih keputusan tanggapan terlebih dahulu</p>
+            </div>
           )}
 
+          </div> {/* END OF MODAL BODY */}
+
           {/* FOOTER AKSI */}
-          <div className="border-t border-slate-200 pt-5 flex justify-between items-center shrink-0">
+          <div className="border-t border-slate-200 p-6 sm:px-8 bg-slate-50/50 rounded-b-[2rem] shrink-0 flex justify-between items-center">
             <button
               type="button"
               onClick={() => setSelectedTemuan(null)}
-              className="px-6 py-3 border border-slate-200 hover:bg-slate-55 text-slate-500 font-bold text-xs uppercase tracking-wider rounded-xl transition-all active:scale-95"
+              className="px-8 py-3.5 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs uppercase tracking-widest rounded-xl shadow-md shadow-rose-200 transition-all active:scale-95 cursor-pointer"
             >
               Batal
             </button>
             
-            {isTolak ? (
+            {form.tanggapan === "tolak" ? (
               <button
                 type="button"
                 onClick={() => handleSave(true)}
@@ -820,7 +862,7 @@ const AnalisisTab = ({ assurance, onRefresh }) => {
               >
                 <BsSend size={14} /> Kirim penolakan ke auditor
               </button>
-            ) : (
+            ) : form.tanggapan === "setuju" ? (
               <button
                 type="button"
                 onClick={() => handleSave(false)}
@@ -828,7 +870,7 @@ const AnalisisTab = ({ assurance, onRefresh }) => {
               >
                 <CheckCircle2 size={14} /> Simpan analisis &rarr; status jadi Monev
               </button>
-            )}
+            ) : null}
           </div>
           
         </div>
@@ -840,6 +882,7 @@ const AnalisisTab = ({ assurance, onRefresh }) => {
   // 🟢 MAIN LIST / DAFTAR TEMUAN (WHITE & BLUE)
   // ============================
   return (
+    <>
     <div className="bg-white text-slate-800 p-6 rounded-3xl border border-slate-200 space-y-5 font-sans min-h-screen shadow-sm">
       
       {/* HEADER SECTION */}
@@ -858,17 +901,27 @@ const AnalisisTab = ({ assurance, onRefresh }) => {
           </p>
         </div>
         
-        <button
-          onClick={handleKirimTindakLanjut}
-          disabled={!isReadyToSubmit}
-          className={`flex items-center justify-center gap-2 px-6 py-4 text-xs font-black uppercase tracking-wider rounded-xl transition-all shadow-lg active:scale-95 ${
-            isReadyToSubmit
-              ? "bg-blue-600 border border-blue-600 text-white hover:bg-green-700 cursor-pointer shadow-blue-100"
-              : "bg-slate-105 text-slate-400 border border-slate-200 cursor-not-allowed"
-          }`}
-        >
-          <BsSend size={15} /> Kirim ke Tindak Lanjut
-        </button>
+        {isAssignedAuditor && (
+          <button
+            onClick={handleKirimTindakLanjut}
+            disabled={!isReadyToSubmit || isAllSent || isAuditClosed}
+            className={`flex items-center justify-center gap-2 px-6 py-4 text-xs font-black uppercase tracking-wider rounded-xl transition-all shadow-lg active:scale-95 ${
+              isAuditClosed || isAllSent
+                ? "bg-emerald-100 text-emerald-600 border border-emerald-200 cursor-not-allowed shadow-none"
+                : isReadyToSubmit
+                ? "bg-blue-600 border border-blue-600 text-white hover:bg-green-700 cursor-pointer shadow-blue-100"
+                : "bg-slate-105 text-slate-400 border border-slate-200 cursor-not-allowed"
+            }`}
+          >
+            {isAuditClosed ? (
+              <><BsLock size={15} /> Audit Selesai</>
+            ) : isAllSent ? (
+              <><CheckCircle2 size={15} /> Sudah di Tindak Lanjut</>
+            ) : (
+              <><BsSend size={15} /> Kirim ke Tindak Lanjut</>
+            )}
+          </button>
+        )}
       </div>
 
       {/* ================= LHA APPROVAL WORKFLOW PANEL (IIA Std. 2420 & 2440) ================= */}
@@ -959,20 +1012,34 @@ const AnalisisTab = ({ assurance, onRefresh }) => {
                   : "Semua temuan telah selesai dianalisis. LHA siap diajukan."
                 }
               </span>
-              {isAuditor && (
+              {isAssignedAuditor && !isAuditClosed && (
                 <button
                   disabled={draftCount > 0}
-                  onClick={async () => {
-                    if (!window.confirm("Apakah Anda yakin ingin mengajukan LHA ini ke Kepala SPI?")) return;
-                    try {
-                      const res = await apiClient.post(`/api/assurance/${assurance.id}/submit-lha`);
-                      if (res.data.success) {
-                        notifySuccess(res.data.message);
-                        fetchLhaStatus();
+                  onClick={() => {
+                    notifyConfirm(
+                      "Apakah Anda yakin ingin mengajukan Laporan Hasil Audit (LHA) ini ke Kepala SPI untuk direview?",
+                      async () => {
+                        try {
+                          const res = await apiClient.post(`/api/assurance/${assurance.id}/submit-lha`);
+                          if (res.data.success) {
+                            notifySuccess(res.data.message);
+                            fetchLhaStatus();
+                          }
+                        } catch (e) {
+                          notifyError(e.response?.data?.message || "Gagal mengajukan LHA");
+                        }
+                      },
+                      null,
+                      {
+                        title: "Konfirmasi Pengajuan LHA",
+                        confirmText: "Ya, Ajukan LHA",
+                        cancelText: "Batal",
+                        confirmColor: "bg-blue-600",
+                        confirmHoverColor: "hover:bg-blue-700",
+                        iconColor: "bg-blue-600",
+                        iconShadow: "shadow-blue-200"
                       }
-                    } catch (e) {
-                      notifyError(e.response?.data?.message || "Gagal mengajukan LHA");
-                    }
+                    );
                   }}
                   className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all active:scale-95 disabled:opacity-50 disabled:bg-slate-400 disabled:cursor-not-allowed cursor-pointer shadow-md"
                 >
@@ -980,7 +1047,7 @@ const AnalisisTab = ({ assurance, onRefresh }) => {
                 </button>
               )}
             </>
-          ) : lhaData.lha_status === "submitted" && isKepalaSPI ? (
+          ) : lhaData.lha_status === "submitted" && isKepalaSPI && !isAuditClosed ? (
             <div className="w-full flex flex-col gap-3">
               <textarea
                 placeholder="Tulis catatan persetujuan atau alasan penolakan di sini..."
@@ -1098,14 +1165,16 @@ const AnalisisTab = ({ assurance, onRefresh }) => {
                       {statusConfig.label}
                     </span>
 
-                    <button
-                      type="button"
-                      onClick={() => handleSelectTemuan(item)}
-                      className="px-4 py-2 border border-blue-200 text-blue-600 hover:bg-blue-50/50 text-xs font-bold uppercase tracking-wider rounded-lg transition-all flex items-center gap-1.5 cursor-pointer active:scale-95 hover:border-blue-550"
-                    >
-                      <BsPencilSquare size={13} />
-                      {isMonevOrClose ? "Edit analisis" : "Isi analisis"}
-                    </button>
+                    {lhaData.lha_status !== "approved" && lhaData.lha_status !== "submitted" && !isAuditClosed && (
+                      <button
+                        type="button"
+                        onClick={() => handleSelectTemuan(item)}
+                        className="px-4 py-2 border border-blue-200 text-blue-600 hover:bg-blue-50/50 text-xs font-bold uppercase tracking-wider rounded-lg transition-all flex items-center gap-1.5 cursor-pointer active:scale-95 hover:border-blue-550"
+                      >
+                        <BsPencilSquare size={13} />
+                        {isMonevOrClose ? "Edit analisis" : "Isi analisis"}
+                      </button>
+                    )}
                   </div>
                 </div>
 
@@ -1241,6 +1310,7 @@ const AnalisisTab = ({ assurance, onRefresh }) => {
       {renderModal()}
       {renderPreviewModal()}
     </div>
+    </>
   );
 };
 

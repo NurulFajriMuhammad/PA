@@ -7,7 +7,8 @@ import {
   KeyIcon, 
   LinkIcon 
 } from '@heroicons/react/24/outline';
-import Notification from "../components/Common/Notification";
+import { Toaster } from "react-hot-toast";
+import { notifySuccess, notifyError } from "../../../Shared/utils/notifier";
 import UserPage from "../components/UserManager/UserPage";
 import RolePage from "../components/RoleManager/RolePage";
 import UnitPage from "../components/UnitPage";
@@ -68,10 +69,7 @@ export default function DashboardApp() {
   const [roles, setRoles] = useState([]);
   const [permissions, setPermissions] = useState([]);
   const [apiRoutes, setApiRoutes] = useState([]);
-  const [notification, setNotification] = useState({
-    message: null,
-    type: "success",
-  });
+
   const [loadingData, setLoadingData] = useState(true);
   const userId = "Fajri973";
 
@@ -108,10 +106,7 @@ export default function DashboardApp() {
         err.response?.data?.message ||
         err.message ||
         "Gagal memuat data utama. Cek log API Users/Roles/Permissions.";
-      setNotification({
-        message: `Error: ${errorMsg}`,
-        type: "error",
-      });
+      notifyError(`Error: ${errorMsg}`);
       // Jika data kritis gagal, set state ke array kosong
       setUsers([]);
       setRoles([]);
@@ -134,12 +129,9 @@ export default function DashboardApp() {
       );
       // Memberi notifikasi, tapi biarkan data lain ditampilkan
       setApiRoutes([]);
-      setNotification({
-        message: `Peringatan: Gagal memuat API Routes (${
-          err.response?.status || "network"
-        }). Cek log server backend.`,
-        type: "warning",
-      });
+      notifyError(`Peringatan: Gagal memuat API Routes (${
+        err.response?.status || "network"
+      }). Cek log server backend.`);
     } finally {
       setLoadingData(false);
     }
@@ -163,12 +155,7 @@ export default function DashboardApp() {
   // ----------------------------------------
   // NOTIFICATION HANDLER (Tidak berubah)
   // ----------------------------------------
-  const handleSetNotification = useCallback((notif) => {
-    setNotification(notif);
-    setTimeout(() => {
-      setNotification({ message: null, type: "success" });
-    }, 3000);
-  }, []);
+
 
   // ----------------------------------------
   // MAIN LAYOUT (Tidak berubah)
@@ -178,11 +165,6 @@ export default function DashboardApp() {
       <Header />
 
       <div className="p-4 md:p-8 pt-[94px]">
-        <Notification
-          message={notification.message}
-          type={notification.type}
-          onDismiss={() => setNotification({ message: null, type: "success" })}
-        />
 
         {/* HEADER */}
         <header className="mb-6 flex flex-col md:flex-row md:items-center md:justify-between">
@@ -272,7 +254,6 @@ export default function DashboardApp() {
                 <UserPage
                   users={users}
                   roles={roles}
-                  setNotification={handleSetNotification}
                   onRefresh={fetchData}
                 />
               )}
@@ -281,7 +262,6 @@ export default function DashboardApp() {
                 <RolePage
                   roles={roles}
                   permissions={permissions} // Kini dijamin array atau array kosong
-                  setNotification={handleSetNotification}
                   onRefresh={fetchData} // Meneruskan fetchData agar RolePage bisa refresh semua data
                 />
               )}
@@ -293,7 +273,6 @@ export default function DashboardApp() {
               {currentPage === "permissions" && (
                 <ApiPage
                   permissions={permissions}
-                  setNotification={handleSetNotification}
                 />
               )}
 
@@ -301,7 +280,6 @@ export default function DashboardApp() {
                 <ApiRoutePage
                   routes={apiRoutes}
                   permissions={permissions}
-                  setNotification={handleSetNotification}
                   onRefresh={fetchData}
                 />
               )}

@@ -51,6 +51,8 @@ const Assurance = () => {
   const { user: authData } = useAuth();
   const userRole = authData?.user?.roles?.[0]?.name || "";
   const isKepalaSPI = userRole.toLowerCase() === "kepala spi";
+  const isAdminAudit = userRole.toLowerCase() === "administrator audit";
+  const canDeleteClosed = isKepalaSPI || isAdminAudit;
 
   const [dataAssurance, setDataAssurance] = useState([]);
   const [suratTugasList, setSuratTugasList] = useState([]);
@@ -268,8 +270,9 @@ const Assurance = () => {
   };
 
   const handleDelete = (id, status) => {
-    if (status?.toLowerCase() === "selesai" && !isKepalaSPI) {
-      notifyError("Hanya Kepala SPI yang dapat menghapus audit yang sudah selesai.");
+    const statusLower = status?.toLowerCase();
+    if ((statusLower === "selesai" || statusLower === "closed" || statusLower === "close") && !canDeleteClosed) {
+      notifyError("Hanya Kepala SPI dan Administrator Audit yang dapat menghapus audit yang sudah selesai.");
       return;
     }
 
@@ -462,7 +465,7 @@ const Assurance = () => {
                                 backgroundColor: item.status_color || "#94a3b8", 
                               }}
                             >
-                              {(item.status_label === "Selesai" || item.status_label === "Closed") && <BsCheckCircleFill className="mr-1.5" size={12} />}
+                              {(item.status_label === "Selesai" || item.status_label === "Closed" || item.status_label === "Close") && <BsCheckCircleFill className="mr-1.5" size={12} />}
                               {item.status_label}
                             </span>
                           </td>
@@ -477,7 +480,7 @@ const Assurance = () => {
                                 <BsEye size={16} />
                               </button>
                               
-                              {item.status_label?.toLowerCase() !== "selesai" && (
+                              {item.status_label?.toLowerCase() !== "selesai" && item.status_label?.toLowerCase() !== "closed" && item.status_label?.toLowerCase() !== "close" && (
                                 <>
                                   <button onClick={() => handleEdit(item)} className="p-2.5 bg-slate-100 text-slate-500 hover:bg-amber-500 hover:text-white rounded-xl transition-all shadow-sm" title="Edit Data">
                                     <BsPencilSquare size={16} />
@@ -488,7 +491,7 @@ const Assurance = () => {
                                 </>
                               )}
 
-                              {item.status_label?.toLowerCase() === "selesai" && isKepalaSPI && (
+                              {(item.status_label?.toLowerCase() === "selesai" || item.status_label?.toLowerCase() === "closed" || item.status_label?.toLowerCase() === "close") && canDeleteClosed && (
                                 <button onClick={() => handleDelete(item.id, item.status_label)} className="p-2.5 bg-slate-100 text-slate-500 hover:bg-red-500 hover:text-white rounded-xl transition-all shadow-sm" title="Hapus (Role Khusus)">
                                   <BsTrash size={16} />
                                 </button>
@@ -554,17 +557,21 @@ const Assurance = () => {
                       onChange={(e) => handleSTChange(e.target.value)}
                     >
                       <option value="">-- Pilih nomor surat tugas (auto-fill data) --</option>
-                      {suratTugasList.map((st) => {
-                        const expired = isExpired(st.periode_pemeriksaan);
-                        return (
-                          <option 
-                            key={st.id} 
-                            value={st.nomor_surat}
-                            disabled={expired && formData.noST !== st.nomor_surat}
-                          >
-                            {st.nomor_surat} - {st.deskripsi?.substring(0, 60)}... {expired ? " 🔒" : ""}
-                          </option>
-                        );
+                      {suratTugasList
+                        .filter(st => {
+                          const expired = isExpired(st.periode_pemeriksaan);
+                          return !expired || formData.noST === st.nomor_surat;
+                        })
+                        .map((st) => {
+                          const expired = isExpired(st.periode_pemeriksaan);
+                          return (
+                            <option 
+                              key={st.id} 
+                              value={st.nomor_surat}
+                            >
+                              {st.nomor_surat} - {st.deskripsi?.substring(0, 60)}... {expired ? " 🔒" : ""}
+                            </option>
+                          );
                       })}
                     </select>
                     <span className="text-[10px] text-slate-400 font-medium leading-relaxed block mt-1">

@@ -205,17 +205,38 @@ class TindakLanjutController extends Controller
                 ->leftJoin('analisis_temuan as at', 't.id', '=', 'at.temuan_id')
                 ->leftJoin('perencanaan_kkas as pk', 't.kka_id', '=', 'pk.id')
                 ->leftJoin('assurance as a', 'pk.assurance_id', '=', 'a.id')
+                ->leftJoin('users as submitter', 'at.rtl_submitted_by', '=', 'submitter.id')
+                ->leftJoin('model_has_roles', function($join) {
+                    $join->on('submitter.id', '=', 'model_has_roles.model_id')
+                         ->where('model_has_roles.model_type', '=', 'App\\Models\\User');
+                })
+                ->leftJoin('roles', 'model_has_roles.role_id', '=', 'roles.id')
                 ->select([
                     't.*',
                     'at.analisa',
                     'at.rencana_koreksi',
                     'at.rencana_kolektif',
                     'at.target_penyelesaian',
+                    'at.prioritas',
+                    'at.estimasi_anggaran',
+                    'at.sdm_dibutuhkan',
+                    'at.sarana_alat',
+                    'at.potensi_kendala',
+                    'at.catatan_auditor',
+                    'at.pic_rtls',
+                    'at.rtl_submitted_at',
+                    'at.rtl_submitted_by',
+                    'submitter.name as rtl_submitted_by_name',
+                    'roles.name as rtl_submitted_by_role',
                     'at.status as status_temuan',
                     DB::raw("COALESCE(a.objek_pemeriksaan, a.nama_kegiatan, a.objek_audit, a.lokasi, '-') as unit")
                 ])
                 ->where('t.id', $temuanId)
                 ->first();
+                
+            if ($temuan) {
+                $temuan->pic_rtls = json_decode($temuan->pic_rtls, true);
+            }
         }
 
         if (!$temuan) {
@@ -273,8 +294,8 @@ class TindakLanjutController extends Controller
     public function saveRtl(Request $request, $id)
     {
         try {
-            $temuan = \App\Models\ExternalAuditTemuan::findOrFail($id);
-
+            $jenis = $request->query('jenis', 'internal');
+            
             $validated = $request->validate([
                 'langkah_perbaikan' => 'required|string',
                 'target_penyelesaian' => 'required|date',
@@ -287,20 +308,38 @@ class TindakLanjutController extends Controller
                 'catatan_auditor' => 'nullable|string',
             ]);
 
-            // Update temuan with RTL data
-            $temuan->update([
-                'rencana' => $validated['langkah_perbaikan'], // reuse existing 'rencana' as primary field
-                'target_penyelesaian' => $validated['target_penyelesaian'],
-                'prioritas' => $validated['prioritas'],
-                'estimasi_anggaran' => $validated['estimasi_anggaran'] ?? 0,
-                'sdm_dibutuhkan' => $validated['sdm_dibutuhkan'],
-                'sarana_alat' => $validated['sarana_alat'],
-                'potensi_kendala' => $validated['potensi_kendala'],
-                'catatan_auditor' => $validated['catatan_auditor'],
-                'pic_rtls' => $validated['pic_rtls'],
-                'rtl_submitted_at' => now(),
-                'rtl_submitted_by' => Auth::id(),
-            ]);
+            if ($jenis === 'eksternal') {
+                $temuan = \App\Models\ExternalAuditTemuan::findOrFail($id);
+                $temuan->update([
+                    'rencana' => $validated['langkah_perbaikan'],
+                    'target_penyelesaian' => $validated['target_penyelesaian'],
+                    'prioritas' => $validated['prioritas'],
+                    'estimasi_anggaran' => $validated['estimasi_anggaran'] ?? 0,
+                    'sdm_dibutuhkan' => $validated['sdm_dibutuhkan'],
+                    'sarana_alat' => $validated['sarana_alat'],
+                    'potensi_kendala' => $validated['potensi_kendala'],
+                    'catatan_auditor' => $validated['catatan_auditor'],
+                    'pic_rtls' => $validated['pic_rtls'],
+                    'rtl_submitted_at' => now(),
+                    'rtl_submitted_by' => Auth::id(),
+                ]);
+            } else {
+                $temuan = \App\Models\AnalisisTemuan::where('temuan_id', $id)->firstOrFail();
+                $temuan->update([
+                    'rencana_koreksi' => $validated['langkah_perbaikan'],
+                    'target_penyelesaian' => $validated['target_penyelesaian'],
+                    'prioritas' => $validated['prioritas'],
+                    'estimasi_anggaran' => $validated['estimasi_anggaran'] ?? 0,
+                    'sdm_dibutuhkan' => $validated['sdm_dibutuhkan'],
+                    'sarana_alat' => $validated['sarana_alat'],
+                    'potensi_kendala' => $validated['potensi_kendala'],
+                    'catatan_auditor' => $validated['catatan_auditor'],
+                    'pic_rtls' => $validated['pic_rtls'],
+                    'rtl_submitted_at' => now(),
+                    'rtl_submitted_by' => Auth::id(),
+                    'status' => 'Pengisian Tindak Lanjut Temuan',
+                ]);
+            }
 
             // Auto-update parent audit status if it's still in "Pengisian Rencana Tindak Lanjut"
             $audit = $temuan->externalAudit;

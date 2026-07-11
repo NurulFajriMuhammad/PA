@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import apiClient from "../../../../../Shared/api/apiClient";
-import { BsX, BsTrash, BsPencilSquare, BsPlusLg, BsCloudUpload, BsFileEarmarkText, BsWallet2, BsCardChecklist, BsCollection, BsPencil, BsCalendarCheck } from "react-icons/bs";
+import { BsX, BsTrash, BsPencilSquare, BsPlusLg, BsCloudUpload, BsFileEarmarkText, BsWallet2, BsCardChecklist, BsCollection, BsPencil, BsCalendarCheck, BsLock } from "react-icons/bs";
 import { notifySuccess, notifyError, notifyConfirm } from "@shared/utils/notifier.jsx";
 import { useAuth } from "../../../../../Shared/hooks/useAuth.jsx";
 
@@ -71,6 +71,9 @@ const PelaksanaanTab = ({ assurance, onRefresh }) => {
   const userRole = authData?.user?.roles?.[0]?.name || "";
   const isPengendaliTeknis = userRole.toLowerCase() === "pengendali teknis";
   const isAuditor = userRole.toLowerCase() === "auditor" || userRole.toLowerCase() === "administrator audit";
+  const isAssignedAuditor = selectedKka ? Number(authData?.user?.id) === Number(selectedKka.user_id) : false;
+
+  const isAuditClosed = ["selesai", "closed", "close"].includes(String(assurance?.status_label || assurance?.status_pemeriksaan?.nama || "").toLowerCase());
 
   const fetchTransitions = async () => {
     try {
@@ -346,13 +349,25 @@ const PelaksanaanTab = ({ assurance, onRefresh }) => {
     }
   };
 
-  const getSimulatedSeverity = (count) => {
-    if (!count || count <= 0) return "";
-    if (count === 1) return "1 Minor";
-    if (count === 2) return "1 Minor · 1 Observasi";
-    if (count === 3) return "1 Major · 1 Minor · 1 Observasi";
-    if (count === 4) return "1 Major · 2 Minor · 1 Observasi";
-    return `2 Major · ${count - 3} Minor · 1 Observasi`;
+  const getSeveritySummary = (temuanArray) => {
+    if (!temuanArray || temuanArray.length === 0) return "";
+    
+    const counts = {};
+    temuanArray.forEach(t => {
+      const cat = t.kategori || 'Uncategorized';
+      counts[cat] = (counts[cat] || 0) + 1;
+    });
+
+    const summaryParts = [];
+    const order = ['Major', 'Minor', 'Observasi', 'OFI', 'Uncategorized'];
+    
+    order.forEach(cat => {
+      if (counts[cat]) {
+        summaryParts.push(`${counts[cat]} ${cat.toUpperCase()}`);
+      }
+    });
+
+    return summaryParts.join(' · ');
   };
 
   const jenisAkomodasiList = [
@@ -422,8 +437,18 @@ const PelaksanaanTab = ({ assurance, onRefresh }) => {
                     );
                   })}
                   {availableTransitions.length === 0 && (
-                    <span className="text-[10px] font-bold text-rose-500 bg-rose-50 border border-rose-200 px-3 py-1.5 rounded-lg uppercase tracking-wider">
-                      Menunggu checklist dari role berwenang
+                    <span className={`text-[10px] font-black px-3.5 py-2 rounded-lg uppercase tracking-widest border shadow-sm ${
+                      assurance?.status_label === 'Monev'
+                        ? 'text-white bg-amber-500 border-amber-600 shadow-amber-200/50'
+                        : assurance?.status_label === 'Selesai'
+                        ? 'text-white bg-emerald-600 border-emerald-700 shadow-emerald-200/50'
+                        : 'text-white bg-rose-600 border-rose-700 shadow-rose-200/50'
+                    }`}>
+                      {assurance?.status_label === 'Monev' 
+                        ? 'Pengisian Analisis Penyebab' 
+                        : assurance?.status_label === 'Selesai'
+                        ? 'Pemeriksaan Selesai'
+                        : 'Menunggu checklist dari role berwenang'}
                     </span>
                   )}
                 </>
@@ -513,7 +538,7 @@ const PelaksanaanTab = ({ assurance, onRefresh }) => {
                            {item.temuan_count} temuan
                          </span>
                          <span className="block text-[10px] text-slate-400 font-bold mt-1 uppercase tracking-wider whitespace-nowrap">
-                           {getSimulatedSeverity(item.temuan_count)}
+                           {getSeveritySummary(item.temuan)}
                          </span>
                        </div>
                      ) : (
@@ -568,6 +593,7 @@ const PelaksanaanTab = ({ assurance, onRefresh }) => {
 
           <button
             onClick={() => { 
+              if (isAuditClosed) return;
               setEditBiaya(null); 
               setFormBiaya({
                 kka_id: "", 
@@ -581,9 +607,13 @@ const PelaksanaanTab = ({ assurance, onRefresh }) => {
               setBuktiFile(null);
               setShowTambahBiaya(true); 
             }}
-            className="flex items-center justify-center gap-2 px-4.5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-black uppercase tracking-widest rounded-lg transition-all shadow-sm active:scale-95 cursor-pointer"
+            disabled={isAuditClosed}
+            className={`flex items-center justify-center gap-2 px-4.5 py-2.5 text-xs font-black uppercase tracking-widest rounded-lg transition-all shadow-sm active:scale-95 ${
+              isAuditClosed ? "bg-slate-300 text-slate-500 cursor-not-allowed shadow-none" : "bg-slate-900 hover:bg-slate-800 text-white cursor-pointer"
+            }`}
           >
-            <BsPlusLg size={12} strokeWidth={1} /> Input Biaya
+            {isAuditClosed ? <BsLock size={12} strokeWidth={1} /> : <BsPlusLg size={12} strokeWidth={1} />} 
+            {isAuditClosed ? "Terkunci" : "Input Biaya"}
           </button>
         </div>
 
@@ -691,33 +721,37 @@ const PelaksanaanTab = ({ assurance, onRefresh }) => {
                         </td>
                         <td className="py-4 px-4 text-center">
                           <div className="flex justify-center items-center gap-2">
-                            <button
-                              onClick={() => {
-                                setEditBiaya(d);
-                                setFormBiaya({
-                                  kka_id: d.kka_id,
-                                  nama: d.nama,
-                                  jenis_akomodasi: d.jenis_akomodasi,
-                                  nilai_realisasi: d.nilai_realisasi.toString(),
-                                  pelaksana: d.pelaksana || "",
-                                  tgl_realisasi: d.tgl_realisasi || "",
-                                  bukti: d.bukti || ""
-                                });
-                                setBuktiFile(null);
-                                setShowTambahBiaya(true);
-                              }}
-                              className="p-2 bg-slate-800 hover:bg-slate-900 border border-slate-700 text-white rounded-lg transition-all active:scale-95 cursor-pointer inline-flex items-center justify-center"
-                              title="Edit Biaya"
-                            >
-                              <BsPencilSquare size={13} />
-                            </button>
-                            <button
-                              onClick={() => handleDeleteBiaya(d.id)}
-                              className="p-2 bg-slate-800 hover:bg-slate-900 border border-red-900/50 text-red-400 hover:text-red-500 rounded-lg transition-all active:scale-95 cursor-pointer inline-flex items-center justify-center"
-                              title="Hapus Biaya"
-                            >
-                              <BsTrash size={13} />
-                            </button>
+                            {!isAuditClosed && (
+                              <>
+                                <button
+                                  onClick={() => {
+                                    setEditBiaya(d);
+                                    setFormBiaya({
+                                      kka_id: d.kka_id,
+                                      nama: d.nama,
+                                      jenis_akomodasi: d.jenis_akomodasi,
+                                      nilai_realisasi: d.nilai_realisasi.toString(),
+                                      pelaksana: d.pelaksana || "",
+                                      tgl_realisasi: d.tgl_realisasi || "",
+                                      bukti: d.bukti || ""
+                                    });
+                                    setBuktiFile(null);
+                                    setShowTambahBiaya(true);
+                                  }}
+                                  className="p-2 bg-slate-800 hover:bg-slate-900 border border-slate-700 text-white rounded-lg transition-all active:scale-95 cursor-pointer inline-flex items-center justify-center"
+                                  title="Edit Biaya"
+                                >
+                                  <BsPencilSquare size={13} />
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteBiaya(d.id)}
+                                  className="p-2 bg-slate-800 hover:bg-slate-900 border border-red-900/50 text-red-400 hover:text-red-500 rounded-lg transition-all active:scale-95 cursor-pointer inline-flex items-center justify-center"
+                                  title="Hapus Biaya"
+                                >
+                                  <BsTrash size={13} />
+                                </button>
+                              </>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -797,7 +831,7 @@ const PelaksanaanTab = ({ assurance, onRefresh }) => {
 
           <div className="relative bg-white border border-slate-200 rounded-3xl shadow-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col animate-in zoom-in-95 duration-200 text-slate-800">
             
-            <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50 shrink-0">
+            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50 shrink-0">
               <div>
                 <h3 className="font-black text-slate-850 text-[17px] uppercase tracking-tight flex items-center gap-2">
                   <BsFileEarmarkText className="text-blue-600"/> LHE & Temuan — KKA No. {selectedKka?.no_kka}
@@ -812,13 +846,12 @@ const PelaksanaanTab = ({ assurance, onRefresh }) => {
                     LHE Uploaded
                   </span>
                 )}
-                <button onClick={closeModal} className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer" title="Tutup">
+                {/* <button onClick={closeModal} className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer" title="Tutup">
                   <BsX size={26} />
-                </button>
+                </button> */}
               </div>
             </div>
-
-            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+            <div className="flex-1 overflow-y-auto px-6 pb-6 pt-0 space-y-6 mt-0">
               
               {/* --- SECTION UPLOAD LHE --- */}
               <div>
@@ -833,30 +866,53 @@ const PelaksanaanTab = ({ assurance, onRefresh }) => {
                 
                 <div>
                   {existingLhe ? (
-                    <label className="border border-dashed border-emerald-250 bg-emerald-50/10 hover:bg-emerald-50/20 transition-all duration-200 p-6 rounded-2xl flex flex-col items-center justify-center gap-3 cursor-pointer group relative">
-                      <BsFileEarmarkText className="text-emerald-550 text-4xl group-hover:scale-105 transition-transform duration-200" />
-                      <span className="text-[13px] font-black text-emerald-700">LHE Sudah Berhasil Diupload</span>
-                      <div 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                        }}
-                        className="inline-flex items-center gap-2 bg-slate-100 text-slate-700 border border-slate-200 text-xs px-4 py-1.5 font-bold rounded-full shadow-sm hover:bg-slate-200 transition-colors"
-                      >
-                        <BsFileEarmarkText className="text-red-500" />
-                        <a href={`/storage/${existingLhe.file_path}`} target="_blank" rel="noreferrer" className="hover:underline text-slate-805">
-                          {existingLhe.file_name} {existingLhe.file_size ? ` · ${(existingLhe.file_size / 1024 / 1024).toFixed(1)} MB` : ""}
-                        </a>
+                    isAssignedAuditor ? (
+                      <label className="border border-dashed border-emerald-250 bg-emerald-50/10 hover:bg-emerald-50/20 transition-all duration-200 p-6 rounded-2xl flex flex-col items-center justify-center gap-3 cursor-pointer group relative">
+                        <BsFileEarmarkText className="text-emerald-550 text-4xl group-hover:scale-105 transition-transform duration-200" />
+                        <span className="text-[13px] font-black text-emerald-700">LHE Sudah Berhasil Diupload</span>
+                        <div 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                          }}
+                          className="inline-flex items-center gap-2 bg-slate-100 text-slate-700 border border-slate-200 text-xs px-4 py-1.5 font-bold rounded-full shadow-sm hover:bg-slate-200 transition-colors"
+                        >
+                          <BsFileEarmarkText className="text-red-500" />
+                          <a href={`${import.meta.env.VITE_BACKEND_URL}/storage/${existingLhe.file_path}`} target="_blank" rel="noreferrer" className="hover:underline text-slate-805">
+                            {existingLhe.file_name} {existingLhe.file_size ? ` · ${(existingLhe.file_size / 1024 / 1024).toFixed(1)} MB` : ""}
+                          </a>
+                        </div>
+                        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-1">Klik untuk mengganti file · PDF, DOCX maks. 20 MB</span>
+                        <input type="file" className="hidden" onChange={(e) => handleUploadLHEDirectly(e.target.files[0])} />
+                      </label>
+                    ) : (
+                      <div className="border border-emerald-200 bg-emerald-50/30 p-6 rounded-2xl flex flex-col items-center justify-center gap-3">
+                        <BsFileEarmarkText className="text-emerald-500 text-4xl" />
+                        <span className="text-[13px] font-black text-emerald-700">LHE Telah Diupload</span>
+                        <div className="inline-flex items-center gap-2 bg-white text-slate-700 border border-slate-200 text-xs px-4 py-1.5 font-bold rounded-full shadow-sm">
+                          <BsFileEarmarkText className="text-red-500" />
+                          <a href={`${import.meta.env.VITE_BACKEND_URL}/storage/${existingLhe.file_path}`} target="_blank" rel="noreferrer" className="hover:underline text-slate-805">
+                            {existingLhe.file_name} {existingLhe.file_size ? ` · ${(existingLhe.file_size / 1024 / 1024).toFixed(1)} MB` : ""}
+                          </a>
+                        </div>
                       </div>
-                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-1">Klik untuk mengganti file · PDF, DOCX maks. 20 MB</span>
-                      <input type="file" className="hidden" onChange={(e) => handleUploadLHEDirectly(e.target.files[0])} />
-                    </label>
+                    )
                   ) : (
-                    <label className="border-2 border-dashed border-slate-200 bg-slate-50/50 hover:bg-blue-50/5 hover:border-blue-400 transition-all duration-200 p-6 rounded-2xl flex flex-col items-center justify-center gap-3 cursor-pointer group h-[120px]">
-                      <BsCloudUpload className="text-slate-400 group-hover:text-blue-600 text-3xl group-hover:scale-105 transition-transform duration-200" />
-                      <span className="text-[13px] font-bold text-slate-655 group-hover:text-slate-700">Klik untuk memilih file LHE</span>
-                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wide mt-1">PDF, DOCX, XLSX (Maks 20MB)</span>
-                      <input type="file" className="hidden" onChange={(e) => handleUploadLHEDirectly(e.target.files[0])} />
-                    </label>
+                    isAssignedAuditor && !isAuditClosed ? (
+                      <label className="border-2 border-dashed border-slate-200 bg-slate-50/50 hover:bg-blue-50 hover:border-blue-400 transition-all duration-300 p-8 rounded-2xl flex flex-col items-center justify-center gap-3 cursor-pointer group min-h-[160px]">
+                        <BsCloudUpload className="text-slate-300 group-hover:text-blue-500 text-5xl group-hover:animate-bounce transition-colors duration-300 mb-2" />
+                        <div className="flex flex-col items-center gap-1.5">
+                          <span className="text-sm font-black text-slate-500 group-hover:text-blue-700 transition-colors">Klik untuk memilih file LHE</span>
+                          <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest bg-slate-100 px-3 py-1 rounded-md group-hover:bg-blue-100 group-hover:text-blue-600 transition-colors">PDF, DOCX, XLSX (Maks 20MB)</span>
+                        </div>
+                        <input type="file" className="hidden" onChange={(e) => handleUploadLHEDirectly(e.target.files[0])} />
+                      </label>
+                    ) : (
+                      <div className="border-2 border-dashed border-slate-200 bg-slate-50 p-6 rounded-2xl flex flex-col items-center justify-center gap-3 h-[120px]">
+                        <BsFileEarmarkText className="text-slate-300 text-3xl" />
+                        <span className="text-[13px] font-bold text-slate-500">Belum ada file LHE</span>
+                        <span className="text-[10px] text-slate-400 font-bold mt-1">Menunggu Auditor Pelaksana mengunggah file LHE</span>
+                      </div>
+                    )
                   )}
                 </div>
 
@@ -897,7 +953,7 @@ const PelaksanaanTab = ({ assurance, onRefresh }) => {
                       </div>
                     )}
 
-                    {isPengendaliTeknis && (
+                    {isPengendaliTeknis && (!selectedKka?.lhe_status || selectedKka?.lhe_status === 'menunggu_review') && !isAuditClosed && (
                       <div className="flex flex-col gap-2.5 border-t border-slate-200/60 pt-3.5 mt-1">
                         <textarea
                           placeholder="Tulis catatan review LHE di sini (Catatan wajib diisi jika meminta revisi)..."
@@ -969,17 +1025,19 @@ const PelaksanaanTab = ({ assurance, onRefresh }) => {
                   <span className="flex items-center gap-2">
                     <BsCardChecklist className="text-blue-600" size={14}/> Daftar Temuan KKA
                   </span>
-                  <button
-                    onClick={() => {
-                      setEditTemuan(null);
-                      resetFormTemuan();
-                      setExistingLampiran(null);
-                      setShowTambahTemuan(true);
-                    }}
-                    className="flex items-center justify-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-black uppercase tracking-widest rounded-lg transition-all active:scale-95 cursor-pointer shadow-md shadow-blue-500/10"
-                  >
-                    <BsPlusLg size={10}/> Tambah temuan
-                  </button>
+                  {isAssignedAuditor && !isAuditClosed && (
+                    <button
+                      onClick={() => {
+                        setEditTemuan(null);
+                        resetFormTemuan();
+                        setExistingLampiran(null);
+                        setShowTambahTemuan(true);
+                      }}
+                      className="flex items-center justify-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-black uppercase tracking-widest rounded-lg transition-all active:scale-95 cursor-pointer shadow-md shadow-blue-500/10"
+                    >
+                      <BsPlusLg size={10}/> Tambah temuan
+                    </button>
+                  )}
                 </div>
 
                 <div className="border border-slate-200 rounded-2xl overflow-hidden bg-white shadow-md">
@@ -1020,49 +1078,63 @@ const PelaksanaanTab = ({ assurance, onRefresh }) => {
                           </td>
                           <td className="py-3 px-3 text-center">
                             <div className="flex justify-center gap-2">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setEditTemuan(t);
-                                  setFormTemuan({ ...t, lampiran: null });
-                                  setExistingLampiran(t.lampiran);
-                                  setShowTambahTemuan(true);
-                                }}
-                                className="p-1.5 border border-slate-200 hover:bg-slate-50 text-slate-650 hover:text-blue-600 rounded-lg transition-colors cursor-pointer"
-                                title="Edit Temuan"
-                              >
-                                <BsPencil size={12} />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleDeleteTemuan(t.id)}
-                                className="p-1.5 border border-red-105 hover:bg-red-50 text-red-500 rounded-lg transition-colors cursor-pointer"
-                                title="Hapus Temuan"
-                              >
-                                <BsTrash size={12} />
-                              </button>
+                              {isAssignedAuditor && !isAuditClosed ? (
+                                <>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setEditTemuan(t);
+                                      setFormTemuan({ ...t, lampiran: null });
+                                      setExistingLampiran(t.lampiran);
+                                      setShowTambahTemuan(true);
+                                    }}
+                                    className="p-1.5 border border-slate-200 hover:bg-slate-50 text-slate-650 hover:text-blue-600 rounded-lg transition-colors cursor-pointer"
+                                    title="Edit Temuan"
+                                  >
+                                    <BsPencil size={12} />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteTemuan(t.id)}
+                                    className="p-1.5 border border-red-105 hover:bg-red-50 text-red-500 rounded-lg transition-colors cursor-pointer"
+                                    title="Hapus Temuan"
+                                  >
+                                    <BsTrash size={12} />
+                                  </button>
+                                </>
+                              ) : (
+                                <span className="text-slate-400 font-bold text-xs">—</span>
+                              )}
                             </div>
                           </td>
                         </tr>
                       ))}
                       
-                      <tr className="hover:bg-slate-50/50 transition-colors">
-                        <td className="py-3 px-3 text-center text-slate-300 font-mono text-[11px] font-bold bg-slate-50/30 border-r border-slate-200/50">+</td>
-                        <td className="py-3 px-3 text-center border-r border-slate-200/50 text-xs text-slate-300">—</td>
-                        <td colSpan={4} className="py-3 px-4 text-slate-400 font-bold italic text-xs leading-relaxed">
-                          Belum ada temuan lain — klik Tambah Temuan
-                        </td>
-                      </tr>
+                      {isAssignedAuditor ? (
+                        <tr className="hover:bg-slate-50/50 transition-colors">
+                          <td className="py-3 px-3 text-center text-slate-300 font-mono text-[11px] font-bold bg-slate-50/30 border-r border-slate-200/50">+</td>
+                          <td className="py-3 px-3 text-center border-r border-slate-200/50 text-xs text-slate-300">—</td>
+                          <td colSpan={4} className="py-3 px-4 text-slate-400 font-bold italic text-xs leading-relaxed">
+                            Belum ada temuan lain — klik Tambah Temuan
+                          </td>
+                        </tr>
+                      ) : temuan.length === 0 && (
+                        <tr>
+                          <td colSpan={6} className="py-8 text-center text-slate-400 font-bold italic text-[11px] leading-relaxed uppercase tracking-wider">
+                            Belum ada temuan yang diinput oleh Auditor Pelaksana
+                          </td>
+                        </tr>
+                      )}
                     </tbody>
                   </table>
                 </div>
               </div>
             </div>
 
-            <div className="p-4 border-t border-slate-100 bg-slate-50/30 shrink-0 mt-4">
+            <div className="p-4 border-t border-slate-100 bg-slate-50/30 shrink-0 mt-1">
               <button 
                 onClick={closeModal} 
-                className="w-full py-3.5 bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-600 text-xs font-black uppercase tracking-widest rounded-xl transition-all active:scale-[0.99] cursor-pointer"
+                className="w-full py-3.5 bg-rose-600 hover:bg-rose-700 border border-rose-700 text-white text-xs font-black uppercase tracking-widest rounded-xl transition-all active:scale-[0.99] cursor-pointer shadow-md shadow-rose-200"
               >
                 Tutup Halaman LHE & Temuan
               </button>
